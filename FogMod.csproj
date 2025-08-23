@@ -1,0 +1,61 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <OutputType>Library</OutputType>
+    <AssemblyName>FogMod</AssemblyName>
+    <RootNamespace>FogMod</RootNamespace>
+    <Version>1.0.0</Version>
+    <Authors>jakeetaylor</Authors>
+    <Company>jakeetaylor</Company>
+    <Product>Fog Mod</Product>
+    <Description>A mod that adds fog effects to Stardew Valley</Description>
+    <Copyright>Copyright © 2024</Copyright>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <PlatformTarget>x64</PlatformTarget>
+    <Platforms>x64</Platforms>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="0Harmony">
+      <HintPath>/Users/jakeetaylor/Library/Application Support/Steam/steamapps/common/Stardew Valley/Contents/MacOS/smapi-internal/0Harmony.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="SMAPI">
+      <HintPath>/Users/jakeetaylor/Library/Application Support/Steam/steamapps/common/Stardew Valley/Contents/MacOS/StardewModdingAPI.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="SMAPI.Toolkit.CoreInterfaces">
+      <HintPath>/Users/jakeetaylor/Library/Application Support/Steam/steamapps/common/Stardew Valley/Contents/MacOS/smapi-internal/SMAPI.Toolkit.CoreInterfaces.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="Stardew Valley">
+      <HintPath>/Users/jakeetaylor/Library/Application Support/Steam/steamapps/common/Stardew Valley/Contents/MacOS/Stardew Valley.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="Microsoft.Xna.Framework">
+      <HintPath>/Users/jakeetaylor/Library/Application Support/Steam/steamapps/common/Stardew Valley/Contents/MacOS/MonoGame.Framework.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="Microsoft.Xna.Framework.Graphics">
+      <HintPath>/Users/jakeetaylor/Library/Application Support/Steam/steamapps/common/Stardew Valley/Contents/MacOS/MonoGame.Framework.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="xTile">
+      <HintPath>/Users/jakeetaylor/Library/Application Support/Steam/steamapps/common/Stardew Valley/Contents/MacOS/xTile.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+  </ItemGroup>
+
+  
+
+  <ItemGroup>
+    <Content Include="manifest.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="assets\**">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+</Project> 

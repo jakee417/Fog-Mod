@@ -1,0 +1,24 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.5.2.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FogMod", "FogMod.csproj", "{B5EE2554-2DB5-AC3C-E165-177E1EBC54EF}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{B5EE2554-2DB5-AC3C-E165-177E1EBC54EF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B5EE2554-2DB5-AC3C-E165-177E1EBC54EF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B5EE2554-2DB5-AC3C-E165-177E1EBC54EF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B5EE2554-2DB5-AC3C-E165-177E1EBC54EF}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {EF4B0686-3240-4366-95F2-43B7AE1299D0}
+	EndGlobalSection
+EndGlobal

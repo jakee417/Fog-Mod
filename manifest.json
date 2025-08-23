@@ -1,0 +1,17 @@
+{
+    "Name": "Fog Mod",
+    "Author": "jakeetaylor",
+    "Version": "1.0.0",
+    "Description": "A mod that adds fog effects to Stardew Valley",
+    "UniqueID": "jakeetaylor.FogMod",
+    "EntryDll": "FogMod.dll",
+    "MinimumApiVersion": "3.0.0",
+    "UpdateKeys": [],
+    "Dependencies": [
+        {
+            "UniqueID": "spacechase0.GenericModConfigMenu",
+            "MinimumVersion": "1.0.0",
+            "IsRequired": false
+        }
+    ]
+}
