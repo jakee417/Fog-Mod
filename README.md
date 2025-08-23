@@ -2,6 +2,8 @@
 
 A mod that adds atmospheric fog effects to Stardew Valley, making the game world feel more immersive and mysterious.
 
+<img src="demo/demo_image.png" alt="A foggy day at the lake" width="480"/>
+
 ## Installation
 
 1. Install [SMAPI](https://smapi.io/)
@@ -31,3 +33,17 @@ A mod that adds atmospheric fog effects to Stardew Valley, making the game world
 ## License
 
 This mod is provided as-is for personal use. Please respect the original game's terms of service.
+
+## Demo
+
+<img src="demo/beach_demo.gif" alt="A foggy day at the beach" width="480"/>
+
+A foggy day at the beach.
+
+<img src="demo/bomb_demo.gif" alt="A foggy day in the caves" width="480"/>
+
+Foggin' up the caves.
+
+<img src="demo/light_demo.gif" alt="A foggy day in the caves" width="480"/>
+
+Running through the nighttime fog.
