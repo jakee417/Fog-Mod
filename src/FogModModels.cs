@@ -38,10 +38,10 @@ namespace FogMod
 
         private struct ExplosionFlashInfo
         {
+            public string LocationName;
             public Vector2 CenterWorld;
             public float RadiusPixels;
             public float TimeLeft;
-            public GameLocation Location;
         }
 
         private struct LightInfo

@@ -39,7 +39,7 @@ namespace FogMod
         public override void Entry(IModHelper helper)
         {
             // Test log that should definitely appear
-            Monitor.Log("🔥 FOG MOD IS LOADING! 🔥", LogLevel.Alert);
+            Monitor.Log($"🌫️ Fog Mod (v{this.ModManifest.Version}) is loading! 🌫️", LogLevel.Alert);
 
             // Initialize random number generator
             random = new Random();
@@ -235,19 +235,19 @@ namespace FogMod
         {
             try
             {
-                if (e.FromModID != this.ModManifest.UniqueID)
-                    return;
-                if (e.Type != "Explosion")
-                    return;
-                if (Context.IsMainPlayer)
-                    return;
-
-                var data = e.ReadAs<ExplosionFlashInfo?>();
-
-                if (data != null && data?.Location == Game1.currentLocation && data?.CenterWorld != null && data?.RadiusPixels > 0)
-                    HandleExplosion(data?.CenterWorld ?? Vector2.Zero, data?.RadiusPixels ?? 0);
+                if (e.Type == ExplosionMessageType)
+                {
+                    if (Context.IsMainPlayer)
+                        return;
+                    var data = e.ReadAs<ExplosionFlashInfo>();
+                    if (data.LocationName == Game1.currentLocation?.NameOrUniqueName)
+                        HandleExplosion(data.LocationName, data.CenterWorld, data.RadiusPixels);
+                }
             }
-            catch { }
+            catch
+            {
+                FogMod.Instance.Monitor.Log($"OnModMessageReceived failed - FromModID: {e.FromModID}, Type: {e.Type}, ThisModID: {this.ModManifest.UniqueID}, IsMainPlayer: {Context.IsMainPlayer}", LogLevel.Error);
+            }
         }
 
         public class ModConfig

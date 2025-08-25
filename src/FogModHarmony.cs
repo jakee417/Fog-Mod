@@ -15,27 +15,40 @@ namespace FogMod
                 if (FogMod.Instance == null) return;
                 Vector2 center = tileLocation * 64f + new Vector2(32f, 32f);
                 float radiusPx = Math.Max(64f, radius * 64f * 2f);
-                FogMod.Instance.HandleExplosion(center, radiusPx);
+                string location = __instance?.NameOrUniqueName ?? "Unknown";
+                FogMod.Instance.HandleExplosion(location, center, radiusPx);
             }
-            catch { }
+            catch
+            {
+                FogMod.Instance.Monitor.Log($"OnBombExplodedPostfix failed - IsMainPlayer: {Context.IsMainPlayer}, Location: {__instance?.Name}", LogLevel.Error);
+            }
         }
 
-        private void HandleExplosion(Vector2 center, float radiusPx)
+        private void HandleExplosion(string location, Vector2 center, float radiusPx)
         {
-            FogMod.Instance.explosionFlashInfos.Add(new ExplosionFlashInfo { CenterWorld = center, RadiusPixels = radiusPx, TimeLeft = ExplosionFlashDurationSeconds });
+            ExplosionFlashInfo info = new()
+            {
+                LocationName = location,
+                CenterWorld = center,
+                RadiusPixels = radiusPx,
+                TimeLeft = ExplosionFlashDurationSeconds
+            };
+            FogMod.Instance.explosionFlashInfos.Add(info);
             FogMod.Instance.SpawnExplosionSmoke(center, radiusPx);
             if (Context.IsMainPlayer)
-                FogMod.Instance.BroadcastExplosion(center, radiusPx);
+                FogMod.Instance.BroadcastExplosion(info);
         }
 
-        private void BroadcastExplosion(Vector2 centerWorld, float radiusPixels)
+        private void BroadcastExplosion(ExplosionFlashInfo msg)
         {
             try
             {
-                var msg = new ExplosionFlashInfo { CenterWorld = centerWorld, RadiusPixels = radiusPixels, TimeLeft = ExplosionFlashDurationSeconds, Location = Game1.currentLocation };
-                Helper.Multiplayer.SendMessage(msg, "Explosion", new[] { this.ModManifest.UniqueID });
+                Helper.Multiplayer.SendMessage(msg, ExplosionMessageType);
             }
-            catch { }
+            catch (Exception ex)
+            {
+                Monitor.Log($"🚀 Error broadcasting explosion: {ex.Message}", LogLevel.Error);
+            }
         }
 
         private static void ProceedToNextScenePrefix(TV __instance, out int __state)
