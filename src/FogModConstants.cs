@@ -25,6 +25,7 @@ namespace FogMod
         private const float BreathDesync = 0.5f;
         private const float ExplosionFlashDurationSeconds = 0.75f;
         private const string ExplosionMessageType = "Explosion";
+        private const string GrouseFlushMessageType = "GrouseFlush";
         private const int MaximumSmokeParticlesPerCell = 10;
         private const float SmokeFadeInSeconds = 0.8f;
         private const float SmokeSpeed = 3.5f;

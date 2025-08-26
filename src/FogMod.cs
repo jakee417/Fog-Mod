@@ -37,6 +37,7 @@ namespace FogMod
         private GameLocation currentLocation = null;
         private List<Grouse> grouse = new List<Grouse>();
         private HashSet<Vector2> spawnedTreePositions = new HashSet<Vector2>();
+        private int nextGrouseId = 1;
 
         public override void Entry(IModHelper helper)
         {
@@ -258,6 +259,14 @@ namespace FogMod
                     if (data.LocationName == Game1.currentLocation?.NameOrUniqueName)
                         HandleExplosion(data.LocationName, data.CenterWorld, data.RadiusPixels);
                 }
+                else if (e.Type == GrouseFlushMessageType)
+                {
+                    if (Context.IsMainPlayer)
+                        return;
+                    var data = e.ReadAs<GrouseFlushInfo>();
+                    if (data.LocationName == Game1.currentLocation?.NameOrUniqueName)
+                        HandleGrouseFlushFromMessage(data);
+                }
             }
             catch
             {
@@ -276,7 +285,7 @@ namespace FogMod
             public bool DebugLightRings { get; set; } = false;
             public bool DebugFogCells { get; set; } = false;
             public bool DebugFogBlack { get; set; } = false;
-            
+
             // Experimental Features
             public bool EnableGrouseCritters { get; set; } = false;
         }

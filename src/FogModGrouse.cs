@@ -14,23 +14,87 @@ namespace FogMod
         {
             grouse.Clear();
             spawnedTreePositions.Clear();
+            nextGrouseId = 1; // Reset ID counter
+        }
+
+        // Multiplayer synchronization methods
+        private void HandleGrouseFlushFromMessage(GrouseFlushInfo flushInfo)
+        {
+            // Find grouse at the specified tree position and force flush it
+            for (int i = 0; i < grouse.Count; i++)
+            {
+                var g = grouse[i];
+                if (Vector2.Distance(g.TreePosition, flushInfo.TreePosition) < 32f && g.State == GrouseState.Perched)
+                {
+                    // Force flush this grouse to synchronize with other players
+                    g.State = GrouseState.Flushing;
+                    g.StateTimer = 0f;
+                    g.Velocity = Vector2.Zero;
+                    g.HasPlayedFlushSound = true; // Don't play sound again since host already sent message
+                    g.LastFlappingSoundTime = 0f;
+
+                    // Use deterministic facing direction based on tree position
+                    g.FacingLeft = DeterministicBool(g.TreePosition, 0);
+
+                    grouse[i] = g;
+                    break;
+                }
+            }
+        }
+
+        private void SendGrouseFlushMessage(Vector2 treePosition)
+        {
+            if (!Context.IsMainPlayer) return;
+
+            var flushInfo = new GrouseFlushInfo
+            {
+                LocationName = Game1.currentLocation?.NameOrUniqueName,
+                TreePosition = treePosition,
+                Timestamp = Game1.currentGameTime.TotalGameTime.Ticks
+            };
+
+            Helper.Multiplayer.SendMessage(flushInfo, GrouseFlushMessageType);
+        }
+
+        // Generate deterministic random values based on position and seed
+        private bool DeterministicBool(Vector2 position, int variant)
+        {
+            int seed = (int)(position.X * 1000 + position.Y * 1000 + variant);
+            var rng = new Random(seed);
+            return rng.NextDouble() < 0.5;
+        }
+
+        private float DeterministicFloat(Vector2 position, int variant, float min = 0f, float max = 1f)
+        {
+            int seed = (int)(position.X * 1000 + position.Y * 1000 + variant);
+            var rng = new Random(seed);
+            return min + (float)rng.NextDouble() * (max - min);
         }
 
         private void SpawnGrouseInTrees()
         {
+            // Only the host should decide when to spawn grouse
+            if (!Context.IsMainPlayer)
+                return;
+
             if (Game1.currentLocation == null || grouse.Count >= GrouseMaxPerLocation)
                 return;
 
             // Get all tree positions that don't already have grouse
             var availableTrees = GetAvailableTreePositions();
 
-            // Randomly spawn grouse in some trees
+            // Use deterministic spawning based on location and day
+            string locationSeed = Game1.currentLocation.NameOrUniqueName ?? "Unknown";
+            int daySeed = (int)Game1.stats.DaysPlayed;
+            var locationRng = new Random(locationSeed.GetHashCode() ^ daySeed);
+
+            // Randomly spawn grouse in some trees using deterministic random
             foreach (var treePos in availableTrees)
             {
                 if (grouse.Count >= GrouseMaxPerLocation)
                     break;
 
-                if (random.NextDouble() < GrouseSpawnChance)
+                if (locationRng.NextDouble() < GrouseSpawnChance)
                 {
                     SpawnGrouseAtTree(treePos);
                 }
@@ -63,6 +127,7 @@ namespace FogMod
         {
             var newGrouse = new Grouse
             {
+                GrouseId = nextGrouseId++,
                 Position = treePosition + new Vector2(32f, -32f), // Offset to sit in tree canopy
                 TreePosition = treePosition,
                 Velocity = Vector2.Zero,
@@ -71,9 +136,9 @@ namespace FogMod
                 Scale = GrouseScale,
                 Rotation = 0f,
                 FlightHeight = 0f,
-                FacingLeft = random.NextDouble() < 0.5,
+                FacingLeft = DeterministicBool(treePosition, 1), // Deterministic facing direction
                 FlightTimer = 0f,
-                TotalFlightTime = GrouseFlyingDuration + (float)(random.NextDouble() * 4f - 2f), // Add some variation
+                TotalFlightTime = GrouseFlyingDuration + DeterministicFloat(treePosition, 2, -2f, 2f), // Deterministic variation
                 HasPlayedFlushSound = false,
                 LastFlappingSoundTime = 0f
             };
@@ -138,7 +203,7 @@ namespace FogMod
 
                 // Start with minimal velocity - the bird will build momentum during flush
                 g.Velocity = Vector2.Zero;
-                g.FacingLeft = g.Position.X > playerPos.X; // Face away from player
+                g.FacingLeft = DeterministicBool(g.TreePosition, 3); // Use deterministic facing for consistency
 
                 // Play the initial flush sound
                 if (!g.HasPlayedFlushSound)
@@ -146,6 +211,9 @@ namespace FogMod
                     Game1.playSound("crow");  // Using crow sound as it's similar to a bird cry
                     g.HasPlayedFlushSound = true;
                     g.LastFlappingSoundTime = 0f;
+
+                    // Send multiplayer message to synchronize flush across all players
+                    SendGrouseFlushMessage(g.TreePosition);
                 }
             }
         }
@@ -228,8 +296,8 @@ namespace FogMod
                     // Final phase: choose direction and accelerate away (0.6 seconds)
                     if (flushProgress >= 0.8f && flushProgress < 0.85f)
                     {
-                        // Pick random direction for exit
-                        float randomDirection = (float)(random.NextDouble() * MathHelper.TwoPi);
+                        // Pick deterministic direction for exit based on tree position
+                        float randomDirection = DeterministicFloat(g.TreePosition, 4, 0f, MathHelper.TwoPi);
                         g.Velocity = new Vector2(
                             (float)Math.Cos(randomDirection) * GrouseFlushSpeed * 0.8f,
                             (float)Math.Sin(randomDirection) * GrouseFlushSpeed * 0.5f - 15f
@@ -255,9 +323,13 @@ namespace FogMod
             g.FlightHeight = bobAmount;
 
             // Reduce frequency of direction changes and make them more gradual
-            if (random.NextDouble() < 0.005f) // 0.5% chance per frame to change direction (reduced from 2%)
+            // Use deterministic timing based on grouse ID and flight time
+            float changeThreshold = 0.005f;
+            int timeSeed = (int)(g.FlightTimer * 100) + g.GrouseId * 1000;
+            var flightRng = new Random(timeSeed);
+            if (flightRng.NextDouble() < changeThreshold)
             {
-                float newAngle = (float)(random.NextDouble() * MathHelper.TwoPi);
+                float newAngle = DeterministicFloat(g.TreePosition, (int)(g.FlightTimer * 10), 0f, MathHelper.TwoPi);
                 Vector2 newVelocity = new Vector2(
                     (float)Math.Cos(newAngle) * GrouseFlyingSpeed,
                     (float)Math.Sin(newAngle) * GrouseFlyingSpeed * 0.3f

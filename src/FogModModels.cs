@@ -50,8 +50,16 @@ namespace FogMod
             public float RadiusPixels;
         }
 
+        private struct GrouseFlushInfo
+        {
+            public string LocationName;
+            public Vector2 TreePosition;
+            public long Timestamp; // Game time for synchronization
+        }
+
         private class Grouse
         {
+            public int GrouseId { get; set; } // Unique identifier for multiplayer sync
             public Vector2 Position { get; set; }
             public Vector2 Velocity { get; set; }
             public Vector2 TreePosition { get; set; }
