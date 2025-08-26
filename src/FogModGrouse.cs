@@ -374,8 +374,19 @@ namespace FogMod
 
         private void UpdateGrouseExiting(Grouse g, float deltaSeconds)
         {
-            // Continue wing flapping but reduce rotation as it exits
-            g.Rotation = (float)Math.Sin(g.StateTimer * 6f) * 0.1f;
+            // Maintain faster wing flapping during exit for more dynamic appearance
+            g.Rotation = (float)Math.Sin(g.StateTimer * 12f) * 0.2f;
+
+            // Ensure the grouse maintains good exit speed
+            float currentSpeed = g.Velocity.Length();
+            if (currentSpeed < GrouseExitSpeed * 0.8f)
+            {
+                // Boost speed if it's getting too slow
+                g.Velocity = Vector2.Normalize(g.Velocity) * GrouseExitSpeed;
+            }
+
+            // Optional: Add slight acceleration as it exits for more dramatic effect
+            g.Velocity *= 1.01f; // Gradually accelerate by 1% per frame
         }
 
         private bool IsGrouseOffScreen(Grouse g)
@@ -458,6 +469,15 @@ namespace FogMod
             {
                 float flushProgress = g.StateTimer / GrouseFlushDuration;
                 float wingExpansion = (float)Math.Sin(g.StateTimer * MathHelper.Lerp(25f, 40f, flushProgress)) * 4f + 4f;
+                wingRect.Width = (int)(12 + wingExpansion);
+                wingRect.Height = (int)(6 + wingExpansion / 2f);
+                wingRect.X = grouseRect.X + (g.FacingLeft ? (int)(3 - wingExpansion / 2f) : (int)(9 - wingExpansion / 2f));
+                wingRect.Y = grouseRect.Y + (int)(2 - wingExpansion / 4f);
+            }
+            else if (g.State == GrouseState.Exiting)
+            {
+                // During exiting, also show dynamic wing beating for speed impression
+                float wingExpansion = (float)Math.Sin(g.StateTimer * 12f) * 3f + 3f;
                 wingRect.Width = (int)(12 + wingExpansion);
                 wingRect.Height = (int)(6 + wingExpansion / 2f);
                 wingRect.X = grouseRect.X + (g.FacingLeft ? (int)(3 - wingExpansion / 2f) : (int)(9 - wingExpansion / 2f));
