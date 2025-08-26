@@ -58,6 +58,7 @@ namespace FogMod
             helper.Events.Display.Rendered += OnRendered;
             helper.Events.GameLoop.DayStarted += OnDayStarted;
             helper.Events.Multiplayer.ModMessageReceived += OnModMessageReceived;
+            helper.Events.Input.ButtonPressed += OnButtonPressed;
 
             // Harmony patches
             Instance = this;
@@ -283,6 +284,33 @@ namespace FogMod
             catch
             {
                 FogMod.Instance.Monitor.Log($"OnModMessageReceived failed - FromModID: {e.FromModID}, Type: {e.Type}, ThisModID: {this.ModManifest.UniqueID}, IsMainPlayer: {Context.IsMainPlayer}", LogLevel.Error);
+            }
+        }
+
+        private void OnButtonPressed(object sender, ButtonPressedEventArgs e)
+        {
+            // Debug hotkey: G to spawn grouse at player location
+            if (e.Button == SButton.G && Context.IsPlayerFree && config.EnableGrouseCritters)
+            {
+                try
+                {
+                    Vector2 playerPosition = Game1.player.getStandingPosition();
+
+                    // Only main player can spawn grouse to avoid duplicates
+                    if (Context.IsMainPlayer)
+                    {
+                        // Spawn grouse slightly offset from player position
+                        Vector2 spawnPosition = playerPosition + new Vector2(64f, -64f);
+                        SpawnGrouseAtTree(spawnPosition);
+
+                        Monitor.Log($"Debug: Spawned grouse at {spawnPosition}", LogLevel.Info);
+                        Game1.addHUDMessage(new HUDMessage("Debug: Grouse spawned!", 2));
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Monitor.Log($"Failed to spawn debug grouse: {ex.Message}", LogLevel.Error);
+                }
             }
         }
 
