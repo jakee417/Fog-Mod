@@ -35,6 +35,8 @@ namespace FogMod
         private float dailyFogStrength = 0f;
         private float lastWeatherFogIntensityFactor = 1f;
         private GameLocation currentLocation = null;
+        private List<Grouse> grouse = new List<Grouse>();
+        private HashSet<Vector2> spawnedTreePositions = new HashSet<Vector2>();
 
         public override void Entry(IModHelper helper)
         {
@@ -203,12 +205,21 @@ namespace FogMod
             if (isFogDay && Game1.currentLocation != null && Game1.currentLocation.IsOutdoors)
                 UpdateFloatingFogParticles(deltaSeconds);
             UpdateExplosionFlashInfos(deltaSeconds);
+
+            // Update grouse
+            if (config.EnableGrouseCritters && Game1.currentLocation != null && Game1.currentLocation.IsOutdoors)
+            {
+                UpdateGrouse(deltaSeconds);
+                SpawnGrouseInTrees();
+            }
         }
 
         private void ResetAllParticlesOnLocationChange()
         {
             ResetFogParticles();
             ResetExplosionSmokeParticles();
+            if (config.EnableGrouseCritters)
+                ResetGrouse();
         }
 
         private void OnRendered(object sender, RenderedEventArgs e)
@@ -229,6 +240,10 @@ namespace FogMod
             DrawExplosionSmokeParticles(e.SpriteBatch, fogColor);
             if (isFogDay && Game1.currentLocation != null && Game1.currentLocation.IsOutdoors)
                 DrawFloatingFogParticles(e.SpriteBatch, fogColor);
+
+            // Draw grouse
+            if (config.EnableGrouseCritters && Game1.currentLocation != null && Game1.currentLocation.IsOutdoors)
+                DrawGrouse(e.SpriteBatch);
         }
 
         private void OnModMessageReceived(object sender, ModMessageReceivedEventArgs e)
@@ -261,6 +276,9 @@ namespace FogMod
             public bool DebugLightRings { get; set; } = false;
             public bool DebugFogCells { get; set; } = false;
             public bool DebugFogBlack { get; set; } = false;
+            
+            // Experimental Features
+            public bool EnableGrouseCritters { get; set; } = false;
         }
     }
 }

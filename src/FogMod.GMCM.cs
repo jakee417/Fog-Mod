@@ -105,6 +105,21 @@ namespace FogMod
                     () => "Override fog color to solid black for debugging"
                 );
 
+                // Experimental Features Section
+                configMenu.AddSectionTitle(
+                    ModManifest,
+                    () => "Experimental Features",
+                    () => "Warning: These features are experimental and may be unstable or change in future updates."
+                );
+
+                configMenu.AddBoolOption(
+                    ModManifest,
+                    () => config.EnableGrouseCritters,
+                    value => config.EnableGrouseCritters = value,
+                    () => "Enable Grouse Critters",
+                    () => "Spawn grouse birds in trees that flush when you get close. Requires restart to take full effect."
+                );
+
                 configMenu.AddBoolOption(
                     ModManifest,
                     () => config.DebugShowInfo,

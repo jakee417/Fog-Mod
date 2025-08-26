@@ -3,6 +3,7 @@ using Microsoft.Xna.Framework.Graphics;
 using StardewModdingAPI;
 using StardewValley;
 using System;
+using System.Linq;
 
 namespace FogMod
 {
@@ -92,13 +93,23 @@ namespace FogMod
             // cloud count, etc.
             string cloudCountText = $"Clouds: {floatingParticles?.Count ?? 0}";
             string smokeCountText = $"Smoke: {explosionSmokeParticles?.Count ?? 0}";
+            
+            string grouseInfo = "";
+            if (config.EnableGrouseCritters)
+            {
+                string grouseCountText = $"Grouse: {grouse?.Count ?? 0}";
+                int flyingGrouse = grouse?.Where(g => g.State != GrouseState.Perched).Count() ?? 0;
+                string flyingGrouseText = $"Flying grouse: {flyingGrouse}";
+                grouseInfo = $"\n{grouseCountText}\n{flyingGrouseText}";
+            }
+            
             string timeOfDayMultiplierText = $"Time of day multiplier: {ComputeTimeOfDayOpacityMultiplier():F2}";
             string weatherMultiplierText = $"Weather multiplier: {lastWeatherFogIntensityFactor:F2}";
             string dailyFogMultiplierText = $"Daily fog multiplier: {dailyFogStrength:F2}";
             string locationText = $"Location: {Game1.currentLocation?.NameOrUniqueName ?? "None"}";
             string fogGridSizeText = $"Fog grid size: {grid.ExtCols}x{grid.ExtRows} = {grid.ExtCols * grid.ExtRows}";
             string fogDayText = $"Fog day: {isFogDay} w/ prob {probabilityOfFogRoll:F2} <? {probabilityOfFogForADay:F2}";
-            string text = $"{fogDayText}\n{fogGridSizeText}\n{cloudCountText}\n{smokeCountText}\n{dailyFogMultiplierText}\n{timeOfDayMultiplierText}\n{weatherMultiplierText}\n{locationText}";
+            string text = $"{fogDayText}\n{fogGridSizeText}\n{cloudCountText}\n{smokeCountText}{grouseInfo}\n{dailyFogMultiplierText}\n{timeOfDayMultiplierText}\n{weatherMultiplierText}\n{locationText}";
             var font = Game1.smallFont;
             int margin = 8;
             // Put text in upper-left corner
