@@ -15,6 +15,7 @@ namespace FogMod
             grouse.Clear();
             spawnedTreePositions.Clear();
             nextGrouseId = 1; // Reset ID counter
+            lastPlayerLocation = ""; // Reset location tracking
         }
 
         // Multiplayer synchronization methods
@@ -79,6 +80,17 @@ namespace FogMod
 
             if (Game1.currentLocation == null || grouse.Count >= GrouseMaxPerLocation)
                 return;
+
+            // Check if location changed to warrant new spawns
+            string currentLocationName = Game1.currentLocation.NameOrUniqueName ?? "Unknown";
+            bool locationChanged = currentLocationName != lastPlayerLocation;
+
+            // Only spawn if location changed
+            if (!locationChanged && lastPlayerLocation != "")
+                return;
+
+            // Update tracking variables
+            lastPlayerLocation = currentLocationName;
 
             // Get all tree positions that don't already have grouse
             var availableTrees = GetAvailableTreePositions();

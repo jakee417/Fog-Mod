@@ -38,6 +38,7 @@ namespace FogMod
         private List<Grouse> grouse = new List<Grouse>();
         private HashSet<Vector2> spawnedTreePositions = new HashSet<Vector2>();
         private int nextGrouseId = 1;
+        private string lastPlayerLocation = "";
 
         public override void Entry(IModHelper helper)
         {
