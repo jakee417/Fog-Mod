@@ -73,6 +73,8 @@ namespace FogMod
             public float TotalFlightTime { get; set; }
             public bool HasPlayedFlushSound { get; set; }
             public float LastFlappingSoundTime { get; set; }
+            public int AnimationFrame { get; set; } // Current animation frame (0-based)
+            public float AnimationTimer { get; set; } // Timer for animation frame changes
         }
 
         private enum GrouseState

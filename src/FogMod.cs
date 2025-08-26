@@ -29,6 +29,7 @@ namespace FogMod
         private List<LightInfo> lightSources = new List<LightInfo>();
         private List<Texture2D> cloudTextures;
         private Texture2D whitePixel;
+        private Texture2D grouseTexture;
         private FogGrid grid;
         private float time = 0f;
         private float breathBasePhase = 0f;
@@ -111,6 +112,16 @@ namespace FogMod
                 whitePixel.SetData(new[] { Color.White });
             }
             catch { }
+
+            try
+            {
+                grouseTexture = Helper.ModContent.Load<Texture2D>("assets/Brown Chicken.png");
+                Monitor.Log("Successfully loaded grouse texture", LogLevel.Trace);
+            }
+            catch (Exception ex)
+            {
+                Monitor.Log($"Failed to load grouse texture: {ex.Message}", LogLevel.Warn);
+            }
         }
 
         private void OnDayStarted(object sender, DayStartedEventArgs e)

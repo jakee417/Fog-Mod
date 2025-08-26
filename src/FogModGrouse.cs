@@ -170,7 +170,9 @@ namespace FogMod
                 FlightTimer = 0f,
                 TotalFlightTime = GrouseFlyingDuration + DeterministicFloat(treePosition, 2, -2f, 2f), // Deterministic variation
                 HasPlayedFlushSound = false,
-                LastFlappingSoundTime = 0f
+                LastFlappingSoundTime = 0f,
+                AnimationFrame = 0,
+                AnimationTimer = 0f
             };
 
             grouse.Add(newGrouse);
@@ -203,6 +205,9 @@ namespace FogMod
 
                 // Update position
                 g.Position += g.Velocity * deltaSeconds;
+
+                // Update animation
+                UpdateGrouseAnimation(ref g, deltaSeconds);
 
                 // Remove if off screen and flying (since flying now means leaving)
                 if (g.State == GrouseState.Flying && IsGrouseOffScreen(g))
@@ -348,6 +353,36 @@ namespace FogMod
             g.FacingLeft = g.Velocity.X < 0;
         }
 
+        private void UpdateGrouseAnimation(ref Grouse g, float deltaSeconds)
+        {
+            g.AnimationTimer += deltaSeconds;
+
+            // Different animation speeds based on state
+            float animationSpeed = g.State switch
+            {
+                GrouseState.Perched => 0.5f,    // Slow idle animation
+                GrouseState.Flushing => 8f,     // Fast flapping during flush
+                GrouseState.Flying => 6f,       // Medium speed for flying
+                _ => 1f
+            };
+
+            if (g.AnimationTimer >= 1f / animationSpeed)
+            {
+                g.AnimationTimer = 0f;
+
+                // Choose animation frames based on state
+                int maxFrame = g.State switch
+                {
+                    GrouseState.Perched => 1,        // Use frames 0-1 for idle
+                    GrouseState.Flushing => 6,       // Use frames 0-6 for dramatic flapping
+                    GrouseState.Flying => 3,         // Use frames 0-3 for flying
+                    _ => 0
+                };
+
+                g.AnimationFrame = (g.AnimationFrame + 1) % (maxFrame + 1);
+            }
+        }
+
         private bool IsGrouseOffScreen(Grouse g)
         {
             Rectangle viewport = Game1.graphics.GraphicsDevice.Viewport.Bounds;
@@ -374,142 +409,58 @@ namespace FogMod
 
         private void DrawSingleGrouse(SpriteBatch spriteBatch, Grouse g)
         {
-            // Use a simple colored rectangle as the grouse sprite
-            // In a real implementation, you'd want to use an actual grouse texture
+            // Skip drawing if texture isn't loaded
+            if (grouseTexture == null)
+                return;
+
             Vector2 screenPos = Game1.GlobalToLocal(Game1.viewport, g.Position);
             screenPos.Y += g.FlightHeight; // Apply flight bobbing
 
-            // Draw grouse body (brown rectangle) - made larger and more visible
-            Rectangle grouseRect = new Rectangle(
-                (int)screenPos.X - 12,
-                (int)screenPos.Y - 8,
-                24,
-                16
+            // Calculate source rectangle for current animation frame
+            // 7x4 grid: columns 0-6, rows 0-3
+            int frameX = g.AnimationFrame % GrouseSpriteColumns;
+            int frameY = 0; // Use top row for now, could vary by state later
+
+            Rectangle sourceRect = new Rectangle(
+                frameX * GrouseSpriteWidth,
+                frameY * GrouseSpriteHeight,
+                GrouseSpriteWidth,
+                GrouseSpriteHeight
             );
 
-            Color grouseColor = Color.SaddleBrown;
+            // Calculate destination rectangle with proper scaling
+            float drawScale = g.Scale * 2f; // Make grouse a bit larger than 16x16
+            Rectangle destRect = new Rectangle(
+                (int)(screenPos.X - (GrouseSpriteWidth * drawScale) / 2),
+                (int)(screenPos.Y - (GrouseSpriteHeight * drawScale) / 2),
+                (int)(GrouseSpriteWidth * drawScale),
+                (int)(GrouseSpriteHeight * drawScale)
+            );
+
+            // Color effects based on state
+            Color grouseColor = Color.White;
             if (g.State == GrouseState.Flushing)
             {
-                // More dramatic flashing during flush with wing flapping intensity
+                // Flash effect during flush
                 float flushProgress = g.StateTimer / GrouseFlushDuration;
-                float flapIntensity = MathHelper.Lerp(25f, 40f, flushProgress);
-                float flashIntensity = (float)Math.Sin(g.StateTimer * flapIntensity) * 0.5f + 0.5f;
-                grouseColor = Color.Lerp(Color.SaddleBrown, Color.Yellow, flashIntensity * 0.4f);
-
-                // Add some panic coloring
-                grouseColor = Color.Lerp(grouseColor, Color.Red, flushProgress * 0.3f);
+                float flashIntensity = (float)Math.Sin(g.StateTimer * 15f) * 0.5f + 0.5f;
+                grouseColor = Color.Lerp(Color.White, Color.Yellow, flashIntensity * 0.6f);
             }
 
-            // Draw body
-            if (whitePixel != null)
-            {
-                spriteBatch.Draw(
-                    whitePixel,
-                    grouseRect,
-                    null,
-                    grouseColor,
-                    g.Rotation,
-                    Vector2.Zero,
-                    g.FacingLeft ? SpriteEffects.FlipHorizontally : SpriteEffects.None,
-                    0.85f // Layer depth - above most things but below UI
-                );
-            }
+            // Determine sprite effects
+            SpriteEffects effects = g.FacingLeft ? SpriteEffects.FlipHorizontally : SpriteEffects.None;
 
-            // Draw wing detail (lighter brown, larger rectangle)
-            Rectangle wingRect = new Rectangle(
-                grouseRect.X + (g.FacingLeft ? 3 : 9),
-                grouseRect.Y + 2,
-                12,
-                6
+            // Draw the grouse sprite
+            spriteBatch.Draw(
+                grouseTexture,
+                destRect,
+                sourceRect,
+                grouseColor,
+                g.Rotation,
+                new Vector2(GrouseSpriteWidth / 2f, GrouseSpriteHeight / 2f), // Origin at center
+                effects,
+                0.85f // Layer depth - above most things but below UI
             );
-
-            // During flushing, make wings more prominent and animated
-            if (g.State == GrouseState.Flushing)
-            {
-                float flushProgress = g.StateTimer / GrouseFlushDuration;
-                float wingExpansion = (float)Math.Sin(g.StateTimer * MathHelper.Lerp(25f, 40f, flushProgress)) * 4f + 4f;
-                wingRect.Width = (int)(12 + wingExpansion);
-                wingRect.Height = (int)(6 + wingExpansion / 2f);
-                wingRect.X = grouseRect.X + (g.FacingLeft ? (int)(3 - wingExpansion / 2f) : (int)(9 - wingExpansion / 2f));
-                wingRect.Y = grouseRect.Y + (int)(2 - wingExpansion / 4f);
-            }
-            else if (g.State == GrouseState.Flying)
-            {
-                // During flying, also show dynamic wing beating for speed impression
-                float wingExpansion = (float)Math.Sin(g.StateTimer * 12f) * 3f + 3f;
-                wingRect.Width = (int)(12 + wingExpansion);
-                wingRect.Height = (int)(6 + wingExpansion / 2f);
-                wingRect.X = grouseRect.X + (g.FacingLeft ? (int)(3 - wingExpansion / 2f) : (int)(9 - wingExpansion / 2f));
-                wingRect.Y = grouseRect.Y + (int)(2 - wingExpansion / 4f);
-            }
-
-            Color wingColor = Color.Lerp(grouseColor, Color.White, 0.3f);
-            if (whitePixel != null)
-            {
-                spriteBatch.Draw(
-                    whitePixel,
-                    wingRect,
-                    null,
-                    wingColor,
-                    g.Rotation,
-                    Vector2.Zero,
-                    g.FacingLeft ? SpriteEffects.FlipHorizontally : SpriteEffects.None,
-                    0.851f // Slightly above body
-                );
-            }
-
-            // Add a bright outline to make it more visible
-            Rectangle outlineRect = new Rectangle(
-                grouseRect.X - 1,
-                grouseRect.Y - 1,
-                grouseRect.Width + 2,
-                grouseRect.Height + 2
-            );
-
-            if (whitePixel != null)
-            {
-                // Draw outline in bright yellow/orange
-                spriteBatch.Draw(
-                    whitePixel,
-                    new Rectangle(outlineRect.X, outlineRect.Y, outlineRect.Width, 1),
-                    null,
-                    Color.Orange,
-                    0f,
-                    Vector2.Zero,
-                    SpriteEffects.None,
-                    0.849f
-                );
-                spriteBatch.Draw(
-                    whitePixel,
-                    new Rectangle(outlineRect.X, outlineRect.Bottom - 1, outlineRect.Width, 1),
-                    null,
-                    Color.Orange,
-                    0f,
-                    Vector2.Zero,
-                    SpriteEffects.None,
-                    0.849f
-                );
-                spriteBatch.Draw(
-                    whitePixel,
-                    new Rectangle(outlineRect.X, outlineRect.Y, 1, outlineRect.Height),
-                    null,
-                    Color.Orange,
-                    0f,
-                    Vector2.Zero,
-                    SpriteEffects.None,
-                    0.849f
-                );
-                spriteBatch.Draw(
-                    whitePixel,
-                    new Rectangle(outlineRect.Right - 1, outlineRect.Y, 1, outlineRect.Height),
-                    null,
-                    Color.Orange,
-                    0f,
-                    Vector2.Zero,
-                    SpriteEffects.None,
-                    0.849f
-                );
-            }
         }
     }
 }
