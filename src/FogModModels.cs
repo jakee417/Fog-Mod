@@ -78,9 +78,8 @@ namespace FogMod
         private enum GrouseState
         {
             Perched,    // Sitting in tree, invisible until player gets close
-            Flushing,   // Quick takeoff animation
-            Flying,     // Flying around on screen
-            Exiting     // Flying off screen and will be removed
+            Flushing,   // Quick takeoff animation (3 seconds)
+            Flying      // Flying off screen and will be removed
         }
     }
 }

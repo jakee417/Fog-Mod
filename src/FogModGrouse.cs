@@ -72,6 +72,24 @@ namespace FogMod
             return min + (float)rng.NextDouble() * (max - min);
         }
 
+        private Vector2 GetDeterministicExitDirection(Vector2 treePosition)
+        {
+            // Use deterministic random to pick one of the four cardinal directions
+            // This ensures all players see the grouse exit in the same direction
+            int seed = (int)(treePosition.X * 1000 + treePosition.Y * 1000 + 999); // +999 for exit direction variant
+            var rng = new Random(seed);
+            int direction = rng.Next(4);
+
+            switch (direction)
+            {
+                case 0: return new Vector2(-1, 0); // Left
+                case 1: return new Vector2(1, 0);  // Right
+                case 2: return new Vector2(0, -1); // Up
+                case 3: return new Vector2(0, 1);  // Down
+                default: return new Vector2(1, 0); // Fallback
+            }
+        }
+
         private void SpawnGrouseInTrees()
         {
             // Only the host should decide when to spawn grouse
@@ -181,17 +199,13 @@ namespace FogMod
                     case GrouseState.Flying:
                         UpdateGrouseFlying(g, deltaSeconds);
                         break;
-
-                    case GrouseState.Exiting:
-                        UpdateGrouseExiting(g, deltaSeconds);
-                        break;
                 }
 
                 // Update position
                 g.Position += g.Velocity * deltaSeconds;
 
-                // Remove if off screen and exiting
-                if (g.State == GrouseState.Exiting && IsGrouseOffScreen(g))
+                // Remove if off screen and flying (since flying now means leaving)
+                if (g.State == GrouseState.Flying && IsGrouseOffScreen(g))
                 {
                     spawnedTreePositions.Remove(g.TreePosition);
                     grouse.RemoveAt(i);
@@ -258,24 +272,9 @@ namespace FogMod
                 g.StateTimer = 0f;
                 g.FlightTimer = 0f;
 
-                // Don't immediately overwrite velocity - let it transition smoothly from flush
-                // Only adjust if the velocity is too low or in a bad direction
-                float currentSpeed = g.Velocity.Length();
-                if (currentSpeed < GrouseFlyingSpeed * 0.7f)
-                {
-                    // If velocity is too low, give it a boost in a random direction
-                    float angle = (float)(random.NextDouble() * MathHelper.TwoPi);
-                    g.Velocity = new Vector2(
-                        (float)Math.Cos(angle) * GrouseFlyingSpeed,
-                        (float)Math.Sin(angle) * GrouseFlyingSpeed * 0.3f
-                    );
-                }
-                else if (currentSpeed > GrouseFlyingSpeed * 1.5f)
-                {
-                    // If going too fast, scale it down but maintain direction
-                    g.Velocity = Vector2.Normalize(g.Velocity) * (GrouseFlyingSpeed * 1.2f);
-                }
-                // If speed is in good range, keep the existing velocity (maintain flush momentum)
+                // Use deterministic exit direction based on tree position (for multiplayer sync)
+                Vector2 exitDirection = GetDeterministicExitDirection(g.TreePosition);
+                g.Velocity = exitDirection * GrouseExitSpeed;
                 g.FacingLeft = g.Velocity.X < 0;
             }
             else
@@ -330,75 +329,23 @@ namespace FogMod
         {
             g.FlightTimer += deltaSeconds;
 
-            // Flying pattern - slight bobbing and direction changes
-            float bobAmount = (float)Math.Sin(g.FlightTimer * 3f) * 15f;
+            // Simple bobbing motion while flying off screen
+            float bobAmount = (float)Math.Sin(g.FlightTimer * 4f) * 10f;
             g.FlightHeight = bobAmount;
 
-            // Reduce frequency of direction changes and make them more gradual
-            // Use deterministic timing based on grouse ID and flight time
-            float changeThreshold = 0.005f;
-            int timeSeed = (int)(g.FlightTimer * 100) + g.GrouseId * 1000;
-            var flightRng = new Random(timeSeed);
-            if (flightRng.NextDouble() < changeThreshold)
-            {
-                float newAngle = DeterministicFloat(g.TreePosition, (int)(g.FlightTimer * 10), 0f, MathHelper.TwoPi);
-                Vector2 newVelocity = new Vector2(
-                    (float)Math.Cos(newAngle) * GrouseFlyingSpeed,
-                    (float)Math.Sin(newAngle) * GrouseFlyingSpeed * 0.3f
-                );
-
-                // Smoothly interpolate to new direction instead of instant change
-                g.Velocity = Vector2.Lerp(g.Velocity, newVelocity, 0.1f);
-                g.FacingLeft = g.Velocity.X < 0;
-            }
-
             // Wing flapping animation
-            g.Rotation = (float)Math.Sin(g.FlightTimer * 8f) * 0.15f;
+            g.Rotation = (float)Math.Sin(g.FlightTimer * 12f) * 0.2f;
 
-            // Check if it's time to exit
-            if (g.FlightTimer >= g.TotalFlightTime)
-            {
-                g.State = GrouseState.Exiting;
-                g.StateTimer = 0f;
-
-                // Head toward edge of screen
-                Rectangle viewport = Game1.graphics.GraphicsDevice.Viewport.Bounds;
-                Vector2 screenCenter = new Vector2(viewport.Width / 2f, viewport.Height / 2f);
-                Vector2 screenPos = Game1.GlobalToLocal(Game1.viewport, g.Position);
-
-                // Choose closest edge to exit toward
-                Vector2 exitDirection;
-                if (Math.Abs(screenPos.X - screenCenter.X) > Math.Abs(screenPos.Y - screenCenter.Y))
-                {
-                    // Exit left or right
-                    exitDirection = screenPos.X < screenCenter.X ? new Vector2(-1, 0) : new Vector2(1, 0);
-                }
-                else
-                {
-                    // Exit top or bottom
-                    exitDirection = screenPos.Y < screenCenter.Y ? new Vector2(0, -1) : new Vector2(0, 1);
-                }
-
-                g.Velocity = exitDirection * GrouseExitSpeed;
-                g.FacingLeft = g.Velocity.X < 0;
-            }
-        }
-
-        private void UpdateGrouseExiting(Grouse g, float deltaSeconds)
-        {
-            // Maintain faster wing flapping during exit for more dynamic appearance
-            g.Rotation = (float)Math.Sin(g.StateTimer * 12f) * 0.2f;
-
-            // Ensure the grouse maintains good exit speed
+            // Flying off screen - use the exit speed directly
+            // Direction was set when entering Flying state
             float currentSpeed = g.Velocity.Length();
-            if (currentSpeed < GrouseExitSpeed * 0.8f)
+            if (currentSpeed < GrouseExitSpeed * 0.9f)
             {
-                // Boost speed if it's getting too slow
+                // Maintain exit speed
                 g.Velocity = Vector2.Normalize(g.Velocity) * GrouseExitSpeed;
             }
 
-            // Optional: Add slight acceleration as it exits for more dramatic effect
-            g.Velocity *= 1.01f; // Gradually accelerate by 1% per frame
+            g.FacingLeft = g.Velocity.X < 0;
         }
 
         private bool IsGrouseOffScreen(Grouse g)
@@ -486,9 +433,9 @@ namespace FogMod
                 wingRect.X = grouseRect.X + (g.FacingLeft ? (int)(3 - wingExpansion / 2f) : (int)(9 - wingExpansion / 2f));
                 wingRect.Y = grouseRect.Y + (int)(2 - wingExpansion / 4f);
             }
-            else if (g.State == GrouseState.Exiting)
+            else if (g.State == GrouseState.Flying)
             {
-                // During exiting, also show dynamic wing beating for speed impression
+                // During flying, also show dynamic wing beating for speed impression
                 float wingExpansion = (float)Math.Sin(g.StateTimer * 12f) * 3f + 3f;
                 wingRect.Width = (int)(12 + wingExpansion);
                 wingRect.Height = (int)(6 + wingExpansion / 2f);

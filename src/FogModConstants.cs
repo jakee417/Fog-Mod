@@ -37,7 +37,6 @@ namespace FogMod
         // Grouse constants
         private const float GrouseDetectionRadius = 128f; // How close player needs to be to flush grouse
         private const float GrouseFlushSpeed = 150f; // Speed during takeoff
-        private const float GrouseFlyingSpeed = 100f; // Speed while flying around (increased for better post-flush flight)
         private const float GrouseExitSpeed = 400f; // Speed when leaving screen (increased for quick exit)
         private const float GrouseFlushDuration = 3.0f; // How long the flush animation lasts (3 seconds for heavy flapping)
         private const float GrouseFlyingDuration = 8f; // How long it flies around before exiting
