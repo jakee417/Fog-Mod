@@ -250,6 +250,9 @@ namespace FogMod
             if (config.DebugShowInfo)
                 DrawDebugInfo(e.SpriteBatch);
 
+            // Always draw tree positioning debug for comparison
+            DrawTreePositioningDebug(e.SpriteBatch);
+
             Color fogColor = GetEffectiveFogColor();
             DrawExplosionFlashes(e.SpriteBatch);
             DrawExplosionSmokeParticles(e.SpriteBatch, fogColor);
@@ -301,7 +304,7 @@ namespace FogMod
                     if (Context.IsMainPlayer)
                     {
                         // Spawn grouse slightly offset from player position
-                        Vector2 spawnPosition = playerPosition + new Vector2(64f, -64f);
+                        Vector2 spawnPosition = playerPosition;
                         SpawnGrouseAtTree(spawnPosition);
                         Game1.addHUDMessage(new HUDMessage("Debug: Grouse spawned!", 2));
                     }
