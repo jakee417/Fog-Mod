@@ -47,17 +47,7 @@ namespace FogMod
                 float lifeT = MathHelper.Clamp(p.AgeSeconds / Math.Max(0.001f, SmokeGrowthSeconds), 0f, 1f);
                 float growth = 1f + 1.0f * lifeT;
                 float scale = p.Scale * FogCloudScale * growth;
-                spriteBatch.Draw(
-                    tex,
-                    position: screenPos,
-                    sourceRectangle: null,
-                    color: color,
-                    rotation: 0f,
-                    origin: origin,
-                    scale: scale,
-                    effects: SpriteEffects.None,
-                    layerDepth: 0.96f
-                );
+                
             }
         }
 
@@ -85,6 +75,77 @@ namespace FogMod
             spriteBatch.Draw(whitePixel, full, flashColor * 1.0f);
             spriteBatch.Draw(whitePixel, full, flashColor * 0.55f * flashInfo.TimeLeft);
             spriteBatch.Draw(whitePixel, full, flashColor * 0.25f * flashInfo.TimeLeft);
+        }
+
+        private void DrawSingleGrouse(SpriteBatch spriteBatch, Grouse g)
+        {
+            // Skip drawing if texture isn't loaded
+            if (grouseTexture == null)
+                return;
+
+            Vector2 screenPos = Game1.GlobalToLocal(Game1.viewport, g.Position);
+            screenPos.Y += g.FlightHeight; // Apply flight bobbing
+
+            // Calculate source rectangle for current animation frame
+            // 2x2 grid: [0,0]=standing, [1,0]=sitting, [0,1]=flying up, [1,1]=flying down
+            int frameX = 0;
+            int frameY = 0;
+            switch (g.State)
+            {
+                case GrouseState.Perched:
+                    frameX = g.AnimationFrame % 2; // 0=standing, 1=sitting
+                    frameY = 0;
+                    break;
+                case GrouseState.Flushing:
+                case GrouseState.Flying:
+                    // Alternate between flying up and down
+                    frameX = g.AnimationFrame % 2; // 0=up, 1=down
+                    frameY = 1;
+                    break;
+            }
+            Rectangle sourceRect = new Rectangle(
+                frameX * GrouseSpriteWidth,
+                frameY * GrouseSpriteHeight,
+                GrouseSpriteWidth,
+                GrouseSpriteHeight
+            );
+
+            // Calculate destination rectangle with proper scaling
+            float drawScale = g.Scale * 5f; // Make grouse a bit larger than 16x16
+            Rectangle destRect = new Rectangle(
+                (int)(screenPos.X - (GrouseSpriteWidth * drawScale) / 2),
+                (int)(screenPos.Y - (GrouseSpriteHeight * drawScale) / 2),
+                (int)(GrouseSpriteWidth * drawScale),
+                (int)(GrouseSpriteHeight * drawScale)
+            );
+
+            // Color effects based on state
+            Color grouseColor = Color.White;
+            if (g.State == GrouseState.Flushing)
+            {
+                // Flash effect during flush
+                float flushProgress = g.StateTimer / GrouseFlushDuration;
+                float flashIntensity = (float)Math.Sin(g.StateTimer * 15f) * 0.5f + 0.5f;
+                grouseColor = Color.Lerp(Color.White, Color.Yellow, flashIntensity * 0.6f);
+            }
+
+            // Determine sprite effects
+            // Sprite in PNG faces left, so flip when grouse should face right
+            SpriteEffects effects = g.FacingLeft ? SpriteEffects.None : SpriteEffects.FlipHorizontally;
+
+            Vector2 origin = new Vector2(GrouseSpriteWidth / 2f, GrouseSpriteHeight / 2f);
+
+            // Draw the grouse sprite
+            spriteBatch.Draw(
+                grouseTexture,
+                destinationRectangle: destRect,
+                sourceRectangle: sourceRect,
+                color: grouseColor,
+                rotation: 0f,
+                origin: origin,
+                effects: effects,
+                layerDepth: 0.85f
+            );
         }
 
         private void DrawDebugInfo(Microsoft.Xna.Framework.Graphics.SpriteBatch spriteBatch)

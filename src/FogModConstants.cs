@@ -45,10 +45,10 @@ namespace FogMod
         private const int GrouseMaxPerLocation = 3; // Maximum grouse per location
         private const float GrouseFlappingSoundInterval = 0.3f; // How often to play flapping sound during flush (seconds)
 
-        // Grouse sprite constants (7x4 grid from Brown Chicken.png)
-        private const int GrouseSpriteWidth = 16; // Width of each frame
-        private const int GrouseSpriteHeight = 16; // Height of each frame
-        private const int GrouseSpriteColumns = 7; // Number of columns in sprite sheet
-        private const int GrouseSpriteRows = 4; // Number of rows in sprite sheet
+    // Grouse sprite constants (2x2 grid from grouse.png)
+    private const int GrouseSpriteWidth = 16; // Width of each frame
+    private const int GrouseSpriteHeight = 16; // Height of each frame
+    private const int GrouseSpriteColumns = 2; // Number of columns in sprite sheet
+    private const int GrouseSpriteRows = 2; // Number of rows in sprite sheet
     }
 }

@@ -34,8 +34,9 @@ namespace FogMod
                     g.HasPlayedFlushSound = true; // Don't play sound again since host already sent message
                     g.LastFlappingSoundTime = 0f;
 
-                    // Use deterministic facing direction based on tree position
-                    g.FacingLeft = DeterministicBool(g.TreePosition, 0);
+                    // Face the direction it will exit
+                    Vector2 exitDirection = GetDeterministicExitDirection(g.TreePosition);
+                    g.FacingLeft = exitDirection.X < 0;
 
                     grouse[i] = g;
                     break;
@@ -227,7 +228,10 @@ namespace FogMod
 
                 // Start with minimal velocity - the bird will build momentum during flush
                 g.Velocity = Vector2.Zero;
-                g.FacingLeft = DeterministicBool(g.TreePosition, 3); // Use deterministic facing for consistency
+                
+                // Face the direction it will exit
+                Vector2 exitDirection = GetDeterministicExitDirection(g.TreePosition);
+                g.FacingLeft = exitDirection.X < 0;
 
                 // Play the initial flush sound
                 if (!g.HasPlayedFlushSound)
@@ -288,7 +292,6 @@ namespace FogMod
 
                 // Wing flapping gets more intense as flush progresses
                 float flapIntensity = MathHelper.Lerp(20f, 35f, flushProgress);
-                g.Rotation = (float)Math.Sin(g.StateTimer * flapIntensity) * 0.4f;
 
                 // Move in exit direction with increasing speed + wing flapping variation
                 float flappingVariation = (float)Math.Sin(g.StateTimer * 15f) * 0.15f; // Slight variation
@@ -311,9 +314,6 @@ namespace FogMod
             // Simple bobbing motion while flying off screen - this affects visual height only
             float bobAmount = (float)Math.Sin(g.FlightTimer * 4f) * 10f;
             g.FlightHeight = bobAmount;
-
-            // Wing flapping animation for visual effect
-            g.Rotation = (float)Math.Sin(g.FlightTimer * 12f) * 0.2f;
 
             // Maintain consistent flight trajectory - no velocity changes
             // The velocity was set when entering Flying state and doesn't change
@@ -374,62 +374,6 @@ namespace FogMod
 
                 DrawSingleGrouse(spriteBatch, g);
             }
-        }
-
-        private void DrawSingleGrouse(SpriteBatch spriteBatch, Grouse g)
-        {
-            // Skip drawing if texture isn't loaded
-            if (grouseTexture == null)
-                return;
-
-            Vector2 screenPos = Game1.GlobalToLocal(Game1.viewport, g.Position);
-            screenPos.Y += g.FlightHeight; // Apply flight bobbing
-
-            // Calculate source rectangle for current animation frame
-            // 7x4 grid: columns 0-6, rows 0-3
-            int frameX = g.AnimationFrame % GrouseSpriteColumns;
-            int frameY = 0; // Use top row for now, could vary by state later
-
-            Rectangle sourceRect = new Rectangle(
-                frameX * GrouseSpriteWidth,
-                frameY * GrouseSpriteHeight,
-                GrouseSpriteWidth,
-                GrouseSpriteHeight
-            );
-
-            // Calculate destination rectangle with proper scaling
-            float drawScale = g.Scale * 2f; // Make grouse a bit larger than 16x16
-            Rectangle destRect = new Rectangle(
-                (int)(screenPos.X - (GrouseSpriteWidth * drawScale) / 2),
-                (int)(screenPos.Y - (GrouseSpriteHeight * drawScale) / 2),
-                (int)(GrouseSpriteWidth * drawScale),
-                (int)(GrouseSpriteHeight * drawScale)
-            );
-
-            // Color effects based on state
-            Color grouseColor = Color.White;
-            if (g.State == GrouseState.Flushing)
-            {
-                // Flash effect during flush
-                float flushProgress = g.StateTimer / GrouseFlushDuration;
-                float flashIntensity = (float)Math.Sin(g.StateTimer * 15f) * 0.5f + 0.5f;
-                grouseColor = Color.Lerp(Color.White, Color.Yellow, flashIntensity * 0.6f);
-            }
-
-            // Determine sprite effects
-            SpriteEffects effects = g.FacingLeft ? SpriteEffects.FlipHorizontally : SpriteEffects.None;
-
-            // Draw the grouse sprite
-            spriteBatch.Draw(
-                grouseTexture,
-                destRect,
-                sourceRect,
-                grouseColor,
-                g.Rotation,
-                new Vector2(GrouseSpriteWidth / 2f, GrouseSpriteHeight / 2f), // Origin at center
-                effects,
-                0.85f // Layer depth - above most things but below UI
-            );
         }
     }
 }

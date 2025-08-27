@@ -23,6 +23,7 @@ obj/
 
 # Logs
 *.log
+*.aseprite
 
 # NuGet
 *.nupkg

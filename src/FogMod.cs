@@ -116,7 +116,7 @@ namespace FogMod
 
             try
             {
-                grouseTexture = Helper.ModContent.Load<Texture2D>("assets/Brown Chicken.png");
+                grouseTexture = Helper.ModContent.Load<Texture2D>("assets/grouse.png");
                 Monitor.Log("Successfully loaded grouse texture", LogLevel.Trace);
             }
             catch (Exception ex)
