@@ -65,13 +65,6 @@ namespace FogMod
             return rng.NextDouble() < 0.5;
         }
 
-        private float DeterministicFloat(Vector2 position, int variant, float min = 0f, float max = 1f)
-        {
-            int seed = (int)(position.X * 1000 + position.Y * 1000 + variant);
-            var rng = new Random(seed);
-            return min + (float)rng.NextDouble() * (max - min);
-        }
-
         private Vector2 GetDeterministicExitDirection(Vector2 treePosition)
         {
             // Use deterministic random to pick left or right (only directions that make sense visually)
@@ -356,20 +349,12 @@ namespace FogMod
 
         private bool IsGrouseOffScreen(Grouse g)
         {
-            Rectangle viewport = Game1.graphics.GraphicsDevice.Viewport.Bounds;
-            Vector2 screenPos = Game1.GlobalToLocal(Game1.viewport, g.Position);
-
-            return screenPos.X < -100 || screenPos.X > viewport.Width + 100 ||
-                   screenPos.Y < -100 || screenPos.Y > viewport.Height + 100;
+            return !grid.GetExtendedBounds().Contains(new Point((int)g.Position.X, (int)g.Position.Y));
         }
 
         private void PlayWingBeatSound(Grouse g)
         {
-            // Different sounds based on state and flush progress
-            if (g.State == GrouseState.Flushing)
-                Game1.playSound("fishSlap"); // Quick whoosh sound
-            else if (g.State == GrouseState.Flying)
-                Game1.playSound("fishSlap"); // Quick whoosh sound
+            Game1.playSound("fishSlap");
         }
     }
 }

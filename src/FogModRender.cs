@@ -99,21 +99,18 @@ namespace FogMod
                 return;
 
             Vector2 screenPos = Game1.GlobalToLocal(Game1.viewport, g.Position);
-            screenPos.Y += g.FlightHeight; // Apply flight bobbing
+            screenPos.Y += g.FlightHeight;
 
-            // Calculate source rectangle for current animation frame
-            // 2x2 grid: [0,0]=standing, [1,0]=sitting, [0,1]=flying up, [1,1]=flying down
             int frameX = 0;
             int frameY = 0;
             switch (g.State)
             {
                 case GrouseState.Perched:
-                    frameX = g.AnimationFrame % 2; // 0=standing, 1=sitting
+                    frameX = g.AnimationFrame % 2;
                     frameY = 0;
                     break;
                 case GrouseState.Surprised:
-                    // For now, use the same frames as perched (later you can add surprised-specific frames)
-                    frameX = g.AnimationFrame % 2; // 0=standing, 1=sitting
+                    frameX = g.AnimationFrame % 2;
                     frameY = 0;
                     break;
                 case GrouseState.Flushing:
@@ -138,16 +135,6 @@ namespace FogMod
                 (int)(GrouseSpriteHeight * g.Scale)
             );
 
-            // Color effects based on state
-            Color grouseColor = Color.White;
-            if (g.State == GrouseState.Flushing)
-            {
-                // Flash effect during flush
-                float flushProgress = g.StateTimer / GrouseFlushDuration;
-                float flashIntensity = (float)Math.Sin(g.StateTimer * 15f) * 0.5f + 0.5f;
-                grouseColor = Color.Lerp(Color.White, Color.Yellow, flashIntensity * 0.6f);
-            }
-
             // Determine sprite effects
             // Sprite in PNG faces left, so flip when grouse should face right
             SpriteEffects effects = g.FacingLeft ? SpriteEffects.None : SpriteEffects.FlipHorizontally;
@@ -159,7 +146,7 @@ namespace FogMod
                 grouseTexture,
                 destinationRectangle: destRect,
                 sourceRectangle: sourceRect,
-                color: grouseColor,
+                color: Color.White,
                 rotation: 0f,
                 origin: origin,
                 effects: effects,
