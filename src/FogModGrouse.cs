@@ -1,8 +1,6 @@
 using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Graphics;
 using StardewModdingAPI;
 using StardewValley;
-using StardewValley.TerrainFeatures;
 using System;
 using System.Collections.Generic;
 
@@ -119,32 +117,16 @@ namespace FogMod
 
         private List<Vector2> GetAvailableTreePositions()
         {
-            var availableTrees = new List<Vector2>();
-
-            if (Game1.currentLocation?.terrainFeatures == null)
-                return availableTrees;
-
-            foreach (var pair in Game1.currentLocation.terrainFeatures.Pairs)
-            {
-                if (pair.Value is Tree tree && tree.growthStage.Value >= Tree.treeStage)
-                {
-                    Vector2 treePos = pair.Key * 64f; // Convert tile to pixel coordinates
-                    if (!spawnedTreePositions.Contains(treePos))
-                    {
-                        availableTrees.Add(treePos);
-                    }
-                }
-            }
-
-            return availableTrees;
+            return TreeHelper.GetAvailableTreePositions(Game1.currentLocation, spawnedTreePositions);
         }
 
         private void SpawnGrouseAtTree(Vector2 treePosition)
         {
+            // treePosition is calculated by TreeHelper using leaf positions or fallback logic
             var newGrouse = new Grouse
             {
                 GrouseId = nextGrouseId++,
-                Position = treePosition + new Vector2(32f, -32f), // Offset to sit in tree canopy
+                Position = treePosition,
                 TreePosition = treePosition,
                 Velocity = Vector2.Zero,
                 State = GrouseState.Perched,
@@ -152,7 +134,7 @@ namespace FogMod
                 Scale = GrouseScale,
                 Rotation = 0f,
                 FlightHeight = 0f,
-                FacingLeft = DeterministicBool(treePosition, 1), // Deterministic facing direction
+                FacingLeft = DeterministicBool(treePosition, 1),
                 FlightTimer = 0f,
                 HasPlayedFlushSound = false,
                 AnimationFrame = 0,
@@ -318,32 +300,33 @@ namespace FogMod
             // Different animation speeds based on state
             float animationSpeed = g.State switch
             {
-                GrouseState.Perched => 0.5f,     // Slow idle animation
-                GrouseState.Surprised => 4f,     // Fast surprised animation (later you can add surprised frames)
-                GrouseState.Flushing => 10f,     // Very fast flapping during flush
-                GrouseState.Flying => 6f,        // Medium speed for flying
+                GrouseState.Perched => 0f,
+                GrouseState.Surprised => 3f,
+                GrouseState.Flushing => 24f,
+                GrouseState.Flying => 12f,
                 _ => 1f
             };
 
-            if (g.AnimationTimer >= 1f / animationSpeed)
+            if (g.AnimationTimer >= 1f / animationSpeed && animationSpeed > 0f)
             {
                 g.AnimationTimer = 0f;
 
                 // Choose animation frames based on state
-                int maxFrame = g.State switch
+                if (g.State == GrouseState.Surprised)
                 {
-                    GrouseState.Perched => 1,        // Use frames 0-1 for idle
-                    GrouseState.Surprised => 1,      // Use frames 0-1 for surprised (later can be surprised-specific)
-                    GrouseState.Flushing => 1,       // Use frames 0-1 for flying animation during flush
-                    GrouseState.Flying => 1,         // Use frames 0-1 for flying
-                    _ => 0
-                };
+                    // Cycle through top row once: 0→1→2→3, then stay at 3
+                    if (g.AnimationFrame < 3)
+                        g.AnimationFrame++;
+                }
+                else if (g.State == GrouseState.Flushing || g.State == GrouseState.Flying)
+                {
+                    // Smooth wing cycle: 0→1→2→3→2→1→0→1→2→3...
+                    // Use a custom pattern for smooth wing flapping
+                    g.AnimationFrame = (g.AnimationFrame + 1) % FogMod.wingPattern.Length;
 
-                g.AnimationFrame = (g.AnimationFrame + 1) % (maxFrame + 1);
-
-                // Play wing beat sound on each frame change (except for perched state)
-                if (g.State == GrouseState.Flushing || g.State == GrouseState.Flying)
+                    // Play wing beat sound on each frame change
                     PlayWingBeatSound(g);
+                }
             }
         }
 
@@ -354,7 +337,8 @@ namespace FogMod
 
         private void PlayWingBeatSound(Grouse g)
         {
-            Game1.playSound("fishSlap");
+            if (g.AnimationFrame == 2)
+                Game1.playSound("fishSlap");
         }
     }
 }

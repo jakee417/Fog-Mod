@@ -103,21 +103,27 @@ namespace FogMod
 
             int frameX = 0;
             int frameY = 0;
+            SpriteEffects effects = SpriteEffects.None;
+
             switch (g.State)
             {
                 case GrouseState.Perched:
-                    frameX = g.AnimationFrame % 2;
+                    // Simple default frame - this won't be visible anyway
+                    frameX = 0; // sitting left
                     frameY = 0;
                     break;
                 case GrouseState.Surprised:
-                    frameX = g.AnimationFrame % 2;
+                    // Cycle through top row: sitting left (0) → standing right (1) → standing left (2) → surprised forward (3)
+                    frameX = g.AnimationFrame; // 0, 1, 2, or 3
                     frameY = 0;
                     break;
                 case GrouseState.Flushing:
                 case GrouseState.Flying:
-                    // Alternate between flying up and down
-                    frameX = g.AnimationFrame % 2; // 0=up, 1=down
+                    // Map animation frame to wing pattern: 0→1→2→3→2→1→0→1→2→3...
+                    frameX = FogMod.wingPattern[g.AnimationFrame % FogMod.wingPattern.Length];
                     frameY = 1;
+                    if (!g.FacingLeft)
+                        effects = SpriteEffects.FlipHorizontally;
                     break;
             }
             Rectangle sourceRect = new Rectangle(
@@ -134,10 +140,6 @@ namespace FogMod
                 (int)(GrouseSpriteWidth * g.Scale),
                 (int)(GrouseSpriteHeight * g.Scale)
             );
-
-            // Determine sprite effects
-            // Sprite in PNG faces left, so flip when grouse should face right
-            SpriteEffects effects = g.FacingLeft ? SpriteEffects.None : SpriteEffects.FlipHorizontally;
 
             Vector2 origin = new Vector2(GrouseSpriteWidth / 2f, GrouseSpriteHeight / 2f);
 

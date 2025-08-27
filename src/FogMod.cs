@@ -40,6 +40,7 @@ namespace FogMod
         private HashSet<Vector2> spawnedTreePositions = new HashSet<Vector2>();
         private int nextGrouseId = 1;
         private string lastPlayerLocation = "";
+        private static readonly int[] wingPattern = { 0, 1, 2, 3, 2, 1 };
 
         public override void Entry(IModHelper helper)
         {
@@ -302,8 +303,6 @@ namespace FogMod
                         // Spawn grouse slightly offset from player position
                         Vector2 spawnPosition = playerPosition + new Vector2(64f, -64f);
                         SpawnGrouseAtTree(spawnPosition);
-
-                        Monitor.Log($"Debug: Spawned grouse at {spawnPosition}", LogLevel.Info);
                         Game1.addHUDMessage(new HUDMessage("Debug: Grouse spawned!", 2));
                     }
                 }

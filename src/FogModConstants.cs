@@ -38,10 +38,10 @@ namespace FogMod
         private const float GrouseDetectionRadius = 128f; // How close player needs to be to flush grouse
         private const float GrouseFlushSpeed = 200f; // Speed during takeoff
         private const float GrouseExitSpeed = 400f; // Speed when leaving screen (increased for quick exit)
-        private const float GrouseSurprisedDuration = 0.5f; // Brief moment of being startled (0.5 seconds)
+        private const float GrouseSurprisedDuration = 1.5f; // Brief moment of being startled (1 second)
         private const float GrouseFlushDuration = 2.0f; // How long the flush animation lasts (2 seconds for heavy flapping)
         private const float GrouseSpawnChance = 0.15f; // Chance per tree to spawn a grouse
-        private const float GrouseScale = 5f; // Visual scale of the grouse
+        private const float GrouseScale = 6f; // Visual scale of the grouse
         private const int GrouseMaxPerLocation = 10; // Maximum grouse per location
         private const int GrouseSpriteWidth = 16; // Width of each frame
         private const int GrouseSpriteHeight = 16; // Height of each frame
