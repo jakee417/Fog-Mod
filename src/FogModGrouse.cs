@@ -302,7 +302,7 @@ namespace FogMod
             {
                 GrouseState.Perched => 0f,
                 GrouseState.Surprised => 3f,
-                GrouseState.Flushing => 24f,
+                GrouseState.Flushing => 36f,
                 GrouseState.Flying => 12f,
                 _ => 1f
             };
