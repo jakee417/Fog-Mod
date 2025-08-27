@@ -47,7 +47,7 @@ namespace FogMod
                 float lifeT = MathHelper.Clamp(p.AgeSeconds / Math.Max(0.001f, SmokeGrowthSeconds), 0f, 1f);
                 float growth = 1f + 1.0f * lifeT;
                 float scale = p.Scale * FogCloudScale * growth;
-                
+
             }
         }
 
@@ -77,6 +77,21 @@ namespace FogMod
             spriteBatch.Draw(whitePixel, full, flashColor * 0.25f * flashInfo.TimeLeft);
         }
 
+        private void DrawGrouse(SpriteBatch spriteBatch)
+        {
+            if (grouse.Count == 0)
+                return;
+
+            foreach (var g in grouse)
+            {
+                // Only draw if not perched (perched grouse are hidden in trees)
+                if (g.State == GrouseState.Perched)
+                    continue;
+
+                DrawSingleGrouse(spriteBatch, g);
+            }
+        }
+
         private void DrawSingleGrouse(SpriteBatch spriteBatch, Grouse g)
         {
             // Skip drawing if texture isn't loaded
@@ -96,6 +111,11 @@ namespace FogMod
                     frameX = g.AnimationFrame % 2; // 0=standing, 1=sitting
                     frameY = 0;
                     break;
+                case GrouseState.Surprised:
+                    // For now, use the same frames as perched (later you can add surprised-specific frames)
+                    frameX = g.AnimationFrame % 2; // 0=standing, 1=sitting
+                    frameY = 0;
+                    break;
                 case GrouseState.Flushing:
                 case GrouseState.Flying:
                     // Alternate between flying up and down
@@ -111,12 +131,11 @@ namespace FogMod
             );
 
             // Calculate destination rectangle with proper scaling
-            float drawScale = g.Scale * 5f; // Make grouse a bit larger than 16x16
             Rectangle destRect = new Rectangle(
-                (int)(screenPos.X - (GrouseSpriteWidth * drawScale) / 2),
-                (int)(screenPos.Y - (GrouseSpriteHeight * drawScale) / 2),
-                (int)(GrouseSpriteWidth * drawScale),
-                (int)(GrouseSpriteHeight * drawScale)
+                (int)(screenPos.X - (GrouseSpriteWidth * g.Scale / 2)),
+                (int)(screenPos.Y - (GrouseSpriteHeight * g.Scale / 2)),
+                (int)(GrouseSpriteWidth * g.Scale),
+                (int)(GrouseSpriteHeight * g.Scale)
             );
 
             // Color effects based on state
@@ -154,16 +173,17 @@ namespace FogMod
             // cloud count, etc.
             string cloudCountText = $"Clouds: {floatingParticles?.Count ?? 0}";
             string smokeCountText = $"Smoke: {explosionSmokeParticles?.Count ?? 0}";
-            
+
             string grouseInfo = "";
             if (config.EnableGrouseCritters)
             {
                 string grouseCountText = $"Grouse: {grouse?.Count ?? 0}";
-                int flyingGrouse = grouse?.Where(g => g.State != GrouseState.Perched).Count() ?? 0;
-                string flyingGrouseText = $"Flying grouse: {flyingGrouse}";
-                grouseInfo = $"\n{grouseCountText}\n{flyingGrouseText}";
+                int surprisedGrouse = grouse?.Where(g => g.State == GrouseState.Surprised).Count() ?? 0;
+                int flyingGrouse = grouse?.Where(g => g.State == GrouseState.Flushing || g.State == GrouseState.Flying).Count() ?? 0;
+                string stateText = $"Surprised: {surprisedGrouse}, Flying: {flyingGrouse}";
+                grouseInfo = $"\n{grouseCountText}\n{stateText}";
             }
-            
+
             string timeOfDayMultiplierText = $"Time of day multiplier: {ComputeTimeOfDayOpacityMultiplier():F2}";
             string weatherMultiplierText = $"Weather multiplier: {lastWeatherFogIntensityFactor:F2}";
             string dailyFogMultiplierText = $"Daily fog multiplier: {dailyFogStrength:F2}";

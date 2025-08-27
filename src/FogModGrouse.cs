@@ -27,12 +27,11 @@ namespace FogMod
                 var g = grouse[i];
                 if (Vector2.Distance(g.TreePosition, flushInfo.TreePosition) < 32f && g.State == GrouseState.Perched)
                 {
-                    // Force flush this grouse to synchronize with other players
-                    g.State = GrouseState.Flushing;
+                    // Force surprise this grouse to synchronize with other players
+                    g.State = GrouseState.Surprised;
                     g.StateTimer = 0f;
                     g.Velocity = Vector2.Zero;
                     g.HasPlayedFlushSound = true; // Don't play sound again since host already sent message
-                    g.LastFlappingSoundTime = 0f;
 
                     // Face the direction it will exit
                     Vector2 exitDirection = GetDeterministicExitDirection(g.TreePosition);
@@ -162,9 +161,7 @@ namespace FogMod
                 FlightHeight = 0f,
                 FacingLeft = DeterministicBool(treePosition, 1), // Deterministic facing direction
                 FlightTimer = 0f,
-                TotalFlightTime = GrouseFlyingDuration + DeterministicFloat(treePosition, 2, -2f, 2f), // Deterministic variation
                 HasPlayedFlushSound = false,
-                LastFlappingSoundTime = 0f,
                 AnimationFrame = 0,
                 AnimationTimer = 0f
             };
@@ -186,6 +183,10 @@ namespace FogMod
                 {
                     case GrouseState.Perched:
                         UpdateGrousePerched(g, playerPos, deltaSeconds);
+                        break;
+
+                    case GrouseState.Surprised:
+                        UpdateGrouseSurprised(g, deltaSeconds);
                         break;
 
                     case GrouseState.Flushing:
@@ -222,23 +223,22 @@ namespace FogMod
 
             if (distanceToPlayer < GrouseDetectionRadius)
             {
-                // Flush the grouse!
-                g.State = GrouseState.Flushing;
+                // Surprise the grouse first!
+                g.State = GrouseState.Surprised;
                 g.StateTimer = 0f;
 
-                // Start with minimal velocity - the bird will build momentum during flush
+                // Stay still during surprised moment
                 g.Velocity = Vector2.Zero;
-                
+
                 // Face the direction it will exit
                 Vector2 exitDirection = GetDeterministicExitDirection(g.TreePosition);
                 g.FacingLeft = exitDirection.X < 0;
 
-                // Play the initial flush sound
+                // Play the initial surprised sound
                 if (!g.HasPlayedFlushSound)
                 {
                     Game1.playSound("crow");  // Using crow sound as it's similar to a bird cry
                     g.HasPlayedFlushSound = true;
-                    g.LastFlappingSoundTime = 0f;
 
                     // Send multiplayer message to synchronize flush across all players
                     SendGrouseFlushMessage(g.TreePosition);
@@ -246,27 +246,23 @@ namespace FogMod
             }
         }
 
+        private void UpdateGrouseSurprised(Grouse g, float deltaSeconds)
+        {
+            // Stay still and just wait during the surprised moment
+            g.Velocity = Vector2.Zero;
+
+            if (g.StateTimer >= GrouseSurprisedDuration)
+            {
+                // Transition to flushing after being surprised
+                g.State = GrouseState.Flushing;
+                g.StateTimer = 0f;
+                // Velocity will be set in the flushing update
+            }
+        }
+
         private void UpdateGrouseFlushing(Grouse g, float deltaSeconds)
         {
             float flushProgress = g.StateTimer / GrouseFlushDuration;
-
-            // Play flapping sounds during the flush
-            g.LastFlappingSoundTime += deltaSeconds;
-            if (g.LastFlappingSoundTime >= GrouseFlappingSoundInterval)
-            {
-                // Use different sounds based on flush intensity
-                if (flushProgress < 0.8f)
-                {
-                    // Heavy flapping phase - use a wing flap sound
-                    Game1.playSound("batScreech"); // This gives a good wing-beating effect
-                }
-                else
-                {
-                    // Lighter sounds as it prepares to fly away
-                    Game1.playSound("fishSlap"); // Quick whoosh sound
-                }
-                g.LastFlappingSoundTime = 0f;
-            }
 
             if (g.StateTimer >= GrouseFlushDuration)
             {
@@ -329,9 +325,10 @@ namespace FogMod
             // Different animation speeds based on state
             float animationSpeed = g.State switch
             {
-                GrouseState.Perched => 0.5f,    // Slow idle animation
-                GrouseState.Flushing => 8f,     // Fast flapping during flush
-                GrouseState.Flying => 6f,       // Medium speed for flying
+                GrouseState.Perched => 0.5f,     // Slow idle animation
+                GrouseState.Surprised => 4f,     // Fast surprised animation (later you can add surprised frames)
+                GrouseState.Flushing => 10f,     // Very fast flapping during flush
+                GrouseState.Flying => 6f,        // Medium speed for flying
                 _ => 1f
             };
 
@@ -343,12 +340,17 @@ namespace FogMod
                 int maxFrame = g.State switch
                 {
                     GrouseState.Perched => 1,        // Use frames 0-1 for idle
-                    GrouseState.Flushing => 6,       // Use frames 0-6 for dramatic flapping
-                    GrouseState.Flying => 3,         // Use frames 0-3 for flying
+                    GrouseState.Surprised => 1,      // Use frames 0-1 for surprised (later can be surprised-specific)
+                    GrouseState.Flushing => 1,       // Use frames 0-1 for flying animation during flush
+                    GrouseState.Flying => 1,         // Use frames 0-1 for flying
                     _ => 0
                 };
 
                 g.AnimationFrame = (g.AnimationFrame + 1) % (maxFrame + 1);
+
+                // Play wing beat sound on each frame change (except for perched state)
+                if (g.State == GrouseState.Flushing || g.State == GrouseState.Flying)
+                    PlayWingBeatSound(g);
             }
         }
 
@@ -361,19 +363,13 @@ namespace FogMod
                    screenPos.Y < -100 || screenPos.Y > viewport.Height + 100;
         }
 
-        private void DrawGrouse(SpriteBatch spriteBatch)
+        private void PlayWingBeatSound(Grouse g)
         {
-            if (grouse.Count == 0)
-                return;
-
-            foreach (var g in grouse)
-            {
-                // Only draw if not perched (perched grouse are hidden in trees)
-                if (g.State == GrouseState.Perched)
-                    continue;
-
-                DrawSingleGrouse(spriteBatch, g);
-            }
+            // Different sounds based on state and flush progress
+            if (g.State == GrouseState.Flushing)
+                Game1.playSound("fishSlap"); // Quick whoosh sound
+            else if (g.State == GrouseState.Flying)
+                Game1.playSound("fishSlap"); // Quick whoosh sound
         }
     }
 }

@@ -70,9 +70,7 @@ namespace FogMod
             public float FlightHeight { get; set; }
             public bool FacingLeft { get; set; }
             public float FlightTimer { get; set; }
-            public float TotalFlightTime { get; set; }
             public bool HasPlayedFlushSound { get; set; }
-            public float LastFlappingSoundTime { get; set; }
             public int AnimationFrame { get; set; } // Current animation frame (0-based)
             public float AnimationTimer { get; set; } // Timer for animation frame changes
         }
@@ -80,6 +78,7 @@ namespace FogMod
         private enum GrouseState
         {
             Perched,    // Sitting in tree, invisible until player gets close
+            Surprised,  // Brief moment of being startled before flush
             Flushing,   // Quick takeoff animation (3 seconds)
             Flying      // Flying off screen and will be removed
         }
