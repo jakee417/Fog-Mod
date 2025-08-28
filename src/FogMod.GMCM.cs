@@ -74,38 +74,14 @@ namespace FogMod
                     () => "Set the strength of the light thinning effect high/low"
                 );
 
-                // Debug
-                configMenu.AddSectionTitle(
-                    ModManifest,
-                    () => "Debug",
-                    () => "Developer options"
-                );
-
                 configMenu.AddBoolOption(
                     ModManifest,
-                    () => config.DebugLightRings,
-                    value => config.DebugLightRings = value,
-                    () => "Draw Light Rings",
-                    () => "Draw debug rings around light sources"
+                    () => config.DebugShowInfo,
+                    value => config.DebugShowInfo = value,
+                    () => "Show Debugging Information",
+                    () => "Display debugging information in the top-left corner"
                 );
 
-                configMenu.AddBoolOption(
-                    ModManifest,
-                    () => config.DebugFogCells,
-                    value => config.DebugFogCells = value,
-                    () => "Draw Fog Cells",
-                    () => "Draw a red grid overlay for fog cells"
-                );
-
-                configMenu.AddBoolOption(
-                    ModManifest,
-                    () => config.DebugFogBlack,
-                    value => config.DebugFogBlack = value,
-                    () => "Force Black Fog",
-                    () => "Override fog color to solid black for debugging"
-                );
-
-                // Experimental Features Section
                 configMenu.AddSectionTitle(
                     ModManifest,
                     () => "Experimental Features",
@@ -118,14 +94,6 @@ namespace FogMod
                     value => config.EnableGrouseCritters = value,
                     () => "Enable Grouse Critters",
                     () => "Spawn grouse birds in trees that flush when you get close. Requires restart to take full effect."
-                );
-
-                configMenu.AddBoolOption(
-                    ModManifest,
-                    () => config.DebugShowInfo,
-                    value => config.DebugShowInfo = value,
-                    () => "Show Debugging Information",
-                    () => "Display debugging information in the top-left corner"
                 );
             }
             catch (Exception ex)

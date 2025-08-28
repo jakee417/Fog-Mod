@@ -241,11 +241,9 @@ namespace FogMod
         {
             if (!Context.IsWorldReady) return;
 
-            if (config.DebugLightRings)
-                DrawDebugLightRings(e.SpriteBatch);
+            // DrawDebugLightRings(e.SpriteBatch);
 
-            if (config.DebugFogCells)
-                DrawDebugFogGrid(e.SpriteBatch);
+            // DrawDebugFogGrid(e.SpriteBatch);
 
             if (config.DebugShowInfo)
                 DrawDebugInfo(e.SpriteBatch);
@@ -324,11 +322,6 @@ namespace FogMod
             public bool ParticleStrength { get; set; } = true;
             public bool LightThinningStrength { get; set; } = true;
             public bool DebugShowInfo { get; set; } = false;
-            public bool DebugLightRings { get; set; } = false;
-            public bool DebugFogCells { get; set; } = false;
-            public bool DebugFogBlack { get; set; } = false;
-
-            // Experimental Features
             public bool EnableGrouseCritters { get; set; } = false;
         }
     }

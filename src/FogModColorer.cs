@@ -10,8 +10,7 @@ namespace FogMod
         private Color GetEffectiveFogColor()
         {
             // Debug override
-            if (config.DebugFogBlack)
-                return Color.Black;
+            // return Color.Black;
 
             Color fog = FogAtLocation();
 
