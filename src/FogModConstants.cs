@@ -6,7 +6,7 @@ namespace FogMod
     {
         private const int FogTileSize = 128;
         private const int DefaultFogGridBufferCells = 3;
-        private const float FogCloudScale = 3.0f;
+        private const float FogCloudScale = 4.0f;
         private const float DefaultFloatingScaleMin = 0.4f;
         private const float DefaultFloatingScaleMax = 1.4f;
         private const float DefaultFogAlpha = 0.6f;
@@ -42,9 +42,10 @@ namespace FogMod
         private const float GrouseSurprisedDuration = 1.5f; // Brief moment of being startled (1 second)
         private const float GrouseFlushDuration = 2.0f; // How long the flush animation lasts (2 seconds for heavy flapping)
         private const float GrouseSpawnChance = 1.0f; // Chance per tree to spawn a grouse
-        private const float GrouseScale = 6f; // Visual scale of the grouse
+        private const float GrouseScale = 4f; // Visual scale of the grouse
         private const int GrouseMaxPerLocation = 100; // Maximum grouse per location
         private const int GrouseSpriteWidth = 16; // Width of each frame
         private const int GrouseSpriteHeight = 16; // Height of each frame
+        private const float SurprisedSpriteScale = 4f;
     }
 }

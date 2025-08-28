@@ -162,7 +162,7 @@ namespace FogMod
                     color: Color.White,
                     rotation: 0f,
                     origin: surprisedOrigin,
-                    scale: 4f,
+                    scale: SurprisedSpriteScale,
                     effects: SpriteEffects.None,
                     layerDepth: 0.86f
                 );
