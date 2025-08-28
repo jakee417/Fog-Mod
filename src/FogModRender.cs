@@ -30,7 +30,7 @@ namespace FogMod
                     origin: origin,
                     scale: scale,
                     effects: SpriteEffects.None,
-                    layerDepth: 0.95f
+                    layerDepth: 0.8f
                 );
             }
         }
@@ -48,7 +48,17 @@ namespace FogMod
                 float lifeT = MathHelper.Clamp(p.AgeSeconds / Math.Max(0.001f, SmokeGrowthSeconds), 0f, 1f);
                 float growth = 1f + 1.0f * lifeT;
                 float scale = p.Scale * FogCloudScale * growth;
-
+                spriteBatch.Draw(
+                    tex,
+                    position: screenPos,
+                    sourceRectangle: null,
+                    color: color,
+                    rotation: 0f,
+                    origin: origin,
+                    scale: scale,
+                    effects: SpriteEffects.None,
+                    layerDepth: 0.81f
+                );
             }
         }
 
@@ -94,7 +104,6 @@ namespace FogMod
 
         private void DrawSingleGrouse(SpriteBatch spriteBatch, Grouse g)
         {
-            // Skip drawing if texture isn't loaded
             if (grouseTexture == null)
                 return;
 
@@ -108,8 +117,7 @@ namespace FogMod
             switch (g.State)
             {
                 case GrouseState.Perched:
-                    // Simple default frame - this won't be visible anyway
-                    frameX = 0; // sitting left
+                    frameX = 0;
                     frameY = 0;
                     break;
                 case GrouseState.Surprised:
@@ -130,13 +138,7 @@ namespace FogMod
                 GrouseSpriteWidth,
                 GrouseSpriteHeight
             );
-
-            // Use position-based drawing with origin - this is simpler and more reliable
-            // Origin at bottom center means the sprite's bottom-center will be at screenPos
             Vector2 origin = new Vector2(GrouseSpriteWidth / 2f, GrouseSpriteHeight);
-
-            // Draw the grouse sprite directly at the screen position
-            // The origin will automatically position the sprite so its bottom-center is at screenPos
             spriteBatch.Draw(
                 grouseTexture,
                 position: screenPos,
@@ -148,6 +150,23 @@ namespace FogMod
                 effects: effects,
                 layerDepth: 0.85f
             );
+            if (surprisedTexture != null && g.State == GrouseState.Surprised && g.AnimationFrame == 3)
+            {
+                Vector2 surprisedOrigin = new Vector2(surprisedTexture.Width / 2f, surprisedTexture.Height);
+                Vector2 surprisedPos = screenPos;
+                surprisedPos.Y -= GrouseSpriteHeight * g.Scale * 1.02f;
+                spriteBatch.Draw(
+                    surprisedTexture,
+                    position: surprisedPos,
+                    sourceRectangle: null,
+                    color: Color.White,
+                    rotation: 0f,
+                    origin: surprisedOrigin,
+                    scale: 4f,
+                    effects: SpriteEffects.None,
+                    layerDepth: 0.86f
+                );
+            }
             g.HasBeenSpotted = true;
         }
 

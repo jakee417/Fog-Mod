@@ -52,12 +52,6 @@ namespace FogMod
                     () => "Enable or disable time of day fog effect (daylight, night, etc.)"
                 );
 
-                configMenu.AddSectionTitle(
-                    ModManifest,
-                    () => "Particle Settings",
-                    () => "Configure particle settings"
-                );
-
                 configMenu.AddBoolOption(
                     ModManifest,
                     () => config.ParticleStrength,
@@ -74,18 +68,10 @@ namespace FogMod
                     () => "Set the strength of the light thinning effect high/low"
                 );
 
-                configMenu.AddBoolOption(
-                    ModManifest,
-                    () => config.DebugShowInfo,
-                    value => config.DebugShowInfo = value,
-                    () => "Show Debugging Information",
-                    () => "Display debugging information in the top-left corner"
-                );
-
                 configMenu.AddSectionTitle(
                     ModManifest,
-                    () => "Experimental Features",
-                    () => "Warning: These features are experimental and may be unstable or change in future updates."
+                    () => "Grouse",
+                    () => "Configure grouse settings"
                 );
 
                 configMenu.AddBoolOption(
@@ -94,6 +80,20 @@ namespace FogMod
                     value => config.EnableGrouseCritters = value,
                     () => "Enable Grouse Critters",
                     () => "Spawn grouse birds in trees that flush when you get close. Requires restart to take full effect."
+                );
+
+                configMenu.AddSectionTitle(
+                    ModManifest,
+                    () => "Debug Options",
+                    () => "Options for debugging and development purposes."
+                );
+
+                configMenu.AddBoolOption(
+                    ModManifest,
+                    () => config.DebugShowInfo,
+                    value => config.DebugShowInfo = value,
+                    () => "Show Debugging Information",
+                    () => "Display debugging information in the top-left corner"
                 );
             }
             catch (Exception ex)
