@@ -106,6 +106,8 @@ namespace FogMod
 
                 // Check if this projectile hit a grouse
                 Vector2 projectilePos = __instance.position.Value;
+                projectilePos.X += 8f * 4;
+                projectilePos.Y += 8f * 4;
                 foreach (var grouse in FogMod.Instance.grouse)
                 {
                     // Only check grouse that are flying (can be hit)
@@ -114,6 +116,7 @@ namespace FogMod
                     // Calculate distance between projectile and grouse
                     Vector2 grousePos = grouse.Position;
                     grousePos.Y += grouse.FlightHeight; // Account for flight height
+                    grousePos.Y -= GrouseSpriteHeight * grouse.Scale / 2f;
                     float distance = Vector2.Distance(projectilePos, grousePos);
 
                     // If projectile is close enough to the grouse (hit detection)
