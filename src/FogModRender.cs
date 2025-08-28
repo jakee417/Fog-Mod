@@ -104,7 +104,7 @@ namespace FogMod
 
         private void DrawSingleGrouse(SpriteBatch spriteBatch, Grouse g)
         {
-            if (grouseTexture == null)
+            if (grouseTexture == null || g.Alpha <= 0f)
                 return;
 
             Vector2 screenPos = Game1.GlobalToLocal(Game1.viewport, g.Position);
@@ -131,6 +131,11 @@ namespace FogMod
                     frameX = FogMod.wingPattern[g.AnimationFrame % FogMod.wingPattern.Length];
                     frameY = 1;
                     break;
+
+                case GrouseState.KnockedDown:
+                    frameX = 2;
+                    frameY = 1;
+                    break;
             }
             Rectangle sourceRect = new Rectangle(
                 frameX * GrouseSpriteWidth,
@@ -143,7 +148,7 @@ namespace FogMod
                 grouseTexture,
                 position: screenPos,
                 sourceRectangle: sourceRect,
-                color: Color.White,
+                color: Color.White * g.Alpha,
                 rotation: 0f,
                 origin: origin,
                 scale: g.Scale,
@@ -183,7 +188,8 @@ namespace FogMod
                 string grouseCountText = $"Grouse: {grouse?.Count ?? 0}";
                 int surprisedGrouse = grouse?.Where(g => g.State == GrouseState.Surprised).Count() ?? 0;
                 int flyingGrouse = grouse?.Where(g => g.State == GrouseState.Flushing || g.State == GrouseState.Flying).Count() ?? 0;
-                string stateText = $"Surprised: {surprisedGrouse}, Flying: {flyingGrouse}";
+                int knockedDownGrouse = grouse?.Where(g => g.State == GrouseState.KnockedDown).Count() ?? 0;
+                string stateText = $"Surprised: {surprisedGrouse}, Flying: {flyingGrouse}, Knocked Down: {knockedDownGrouse}";
                 grouseInfo = $"\n{grouseCountText}\n{stateText}";
             }
 

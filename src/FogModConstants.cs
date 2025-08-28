@@ -47,5 +47,7 @@ namespace FogMod
         private const int GrouseSpriteWidth = 16; // Width of each frame
         private const int GrouseSpriteHeight = 16; // Height of each frame
         private const float SurprisedSpriteScale = 4f;
+        private const float GrouseFallDistance = 128f; // How far grouse falls when knocked down
+        private const float GrouseFadeOutDuration = 1.0f; // How long it takes for knocked down grouse to fade out
     }
 }

@@ -118,7 +118,9 @@ namespace FogMod
                 HasPlayedFlushSound = false,
                 HasBeenSpotted = false,
                 AnimationFrame = 0,
-                AnimationTimer = 0f
+                AnimationTimer = 0f,
+                Alpha = 1.0f,
+                OriginalY = treePosition.Y
             };
 
             grouse.Add(newGrouse);
@@ -151,16 +153,17 @@ namespace FogMod
                     case GrouseState.Flying:
                         UpdateGrouseFlying(g, deltaSeconds);
                         break;
+
+                    case GrouseState.KnockedDown:
+                        UpdateGrouseKnockedDown(g, deltaSeconds);
+                        break;
                 }
 
-                // Update position
                 g.Position += g.Velocity * deltaSeconds;
-
-                // Update animation
                 UpdateGrouseAnimation(ref g, deltaSeconds);
 
-                // Remove if off screen and flying (since flying now means leaving)
-                if (g.State == GrouseState.Flying && IsGrouseOffScreen(g))
+                // Remove if off screen and flying (since flying now means leaving), or if faded out
+                if ((g.State == GrouseState.Flying && IsGrouseOffScreen(g)) || g.Alpha <= 0f)
                 {
                     spawnedTreePositions.Remove(g.TreePosition);
                     grouse.RemoveAt(i);
@@ -229,6 +232,34 @@ namespace FogMod
             g.FlightHeight = bobAmount;
         }
 
+        private void UpdateGrouseKnockedDown(Grouse g, float deltaSeconds)
+        {
+            g.StateTimer += deltaSeconds;
+
+            // Check if we've fallen the set distance
+            float fallProgress = (g.Position.Y - g.OriginalY) / GrouseFallDistance;
+
+            if (fallProgress < 1.0f)
+            {
+                // Still falling - apply gravity
+                g.Velocity = new Vector2(g.Velocity.X, g.Velocity.Y + 500f * deltaSeconds);
+            }
+            else
+            {
+                // Landed - stop falling and start fading
+                g.Velocity = Vector2.Zero;
+                g.Position = new Vector2(g.Position.X, g.OriginalY + GrouseFallDistance);
+
+                // Start fading after landing
+                if (g.StateTimer > GrouseFallDistance / 150f) // Rough estimate of fall time
+                {
+                    float timeSinceLanding = g.StateTimer - (GrouseFallDistance / 150f);
+                    float fadeProgress = timeSinceLanding / GrouseFadeOutDuration;
+                    g.Alpha = Math.Max(0f, 1.0f - fadeProgress);
+                }
+            }
+        }
+
         private void UpdateGrouseAnimation(ref Grouse g, float deltaSeconds)
         {
             g.AnimationTimer += deltaSeconds;
@@ -238,6 +269,7 @@ namespace FogMod
                 GrouseState.Surprised => 3f,
                 GrouseState.Flushing => 36f,
                 GrouseState.Flying => 12f,
+                GrouseState.KnockedDown => 0f, // No animation when knocked down
                 _ => 1f
             };
 
@@ -280,6 +312,30 @@ namespace FogMod
         {
             if (g.AnimationFrame == 2)
                 Game1.playSound("fishSlap");
+        }
+
+        private void KnockDownGrouse(int grouseId)
+        {
+            for (int i = 0; i < grouse.Count; i++)
+            {
+                var g = grouse[i];
+                if (g.GrouseId == grouseId)
+                {
+                    // Change state to knocked down
+                    g.State = GrouseState.KnockedDown;
+                    g.StateTimer = 0f;
+                    // Preserve the grouse's current momentum but add some downward force
+                    g.Velocity = new Vector2(g.Velocity.X * 0.8f, Math.Max(g.Velocity.Y + 100f, 150f));
+                    g.FlightHeight = 0f;
+                    g.Alpha = 1.0f;
+                    g.OriginalY = g.Position.Y; // Store original Y position
+                    grouse[i] = g;
+
+                    // Play a sound effect
+                    Game1.playSound("hitEnemy");
+                    break;
+                }
+            }
         }
     }
 }

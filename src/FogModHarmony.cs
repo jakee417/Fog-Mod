@@ -2,6 +2,7 @@ using Microsoft.Xna.Framework;
 using StardewModdingAPI;
 using StardewValley;
 using StardewValley.Objects;
+using StardewValley.Projectiles;
 using System;
 
 namespace FogMod
@@ -95,6 +96,39 @@ namespace FogMod
                 Game1.drawObjectDialogue(Game1.parseText(text));
             }
             catch { }
+        }
+
+        private static void OnProjectileUpdatePostfix(Projectile __instance, GameLocation location)
+        {
+            try
+            {
+                if (FogMod.Instance == null || !FogMod.Instance.config.EnableGrouseCritters) return;
+
+                // Check if this projectile hit a grouse
+                Vector2 projectilePos = __instance.position.Value;
+                foreach (var grouse in FogMod.Instance.grouse)
+                {
+                    // Only check grouse that are flying (can be hit)
+                    if (grouse.State != GrouseState.Flushing && grouse.State != GrouseState.Flying) continue;
+
+                    // Calculate distance between projectile and grouse
+                    Vector2 grousePos = grouse.Position;
+                    grousePos.Y += grouse.FlightHeight; // Account for flight height
+                    float distance = Vector2.Distance(projectilePos, grousePos);
+
+                    // If projectile is close enough to the grouse (hit detection)
+                    if (distance < 32f) // 32 pixels hit radius
+                    {
+                        // Knock the grouse down, preserving its current momentum
+                        FogMod.Instance.KnockDownGrouse(grouse.GrouseId);
+                        break; // Only hit one grouse per projectile
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                FogMod.Instance.Monitor.Log($"OnProjectileUpdatePostfix failed: {ex.Message}", LogLevel.Error);
+            }
         }
     }
 }

@@ -3,6 +3,7 @@ using Microsoft.Xna.Framework.Graphics;
 using StardewModdingAPI;
 using StardewModdingAPI.Events;
 using StardewValley;
+using StardewValley.Projectiles;
 using System;
 using System.Collections.Generic;
 using HarmonyLib;
@@ -73,6 +74,10 @@ namespace FogMod
                 original: AccessTools.Method(typeof(TV), nameof(TV.proceedToNextScene)),
                 prefix: new HarmonyMethod(typeof(FogMod), nameof(ProceedToNextScenePrefix)),
                 postfix: new HarmonyMethod(typeof(FogMod), nameof(ProceedToNextScenePostfix))
+            );
+            harmony.Patch(
+                original: AccessTools.Method(typeof(Projectile), nameof(Projectile.update)),
+                postfix: new HarmonyMethod(typeof(FogMod), nameof(OnProjectileUpdatePostfix))
             );
         }
 

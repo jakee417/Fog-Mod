@@ -73,6 +73,8 @@ namespace FogMod
             public bool HasBeenSpotted { get; set; }
             public int AnimationFrame { get; set; }
             public float AnimationTimer { get; set; }
+            public float Alpha { get; set; } // For fade out effect when knocked down
+            public float OriginalY { get; set; } // Y position when knocked down for fall distance calculation
 
             // Computed property example
             public Vector2 GetExitDirection => FacingLeft ? new Vector2(-1, 0) : new Vector2(1, 0);
@@ -83,7 +85,8 @@ namespace FogMod
             Perched,    // Sitting in tree, invisible until player gets close
             Surprised,  // Brief moment of being startled before flush
             Flushing,   // Quick takeoff animation (3 seconds)
-            Flying      // Flying off screen and will be removed
+            Flying,     // Flying off screen and will be removed
+            KnockedDown // Hit by projectile, falling to ground
         }
     }
 }
