@@ -85,7 +85,6 @@ namespace FogMod
 
             foreach (var g in grouse)
             {
-                // Only draw if not perched (perched grouse are hidden in trees)
                 if (g.State == GrouseState.Perched)
                     continue;
 
@@ -104,7 +103,7 @@ namespace FogMod
 
             int frameX = 0;
             int frameY = 0;
-            SpriteEffects effects = SpriteEffects.None;
+            SpriteEffects effects = g.FacingLeft ? SpriteEffects.None : SpriteEffects.FlipHorizontally;
 
             switch (g.State)
             {
@@ -115,7 +114,7 @@ namespace FogMod
                     break;
                 case GrouseState.Surprised:
                     // Cycle through top row: sitting left (0) → standing right (1) → standing left (2) → surprised forward (3)
-                    frameX = g.AnimationFrame; // 0, 1, 2, or 3
+                    frameX = g.AnimationFrame;
                     frameY = 0;
                     break;
                 case GrouseState.Flushing:
@@ -123,8 +122,6 @@ namespace FogMod
                     // Map animation frame to wing pattern: 0→1→2→3→2→1→0→1→2→3...
                     frameX = FogMod.wingPattern[g.AnimationFrame % FogMod.wingPattern.Length];
                     frameY = 1;
-                    if (!g.FacingLeft)
-                        effects = SpriteEffects.FlipHorizontally;
                     break;
             }
             Rectangle sourceRect = new Rectangle(
@@ -151,6 +148,7 @@ namespace FogMod
                 effects: effects,
                 layerDepth: 0.85f
             );
+            g.HasBeenSpotted = true;
         }
 
         private void DrawDebugInfo(Microsoft.Xna.Framework.Graphics.SpriteBatch spriteBatch)
@@ -182,32 +180,6 @@ namespace FogMod
             // Put text in upper-left corner
             Vector2 pos = new Vector2(margin, margin);
             spriteBatch.DrawString(font, text, pos, Color.Red);
-        }
-
-        // Draw debug rings for each light source influence radius
-        private void DrawDebugLightRings(Microsoft.Xna.Framework.Graphics.SpriteBatch spriteBatch)
-        {
-            if (lightSources == null || lightSources.Count == 0) return;
-            Texture2D px = new Texture2D(Game1.graphics.GraphicsDevice, 1, 1);
-            px.SetData(new[] { Color.White });
-            if (px == null) return;
-            Color ringColor = Color.Yellow;
-            int segments = 48;
-            for (int i = 0; i < lightSources.Count; i++)
-            {
-                var li = lightSources[i];
-                Vector2 centerScreen = Game1.GlobalToLocal(Game1.viewport, li.Position);
-                float radius = li.RadiusPixels;
-                // draw approximate circle with line segments
-                Vector2 prev = centerScreen + new Vector2(radius, 0f);
-                for (int s = 1; s <= segments; s++)
-                {
-                    float ang = MathHelper.TwoPi * (s / (float)segments);
-                    Vector2 curr = centerScreen + new Vector2((float)Math.Cos(ang) * radius, (float)Math.Sin(ang) * radius);
-                    DrawLine(spriteBatch, px, prev, curr, ringColor * 0.8f, DebugRingThickness);
-                    prev = curr;
-                }
-            }
         }
 
         private static void DrawLine(Microsoft.Xna.Framework.Graphics.SpriteBatch spriteBatch, Texture2D texture, Vector2 a, Vector2 b, Color color, float thickness)
@@ -260,126 +232,6 @@ namespace FogMod
                     spriteBatch.DrawString(font, text, pos, Color.Black);
                 }
             }
-        }
-
-        // Draw debug visualization for different tree positioning strategies
-        private void DrawTreePositioningDebug(Microsoft.Xna.Framework.Graphics.SpriteBatch spriteBatch)
-        {
-            // First, draw a simple test rectangle to confirm this method is being called
-            Texture2D testTexture = new Texture2D(Game1.graphics.GraphicsDevice, 1, 1);
-            testTexture.SetData(new[] { Color.White });
-            spriteBatch.Draw(testTexture, new Rectangle(50, 50, 100, 20), Color.Purple);
-
-            if (Game1.currentLocation?.terrainFeatures == null) return;
-
-            // Create textures for different markers - make them bigger and more visible
-            Texture2D pixelTexture = new Texture2D(Game1.graphics.GraphicsDevice, 1, 1);
-            pixelTexture.SetData(new[] { Color.White });
-
-            Texture2D dotTexture = new Texture2D(Game1.graphics.GraphicsDevice, 12, 12);
-            Color[] dotData = new Color[144];
-            for (int i = 0; i < 144; i++)
-                dotData[i] = Color.White;
-            dotTexture.SetData(dotData);
-
-            int treeCount = 0;
-            foreach (var pair in Game1.currentLocation.terrainFeatures.Pairs)
-            {
-                if (pair.Value is Tree tree && tree.growthStage.Value >= Tree.treeStage)
-                {
-                    treeCount++;
-
-                    // Strategy 1: Original tile position (Blue dot)
-                    Vector2 tilePos = pair.Key * 64f;
-                    Vector2 tileScreenPos = Game1.GlobalToLocal(Game1.viewport, tilePos);
-                    if (IsOnScreen(tileScreenPos))
-                    {
-                        spriteBatch.Draw(dotTexture, tileScreenPos, Color.Blue);
-                    }
-
-                    // Strategy 2: Tile center (Cyan dot)
-                    Vector2 tileCenterPos = tilePos + new Vector2(32f, 32f);
-                    Vector2 tileCenterScreenPos = Game1.GlobalToLocal(Game1.viewport, tileCenterPos);
-                    if (IsOnScreen(tileCenterScreenPos))
-                    {
-                        spriteBatch.Draw(dotTexture, tileCenterScreenPos, Color.Cyan);
-                    }
-
-                    // Strategy 3: Current approach - render bounds center (Pink dot)
-                    Vector2 currentPos = TreeHelper.GetGrouseSpawnPosition(tree);
-                    Vector2 currentScreenPos = Game1.GlobalToLocal(Game1.viewport, currentPos);
-                    if (IsOnScreen(currentScreenPos))
-                    {
-                        spriteBatch.Draw(dotTexture, currentScreenPos, Color.HotPink);
-                    }
-
-                    // Strategy 4: Render bounds visualization (Yellow rectangle outline)
-                    Rectangle renderBounds = tree.getRenderBounds();
-                    Rectangle screenBounds = new Rectangle(
-                        (int)Game1.GlobalToLocal(Game1.viewport, new Vector2(renderBounds.X, renderBounds.Y)).X,
-                        (int)Game1.GlobalToLocal(Game1.viewport, new Vector2(renderBounds.X, renderBounds.Y)).Y,
-                        renderBounds.Width,
-                        renderBounds.Height
-                    );
-
-                    if (IsRectangleOnScreen(screenBounds))
-                    {
-                        // Draw rectangle outline
-                        int thickness = 3;
-                        Color outlineColor = Color.Yellow;
-
-                        // Top
-                        spriteBatch.Draw(pixelTexture, new Rectangle(screenBounds.X, screenBounds.Y, screenBounds.Width, thickness), outlineColor);
-                        // Bottom
-                        spriteBatch.Draw(pixelTexture, new Rectangle(screenBounds.X, screenBounds.Bottom - thickness, screenBounds.Width, thickness), outlineColor);
-                        // Left
-                        spriteBatch.Draw(pixelTexture, new Rectangle(screenBounds.X, screenBounds.Y, thickness, screenBounds.Height), outlineColor);
-                        // Right
-                        spriteBatch.Draw(pixelTexture, new Rectangle(screenBounds.Right - thickness, screenBounds.Y, thickness, screenBounds.Height), outlineColor);
-                    }
-
-                    // Strategy 5: Alternative positions for comparison
-                    // Top of render bounds (Red dot)
-                    Vector2 topCenterPos = new Vector2(
-                        renderBounds.X + renderBounds.Width / 2f,
-                        renderBounds.Y + 10f  // 10 pixels from top
-                    );
-                    Vector2 topCenterScreenPos = Game1.GlobalToLocal(Game1.viewport, topCenterPos);
-                    if (IsOnScreen(topCenterScreenPos))
-                    {
-                        spriteBatch.Draw(dotTexture, topCenterScreenPos, Color.Red);
-                    }
-
-                    // Center of render bounds (Orange dot - this should match Pink now)
-                    Vector2 renderCenterPos = new Vector2(
-                        renderBounds.X + renderBounds.Width / 2f,
-                        renderBounds.Y + renderBounds.Height / 2f
-                    );
-                    Vector2 renderCenterScreenPos = Game1.GlobalToLocal(Game1.viewport, renderCenterPos);
-                    if (IsOnScreen(renderCenterScreenPos))
-                    {
-                        spriteBatch.Draw(dotTexture, renderCenterScreenPos, Color.Orange);
-                    }
-                }
-            }
-
-            // Log debug info once per second to avoid spam
-            if (Game1.currentGameTime.TotalGameTime.TotalSeconds % 1.0 < 0.1)
-            {
-                Monitor.Log($"DrawTreePositioningDebug called - Found {treeCount} mature trees", LogLevel.Info);
-            }
-        }
-
-        private bool IsOnScreen(Vector2 screenPos)
-        {
-            return screenPos.X >= -10 && screenPos.X <= Game1.viewport.Width + 10 &&
-                   screenPos.Y >= -10 && screenPos.Y <= Game1.viewport.Height + 10;
-        }
-
-        private bool IsRectangleOnScreen(Rectangle screenRect)
-        {
-            return screenRect.Right >= 0 && screenRect.X <= Game1.viewport.Width &&
-                   screenRect.Bottom >= 0 && screenRect.Y <= Game1.viewport.Height;
         }
     }
 }

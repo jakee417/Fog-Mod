@@ -29,12 +29,9 @@ namespace FogMod
                     g.State = GrouseState.Surprised;
                     g.StateTimer = 0f;
                     g.Velocity = Vector2.Zero;
-                    g.HasPlayedFlushSound = true; // Don't play sound again since host already sent message
-
-                    // Face the direction it will exit
-                    Vector2 exitDirection = GetDeterministicExitDirection(g.TreePosition);
-                    g.FacingLeft = exitDirection.X < 0;
-
+                    g.HasPlayedFlushSound = false;
+                    g.HasBeenSpotted = false;
+                    g.FacingLeft = DeterministicBool(g.TreePosition, 1);
                     grouse[i] = g;
                     break;
                 }
@@ -63,17 +60,6 @@ namespace FogMod
             return rng.NextDouble() < 0.5;
         }
 
-        private Vector2 GetDeterministicExitDirection(Vector2 treePosition)
-        {
-            // Use deterministic random to pick left or right (only directions that make sense visually)
-            // This ensures all players see the grouse exit in the same direction
-            int seed = (int)(treePosition.X * 1000 + treePosition.Y * 1000 + 999); // +999 for exit direction variant
-            var rng = new Random(seed);
-            bool goLeft = rng.NextDouble() < 0.5;
-
-            return goLeft ? new Vector2(-1, 0) : new Vector2(1, 0);
-        }
-
         private void SpawnGrouseInTrees()
         {
             // Only the host should decide when to spawn grouse
@@ -95,7 +81,7 @@ namespace FogMod
             lastPlayerLocation = currentLocationName;
 
             // Get all tree positions that don't already have grouse
-            var availableTrees = GetAvailableTreePositions();
+            var availableTrees = TreeHelper.GetAvailableTreePositions(Game1.currentLocation, spawnedTreePositions);
 
             // Use deterministic spawning based on location and day
             string locationSeed = Game1.currentLocation.NameOrUniqueName ?? "Unknown";
@@ -109,15 +95,8 @@ namespace FogMod
                     break;
 
                 if (locationRng.NextDouble() < GrouseSpawnChance)
-                {
                     SpawnGrouseAtTree(treePos);
-                }
             }
-        }
-
-        private List<Vector2> GetAvailableTreePositions()
-        {
-            return TreeHelper.GetAvailableTreePositions(Game1.currentLocation, spawnedTreePositions);
         }
 
         private void SpawnGrouseAtTree(Vector2 treePosition)
@@ -137,6 +116,7 @@ namespace FogMod
                 FacingLeft = DeterministicBool(treePosition, 1),
                 FlightTimer = 0f,
                 HasPlayedFlushSound = false,
+                HasBeenSpotted = false,
                 AnimationFrame = 0,
                 AnimationTimer = 0f
             };
@@ -194,36 +174,17 @@ namespace FogMod
 
         private void UpdateGrousePerched(Grouse g, Vector2 playerPos, float deltaSeconds)
         {
-            float distanceToPlayer = Vector2.Distance(g.Position, playerPos);
-
-            if (distanceToPlayer < GrouseDetectionRadius)
+            if (Vector2.Distance(g.Position, playerPos) < GrouseDetectionRadius)
             {
-                // Surprise the grouse first!
                 g.State = GrouseState.Surprised;
                 g.StateTimer = 0f;
-
-                // Stay still during surprised moment
                 g.Velocity = Vector2.Zero;
-
-                // Face the direction it will exit
-                Vector2 exitDirection = GetDeterministicExitDirection(g.TreePosition);
-                g.FacingLeft = exitDirection.X < 0;
-
-                // Play the initial surprised sound
-                if (!g.HasPlayedFlushSound)
-                {
-                    Game1.playSound("crow");  // Using crow sound as it's similar to a bird cry
-                    g.HasPlayedFlushSound = true;
-
-                    // Send multiplayer message to synchronize flush across all players
-                    SendGrouseFlushMessage(g.TreePosition);
-                }
+                SendGrouseFlushMessage(g.TreePosition);
             }
         }
 
         private void UpdateGrouseSurprised(Grouse g, float deltaSeconds)
         {
-            // Stay still and just wait during the surprised moment
             g.Velocity = Vector2.Zero;
 
             if (g.StateTimer >= GrouseSurprisedDuration)
@@ -231,7 +192,8 @@ namespace FogMod
                 // Transition to flushing after being surprised
                 g.State = GrouseState.Flushing;
                 g.StateTimer = 0f;
-                // Velocity will be set in the flushing update
+                // The flying sprite is slightly smaller.
+                g.Scale *= 1.2f;
             }
         }
 
@@ -239,41 +201,23 @@ namespace FogMod
         {
             float flushProgress = g.StateTimer / GrouseFlushDuration;
 
-            if (g.StateTimer >= GrouseFlushDuration)
+            if (flushProgress >= 1f)
             {
                 g.State = GrouseState.Flying;
                 g.StateTimer = 0f;
                 g.FlightTimer = 0f;
-
-                // Transition to full flight speed in the same direction
-                // Exit direction was already established at start of flush
-                Vector2 exitDirection = GetDeterministicExitDirection(g.TreePosition);
-                g.Velocity = exitDirection * GrouseExitSpeed;
-                g.FacingLeft = g.Velocity.X < 0;
+                g.Velocity = g.GetExitDirection * GrouseExitSpeed;
             }
             else
             {
-                // Determine flight direction at start of flush (for realistic behavior)
-                Vector2 exitDirection = GetDeterministicExitDirection(g.TreePosition);
-                g.FacingLeft = exitDirection.X < 0;
-
-                // Build momentum in the exit direction over the flush duration
-                float momentumProgress = flushProgress; // Linear build-up
+                float momentumProgress = flushProgress;
                 float currentSpeed = MathHelper.Lerp(GrouseFlushSpeed * 0.3f, GrouseFlushSpeed, momentumProgress);
-
-                // Wing flapping gets more intense as flush progresses
-                float flapIntensity = MathHelper.Lerp(20f, 35f, flushProgress);
-
-                // Move in exit direction with increasing speed + wing flapping variation
-                float flappingVariation = (float)Math.Sin(g.StateTimer * 15f) * 0.15f; // Slight variation
-                Vector2 baseVelocity = exitDirection * currentSpeed;
-
-                // Add some vertical flapping motion for realism
-                float verticalFlapping = (float)Math.Sin(g.StateTimer * 12f) * 10f;
-
+                float bobX = (float)Math.Sin(g.StateTimer * 15f) * 0.15f;
+                float bobY = (float)Math.Sin(g.StateTimer * 12f) * GrouseBobAmplitude;
+                Vector2 baseVelocity = g.GetExitDirection * currentSpeed;
                 g.Velocity = new Vector2(
-                    baseVelocity.X * (1f + flappingVariation),
-                    baseVelocity.Y + verticalFlapping
+                    baseVelocity.X * (1f + bobX),
+                    baseVelocity.Y + bobY
                 );
             }
         }
@@ -281,23 +225,13 @@ namespace FogMod
         private void UpdateGrouseFlying(Grouse g, float deltaSeconds)
         {
             g.FlightTimer += deltaSeconds;
-
-            // Simple bobbing motion while flying off screen - this affects visual height only
-            float bobAmount = (float)Math.Sin(g.FlightTimer * 4f) * 10f;
+            float bobAmount = (float)Math.Sin(g.FlightTimer * 4f) * GrouseBobAmplitude;
             g.FlightHeight = bobAmount;
-
-            // Maintain consistent flight trajectory - no velocity changes
-            // The velocity was set when entering Flying state and doesn't change
-            // This creates a straight-line flight path to exit the screen
-
-            g.FacingLeft = g.Velocity.X < 0;
         }
 
         private void UpdateGrouseAnimation(ref Grouse g, float deltaSeconds)
         {
             g.AnimationTimer += deltaSeconds;
-
-            // Different animation speeds based on state
             float animationSpeed = g.State switch
             {
                 GrouseState.Perched => 0f,
@@ -307,24 +241,22 @@ namespace FogMod
                 _ => 1f
             };
 
-            if (g.AnimationTimer >= 1f / animationSpeed && animationSpeed > 0f)
+            if (animationSpeed > 0f && g.AnimationTimer >= 1f / animationSpeed)
             {
                 g.AnimationTimer = 0f;
-
-                // Choose animation frames based on state
                 if (g.State == GrouseState.Surprised)
                 {
                     // Cycle through top row once: 0→1→2→3, then stay at 3
-                    if (g.AnimationFrame < 3)
+                    if (g.HasBeenSpotted && g.AnimationFrame < 3)
+                    {
                         g.AnimationFrame++;
+                        PlaySurpriseSound(g);
+                    }
                 }
                 else if (g.State == GrouseState.Flushing || g.State == GrouseState.Flying)
                 {
                     // Smooth wing cycle: 0→1→2→3→2→1→0→1→2→3...
-                    // Use a custom pattern for smooth wing flapping
                     g.AnimationFrame = (g.AnimationFrame + 1) % FogMod.wingPattern.Length;
-
-                    // Play wing beat sound on each frame change
                     PlayWingBeatSound(g);
                 }
             }
@@ -333,6 +265,15 @@ namespace FogMod
         private bool IsGrouseOffScreen(Grouse g)
         {
             return !grid.GetExtendedBounds().Contains(new Point((int)g.Position.X, (int)g.Position.Y));
+        }
+
+        private void PlaySurpriseSound(Grouse g)
+        {
+            if (!g.HasPlayedFlushSound && g.AnimationFrame == 3)
+            {
+                Game1.playSound("crow");
+                g.HasPlayedFlushSound = true;
+            }
         }
 
         private void PlayWingBeatSound(Grouse g)

@@ -241,15 +241,10 @@ namespace FogMod
         {
             if (!Context.IsWorldReady) return;
 
-            // DrawDebugLightRings(e.SpriteBatch);
-
             // DrawDebugFogGrid(e.SpriteBatch);
 
             if (config.DebugShowInfo)
                 DrawDebugInfo(e.SpriteBatch);
-
-            // Always draw tree positioning debug for comparison
-            DrawTreePositioningDebug(e.SpriteBatch);
 
             Color fogColor = GetEffectiveFogColor();
             DrawExplosionFlashes(e.SpriteBatch);
@@ -294,22 +289,13 @@ namespace FogMod
             // Debug hotkey: G to spawn grouse at player location
             if (e.Button == SButton.G && Context.IsPlayerFree && config.EnableGrouseCritters)
             {
-                try
+                Vector2 playerPosition = Game1.player.getStandingPosition();
+                if (Context.IsMainPlayer)
                 {
-                    Vector2 playerPosition = Game1.player.getStandingPosition();
-
-                    // Only main player can spawn grouse to avoid duplicates
-                    if (Context.IsMainPlayer)
-                    {
-                        // Spawn grouse slightly offset from player position
-                        Vector2 spawnPosition = playerPosition;
-                        SpawnGrouseAtTree(spawnPosition);
-                        Game1.addHUDMessage(new HUDMessage("Debug: Grouse spawned!", 2));
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Monitor.Log($"Failed to spawn debug grouse: {ex.Message}", LogLevel.Error);
+                    FarmerHelper.raiseHands(Game1.player);
+                    Vector2 spawnPosition = playerPosition + new Vector2(0, -Game1.player.FarmerSprite.SpriteHeight * 2.5f);
+                    SpawnGrouseAtTree(spawnPosition);
+                    Game1.addHUDMessage(new HUDMessage("Grouse Released!", 2));
                 }
             }
         }

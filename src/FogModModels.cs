@@ -70,8 +70,12 @@ namespace FogMod
             public bool FacingLeft { get; set; }
             public float FlightTimer { get; set; }
             public bool HasPlayedFlushSound { get; set; }
-            public int AnimationFrame { get; set; } // Current animation frame (0-based)
-            public float AnimationTimer { get; set; } // Timer for animation frame changes
+            public bool HasBeenSpotted { get; set; }
+            public int AnimationFrame { get; set; }
+            public float AnimationTimer { get; set; }
+
+            // Computed property example
+            public Vector2 GetExitDirection => FacingLeft ? new Vector2(-1, 0) : new Vector2(1, 0);
         }
 
         private enum GrouseState
