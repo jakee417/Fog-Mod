@@ -268,14 +268,14 @@ namespace FogMod
                 DrawDebugInfo(e.SpriteBatch);
 
             Color fogColor = GetEffectiveFogColor();
+
+            if (config.EnableGrouseCritters && Game1.currentLocation != null && Game1.currentLocation.IsOutdoors)
+                DrawGrouse(e.SpriteBatch);
+
             DrawExplosionFlashes(e.SpriteBatch);
             DrawExplosionSmokeParticles(e.SpriteBatch, fogColor);
             if (isFogDay && Game1.currentLocation != null && Game1.currentLocation.IsOutdoors)
                 DrawFloatingFogParticles(e.SpriteBatch, fogColor);
-
-            // Draw grouse
-            if (config.EnableGrouseCritters && Game1.currentLocation != null && Game1.currentLocation.IsOutdoors)
-                DrawGrouse(e.SpriteBatch);
         }
 
         private void OnModMessageReceived(object sender, ModMessageReceivedEventArgs e)
