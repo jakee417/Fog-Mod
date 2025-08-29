@@ -4,8 +4,18 @@ using StardewModdingAPI;
 namespace FogMod
 {
     public partial class FogMod : Mod
-
     {
+        public class ModConfig
+        {
+            public bool EnableDailyRandomFog { get; set; } = true;
+            public bool EnableWeatherBasedFog { get; set; } = true;
+            public bool EnableTimeOfDayFog { get; set; } = true;
+            public bool ParticleStrength { get; set; } = true;
+            public bool LightThinningStrength { get; set; } = true;
+            public bool DebugShowInfo { get; set; } = false;
+            public bool EnableGrouseCritters { get; set; } = false;
+        }
+
         private void RegisterModConfig(GenericModConfigMenu.IGenericModConfigMenuApi configMenu)
         {
             try
@@ -104,5 +114,3 @@ namespace FogMod
         }
     }
 }
-
-

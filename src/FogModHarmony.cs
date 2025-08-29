@@ -9,6 +9,7 @@ namespace FogMod
 {
     public partial class FogMod : Mod
     {
+        // Bomb
         private static void OnBombExplodedPostfix(GameLocation __instance, Vector2 tileLocation, int radius, Farmer who, bool damageFarmers, int damage_amount, bool destroyObjects)
         {
             try
@@ -17,7 +18,15 @@ namespace FogMod
                 Vector2 center = tileLocation * 64f + new Vector2(32f, 32f);
                 float radiusPx = Math.Max(64f, radius * 64f * 2f);
                 string location = __instance?.NameOrUniqueName ?? "Unknown";
-                FogMod.Instance.HandleExplosion(location, center, radiusPx);
+                ExplosionFlashInfo info = new()
+                {
+                    LocationName = location,
+                    CenterWorld = center,
+                    RadiusPixels = radiusPx,
+                    TimeLeft = ExplosionFlashDurationSeconds
+                };
+                FogMod.Instance.SendExplosionMessage(info);
+                FogMod.Instance.HandleExplosion(info);
             }
             catch
             {
@@ -25,33 +34,14 @@ namespace FogMod
             }
         }
 
-        private void HandleExplosion(string location, Vector2 center, float radiusPx)
+        private void HandleExplosion(ExplosionFlashInfo info)
         {
-            ExplosionFlashInfo info = new()
-            {
-                LocationName = location,
-                CenterWorld = center,
-                RadiusPixels = radiusPx,
-                TimeLeft = ExplosionFlashDurationSeconds
-            };
+
             FogMod.Instance.explosionFlashInfos.Add(info);
-            FogMod.Instance.SpawnExplosionSmoke(center, radiusPx);
-            if (Context.IsMainPlayer)
-                FogMod.Instance.BroadcastExplosion(info);
+            FogMod.Instance.SpawnExplosionSmoke(info.CenterWorld, info.RadiusPixels);
         }
 
-        private void BroadcastExplosion(ExplosionFlashInfo msg)
-        {
-            try
-            {
-                Helper.Multiplayer.SendMessage(msg, ExplosionMessageType);
-            }
-            catch (Exception ex)
-            {
-                Monitor.Log($"🚀 Error broadcasting explosion: {ex.Message}", LogLevel.Error);
-            }
-        }
-
+        // TV Weather Report
         private static void ProceedToNextScenePrefix(TV __instance, out int __state)
         {
             try
@@ -98,33 +88,32 @@ namespace FogMod
             catch { }
         }
 
+        // Projectile Update
         private static void OnProjectileUpdatePostfix(Projectile __instance, GameLocation location)
         {
             try
             {
-                if (FogMod.Instance == null || !FogMod.Instance.config.EnableGrouseCritters) return;
+                if (FogMod.Instance == null || !FogMod.Instance.config.EnableGrouseCritters)
+                    return;
 
-                // Check if this projectile hit a grouse
                 Vector2 projectilePos = __instance.position.Value;
-                projectilePos.X += 8f * 4;
-                projectilePos.Y += 8f * 4;
+                // Adjust for projectile scale.
+                projectilePos.X += 8f * 4f;
+                projectilePos.Y += 8f * 4f;
                 foreach (var grouse in FogMod.Instance.grouse)
                 {
-                    // Only check grouse that are flying (can be hit)
-                    if (grouse.State != GrouseState.Flushing && grouse.State != GrouseState.Flying) continue;
+                    if (grouse.State != GrouseState.Flushing && grouse.State != GrouseState.Flying)
+                        continue;
 
-                    // Calculate distance between projectile and grouse
                     Vector2 grousePos = grouse.Position;
-                    grousePos.Y += grouse.FlightHeight; // Account for flight height
+                    grousePos.Y += grouse.FlightHeight;
                     grousePos.Y -= GrouseSpriteHeight * grouse.Scale / 2f;
                     float distance = Vector2.Distance(projectilePos, grousePos);
-
-                    // If projectile is close enough to the grouse (hit detection)
-                    if (distance < 32f) // 32 pixels hit radius
+                    if (distance < GrouseCollisionRadius)
                     {
-                        // Knock the grouse down, preserving its current momentum
+                        FogMod.Instance.SendGrouseKnockdownMessage(grouse.GrouseId, projectilePos, location?.NameOrUniqueName);
                         FogMod.Instance.KnockDownGrouse(grouse.GrouseId);
-                        break; // Only hit one grouse per projectile
+                        break;
                     }
                 }
             }
