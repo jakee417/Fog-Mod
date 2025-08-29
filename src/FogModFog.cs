@@ -27,7 +27,11 @@ namespace FogMod
         public void ResetFogParticles()
         {
             floatingParticles = new List<FogParticle>();
-            fogCellOccupancy = new CellOccupancy();
+            fogCellOccupancy = new CellOccupancy
+            {
+                Counts = new int[0, 0],
+                Indices = new List<int>[0, 0]
+            };
         }
 
         private FogParticle CreateParticleInCell(int col, int row, Vector2 viewportTopLeftWorld)
@@ -69,7 +73,9 @@ namespace FogMod
                 Rotation = 0f,
                 Alpha = Math.Max(0.05f, Math.Min(0.6f, alpha)),
                 AgeSeconds = 0f,
-                Texture = chosenTex
+                Texture = chosenTex,
+                IsFadingOut = false,
+                FadeOutSecondsLeft = ParticleFadeOutSeconds,
             };
         }
 
@@ -185,8 +191,6 @@ namespace FogMod
                         if (!p.IsFadingOut)
                         {
                             p.IsFadingOut = true;
-                            p.FadeOutTotalSeconds = ParticleFadeOutSeconds;
-                            p.FadeOutSecondsLeft = ParticleFadeOutSeconds;
                             floatingParticles[idx] = p;
                         }
                     }

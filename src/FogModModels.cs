@@ -9,54 +9,54 @@ namespace FogMod
     {
         private struct FogForecast
         {
-            public bool IsFogDay;
-            public float DailyFogStrength;
-            public float ProbabilityOfFogForADay;
-            public float ProbabilityOfFogRoll;
+            public required bool IsFogDay;
+            public required float DailyFogStrength;
+            public required float ProbabilityOfFogForADay;
+            public required float ProbabilityOfFogRoll;
         }
 
-        private class FogParticle
+        private struct FogParticle
         {
-            public Vector2 Position { get; set; }
-            public Vector2 Velocity { get; set; }
-            public float Scale { get; set; }
-            public float Rotation { get; set; }
-            public float Alpha { get; set; }
-            public float AgeSeconds { get; set; }
-            public Texture2D Texture { get; set; }
-            public bool IsFadingOut { get; set; }
-            public float FadeOutSecondsLeft { get; set; }
-            public float FadeOutTotalSeconds { get; set; }
+            public required Vector2 Position;
+            public required Vector2 Velocity;
+            public required float Scale;
+            public required float Rotation;
+            public required float Alpha;
+            public required float AgeSeconds;
+            public required Texture2D Texture;
+            public required bool IsFadingOut;
+            public required float FadeOutSecondsLeft;
         }
 
         public struct CellOccupancy
         {
-            public int[,] Counts;
-            public List<int>[,] Indices;
+            public required int[,] Counts;
+            public required List<int>[,] Indices;
         }
 
         private struct ExplosionFlashInfo
         {
-            public string LocationName;
-            public Vector2 CenterWorld;
-            public float RadiusPixels;
-            public float TimeLeft;
+            public required string LocationName;
+            public required Vector2 CenterWorld;
+            public required float RadiusPixels;
+            public required float TimeLeft;
         }
 
         private struct LightInfo
         {
-            public Vector2 Position;
-            public float RadiusPixels;
+            public required Vector2 Position;
+            public required float RadiusPixels;
         }
 
         private struct GrouseFlushInfo
         {
-            public string LocationName;
-            public Vector2 TreePosition;
-            public long Timestamp; // Game time for synchronization
+            public required string LocationName;
+            public required int GrouseId;
+            public required Vector2 TreePosition;
+            public required long Timestamp;
         }
 
-        private class CollisionSmoke
+        private struct GrouseKnockdownInfo
         {
             public Vector2 Position { get; set; }
         }
