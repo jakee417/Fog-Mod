@@ -298,21 +298,32 @@ namespace FogMod
         {
             try
             {
-                if (e.Type == ExplosionMessageType)
+                if (!Enum.TryParse<MessageType>(e.Type, ignoreCase: true, out MessageType messageType))
                 {
-                    if (Context.IsMainPlayer)
-                        return;
-                    var data = e.ReadAs<ExplosionFlashInfo>();
-                    if (data.LocationName == Game1.currentLocation?.NameOrUniqueName)
-                        HandleExplosion(data.LocationName, data.CenterWorld, data.RadiusPixels);
+                    FogMod.Instance.Monitor.Log($"Unknown message type: {e.Type}", LogLevel.Warn);
+                    return;
                 }
-                else if (e.Type == GrouseFlushMessageType)
+                bool fromAnotherPlayer = e.FromPlayerID != Game1.player.UniqueMultiplayerID;
+                string currentLocation = Game1.currentLocation?.NameOrUniqueName;
+                switch (messageType)
                 {
-                    if (Context.IsMainPlayer)
-                        return;
-                    var data = e.ReadAs<GrouseFlushInfo>();
-                    if (data.LocationName == Game1.currentLocation?.NameOrUniqueName)
-                        HandleGrouseFlushFromMessage(data);
+                    case MessageType.Explosion:
+                        if (Context.IsMainPlayer)
+                            return;
+                        var explosionData = e.ReadAs<ExplosionFlashInfo>();
+                        if (explosionData.LocationName == currentLocation)
+                            HandleExplosionFromMessage(explosionData);
+                        break;
+                    case MessageType.GrouseFlush:
+                        var flushData = e.ReadAs<GrouseFlushInfo>();
+                        if (flushData.LocationName == currentLocation && fromAnotherPlayer)
+                            HandleGrouseFlushFromMessage(flushData);
+                        break;
+                    case MessageType.GrouseKnockdown:
+                        var knockdownData = e.ReadAs<GrouseKnockdownInfo>();
+                        if (knockdownData.LocationName == currentLocation && fromAnotherPlayer)
+                            HandleGrouseKnockdownFromMessage(knockdownData);
+                        break;
                 }
             }
             catch
@@ -335,17 +346,6 @@ namespace FogMod
                     Game1.addHUDMessage(new HUDMessage("Grouse Released!", 2));
                 }
             }
-        }
-
-        public class ModConfig
-        {
-            public bool EnableDailyRandomFog { get; set; } = true;
-            public bool EnableWeatherBasedFog { get; set; } = true;
-            public bool EnableTimeOfDayFog { get; set; } = true;
-            public bool ParticleStrength { get; set; } = true;
-            public bool LightThinningStrength { get; set; } = true;
-            public bool DebugShowInfo { get; set; } = false;
-            public bool EnableGrouseCritters { get; set; } = false;
         }
     }
 }
