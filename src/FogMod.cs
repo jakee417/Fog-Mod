@@ -57,7 +57,6 @@ namespace FogMod
             Config = Helper.ReadConfig<ModConfig>();
 
             // Subscribe to events
-#pragma warning disable CS8622 // Nullability of reference types in type of parameter doesn't match the target delegate (possibly because of nullability attributes).
             helper.Events.GameLoop.GameLaunched += OnGameLaunched;
 
             helper.Events.GameLoop.UpdateTicked += OnUpdateTicked;
@@ -65,7 +64,6 @@ namespace FogMod
             helper.Events.GameLoop.DayStarted += OnDayStarted;
             helper.Events.Multiplayer.ModMessageReceived += OnModMessageReceived;
             helper.Events.Input.ButtonPressed += OnButtonPressed;
-#pragma warning restore CS8622 // Nullability of reference types in type of parameter doesn't match the target delegate (possibly because of nullability attributes).
 
             // Harmony patches
             Instance = this;
@@ -85,7 +83,7 @@ namespace FogMod
             );
         }
 
-        private void OnGameLaunched(object sender, GameLaunchedEventArgs e)
+        private void OnGameLaunched(object? sender, GameLaunchedEventArgs e)
         {
             // Register with Generic Mod Config Menu using the typed API
             GenericModConfigMenu.IGenericModConfigMenuApi? gmcmApi = Helper.ModRegistry.GetApi<GenericModConfigMenu.IGenericModConfigMenuApi>("spacechase0.GenericModConfigMenu");
@@ -166,7 +164,7 @@ namespace FogMod
             }
         }
 
-        private void OnDayStarted(object sender, DayStartedEventArgs e)
+        private void OnDayStarted(object? sender, DayStartedEventArgs e)
         {
             InitializeDailyFogStrength();
         }
@@ -238,7 +236,7 @@ namespace FogMod
             return seasonalProbability;
         }
 
-        private void OnUpdateTicked(object sender, UpdateTickedEventArgs e)
+        private void OnUpdateTicked(object? sender, UpdateTickedEventArgs e)
         {
             if (!Context.IsWorldReady) return;
 
@@ -274,7 +272,7 @@ namespace FogMod
                 ResetGrouse();
         }
 
-        private void OnRendered(object sender, RenderedEventArgs e)
+        private void OnRendered(object? sender, RenderedEventArgs e)
         {
             if (!Context.IsWorldReady) return;
 
@@ -294,7 +292,7 @@ namespace FogMod
                 DrawFloatingFogParticles(e.SpriteBatch, fogColor);
         }
 
-        private void OnModMessageReceived(object sender, ModMessageReceivedEventArgs e)
+        private void OnModMessageReceived(object? sender, ModMessageReceivedEventArgs e)
         {
             try
             {
@@ -332,7 +330,7 @@ namespace FogMod
             }
         }
 
-        private void OnButtonPressed(object sender, ButtonPressedEventArgs e)
+        private void OnButtonPressed(object? sender, ButtonPressedEventArgs e)
         {
             // Debug hotkey: G to spawn grouse at player location
             if (e.Button == SButton.G && Context.IsPlayerFree && Config.EnableGrouseCritters)
