@@ -38,14 +38,15 @@ namespace FogMod
             }
         }
 
-        private void SendGrouseFlushMessage(Vector2 treePosition)
+        private void SendGrouseFlushMessage(Grouse g)
         {
             if (!Context.IsMainPlayer) return;
 
             var flushInfo = new GrouseFlushInfo
             {
                 LocationName = Game1.currentLocation?.NameOrUniqueName,
-                TreePosition = treePosition,
+                GrouseId = g.GrouseId,
+                TreePosition = g.TreePosition,
                 Timestamp = Game1.currentGameTime.TotalGameTime.Ticks
             };
 
@@ -182,7 +183,7 @@ namespace FogMod
                 g.State = GrouseState.Surprised;
                 g.StateTimer = 0f;
                 g.Velocity = Vector2.Zero;
-                SendGrouseFlushMessage(g.TreePosition);
+                SendGrouseFlushMessage(g);
             }
         }
 
@@ -342,7 +343,7 @@ namespace FogMod
                     screenPosition.Y -= GrouseSpriteHeight * g.Scale / 2f;
 
                     // Initialize damage flash effect
-                    g.DamageFlashTimer = GrouseDamageFlashDuration;                    
+                    g.DamageFlashTimer = GrouseDamageFlashDuration;
                     g.Smoke = new CollisionSmoke
                     {
                         Position = screenPosition
