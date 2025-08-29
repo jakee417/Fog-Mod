@@ -7,7 +7,7 @@ namespace FogMod
     {
         private const int FogTileSize = 128;
         private const int DefaultFogGridBufferCells = 3;
-        private const float FogCloudScale = 4.0f;
+        private const float FogCloudScale = 3.0f;
         private const float DefaultFloatingScaleMin = 0.4f;
         private const float DefaultFloatingScaleMax = 1.4f;
         private const float DefaultFogAlpha = 0.6f;
