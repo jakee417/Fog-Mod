@@ -56,8 +56,7 @@ namespace FogMod
                         AgeSeconds = 0f,
                         Texture = tex,
                         IsFadingOut = false,
-                        FadeOutSecondsLeft = 0f,
-                        FadeOutTotalSeconds = 0f
+                        FadeOutSecondsLeft = ParticleFadeOutSeconds,
                     };
                     explosionSmokeParticles.Add(particle);
 
@@ -72,7 +71,11 @@ namespace FogMod
         public void ResetExplosionSmokeParticles()
         {
             explosionSmokeParticles = new List<FogParticle>();
-            smokeCellOccupancy = new CellOccupancy();
+            smokeCellOccupancy = new CellOccupancy
+            {
+                Counts = new int[grid.ExtCols, grid.ExtRows],
+                Indices = new List<int>[grid.ExtCols, grid.ExtRows]
+            };
         }
 
         private void UpdateExplosionFlashInfos(float deltaSeconds)
@@ -151,8 +154,6 @@ namespace FogMod
                         if (!p.IsFadingOut)
                         {
                             p.IsFadingOut = true;
-                            p.FadeOutTotalSeconds = ParticleFadeOutSeconds;
-                            p.FadeOutSecondsLeft = ParticleFadeOutSeconds;
                             explosionSmokeParticles[idx] = p;
                         }
                     }

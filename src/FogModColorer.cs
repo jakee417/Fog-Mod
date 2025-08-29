@@ -103,9 +103,8 @@ namespace FogMod
         private Color ComposeParticleColor(FogParticle p, Color baseColor, Vector2 playerWorldCenter)
         {
             float fadeIn = MathHelper.Clamp(p.AgeSeconds / ParticleFadeInSeconds, 0f, 1f);
-            float denom = p.FadeOutTotalSeconds;
-            float fadeOut = p.IsFadingOut && denom > 0f
-                ? MathHelper.Clamp(p.FadeOutSecondsLeft / denom, 0f, 1f)
+            float fadeOut = p.IsFadingOut
+                ? MathHelper.Clamp(p.FadeOutSecondsLeft / ParticleFadeOutSeconds, 0f, 1f)
                 : 1f;
             // Opacity affects
             float cellBreath = ComputeCellBreathOpacity(p.Position);

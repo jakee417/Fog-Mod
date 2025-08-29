@@ -9,80 +9,88 @@ namespace FogMod
     {
         private struct FogForecast
         {
-            public bool IsFogDay;
-            public float DailyFogStrength;
-            public float ProbabilityOfFogForADay;
-            public float ProbabilityOfFogRoll;
+            public required bool IsFogDay;
+            public required float DailyFogStrength;
+            public required float ProbabilityOfFogForADay;
+            public required float ProbabilityOfFogRoll;
         }
 
-        private class FogParticle
+        private struct FogParticle
         {
-            public Vector2 Position { get; set; }
-            public Vector2 Velocity { get; set; }
-            public float Scale { get; set; }
-            public float Rotation { get; set; }
-            public float Alpha { get; set; }
-            public float AgeSeconds { get; set; }
-            public Texture2D Texture { get; set; }
-            public bool IsFadingOut { get; set; }
-            public float FadeOutSecondsLeft { get; set; }
-            public float FadeOutTotalSeconds { get; set; }
+            public required Vector2 Position;
+            public required Vector2 Velocity;
+            public required float Scale;
+            public required float Rotation;
+            public required float Alpha;
+            public required float AgeSeconds;
+            public required Texture2D Texture;
+            public required bool IsFadingOut;
+            public required float FadeOutSecondsLeft;
         }
 
         public struct CellOccupancy
         {
-            public int[,] Counts;
-            public List<int>[,] Indices;
+            public required int[,] Counts;
+            public required List<int>[,] Indices;
         }
 
         private struct ExplosionFlashInfo
         {
-            public string LocationName;
-            public Vector2 CenterWorld;
-            public float RadiusPixels;
-            public float TimeLeft;
+            public required string LocationName;
+            public required Vector2 CenterWorld;
+            public required float RadiusPixels;
+            public required float TimeLeft;
         }
 
         private struct LightInfo
         {
-            public Vector2 Position;
-            public float RadiusPixels;
+            public required Vector2 Position;
+            public required float RadiusPixels;
         }
 
         private struct GrouseFlushInfo
         {
-            public string LocationName;
-            public Vector2 TreePosition;
-            public long Timestamp; // Game time for synchronization
+            public required string LocationName;
+            public required int GrouseId;
+            public required Vector2 TreePosition;
+            public required long Timestamp;
         }
 
-        private class CollisionSmoke
+        private struct GrouseKnockdownInfo
         {
-            public Vector2 Position { get; set; }
+            public required string LocationName;
+            public required int GrouseId;
+            public required Vector2 ProjectilePosition;
+            public required long Timestamp;
         }
 
-        private class Grouse
+        private struct CollisionSmoke
         {
-            public int GrouseId { get; set; } // Unique identifier for multiplayer sync
-            public Vector2 Position { get; set; }
-            public Vector2 Velocity { get; set; }
-            public Vector2 TreePosition { get; set; }
-            public GrouseState State { get; set; }
-            public float StateTimer { get; set; }
-            public float Scale { get; set; }
-            public float Rotation { get; set; }
-            public float FlightHeight { get; set; }
-            public bool FacingLeft { get; set; }
-            public float FlightTimer { get; set; }
-            public bool HasPlayedFlushSound { get; set; }
-            public bool HasBeenSpotted { get; set; }
-            public int AnimationFrame { get; set; }
-            public float AnimationTimer { get; set; }
-            public float Alpha { get; set; } // For fade out effect when knocked down
-            public float OriginalY { get; set; } // Y position when knocked down for fall distance calculation
-            public float DamageFlashTimer { get; set; }
+            public required Vector2 Position;
+        }
+
+        private struct Grouse
+        {
+            public required int GrouseId;
+            public required Vector2 Position;
+            public required Vector2 Velocity;
+            public required Vector2 TreePosition;
+            public required GrouseState State;
+            public required float StateTimer;
+            public required float Scale;
+            public required float Rotation;
+            public required float FlightHeight;
+            public required bool FacingLeft;
+            public required float FlightTimer;
+            public required bool HasPlayedFlushSound;
+            public required bool HasBeenSpotted;
+            public required int AnimationFrame;
+            public required float AnimationTimer;
+            public required float Alpha;
+            public required float OriginalY;
+            public required float? DamageFlashTimer;
             public Vector2 GetExitDirection => FacingLeft ? new Vector2(-1, 0) : new Vector2(1, 0);
-            public CollisionSmoke Smoke { get; set; }
+            public required CollisionSmoke? Smoke;
         }
 
         private enum GrouseState

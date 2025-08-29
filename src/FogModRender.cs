@@ -156,10 +156,9 @@ namespace FogMod
                 layerDepth: 0.85f
             );
 
-            // Draw damage indicator over the grouse when hit
-            if (g.DamageFlashTimer > 0f)
+            if (g.DamageFlashTimer is float damageFlashTimer && damageFlashTimer > 0f && g.Smoke is CollisionSmoke smoke)
             {
-                float ratio = g.DamageFlashTimer / GrouseDamageFlashDuration;
+                float ratio = damageFlashTimer / GrouseDamageFlashDuration;
                 int damageFrameY = 0;
                 int damageFrameX = 0;
                 if (ratio < 0.33)
@@ -174,7 +173,7 @@ namespace FogMod
                 );
                 spriteBatch.Draw(
                     damageTexture,
-                    position: g.Smoke.Position,
+                    position: smoke.Position,
                     sourceRectangle: damageRect,
                     color: Color.White * ratio,
                     rotation: (float)Math.Sin(ratio * 2.0f * Math.PI),

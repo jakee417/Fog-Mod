@@ -10,16 +10,16 @@ echo "📦 Building project..."
 dotnet build fog_mod.sln
 
 CLOUD_DIR="/Users/jakeetaylor/Library/CloudStorage/GoogleDrive-jake.e.taylor1@gmail.com/My Drive/Mods/StardewValley/FogMod"
-BUILD_DIR=bin/Debug/net6.0/
+BUILD_DIR=bin/Debug/net9.0/
 
 if [ $? -eq 0 ]; then
     echo "✅ Build successful!"
     
     # Copy the main DLL to bin directory
     echo "📋 Copying FogMod.dll..."
-    cp obj/Debug/net6.0/FogMod.dll "$BUILD_DIR"
-    cp obj/Debug/net6.0/FogMod.dll "$CLOUD_DIR"
-    
+    cp obj/Debug/net9.0/FogMod.dll "$BUILD_DIR"
+    cp obj/Debug/net9.0/FogMod.dll "$CLOUD_DIR"
+
     # Copy the manifest file (in case it was updated)
     echo "📋 Copying manifest.json..."
     cp manifest.json "$BUILD_DIR"
