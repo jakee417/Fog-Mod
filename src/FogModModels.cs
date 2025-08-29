@@ -70,6 +70,7 @@ namespace FogMod
             public float? DamageFlashTimer { get; set; }
             public Vector2 GetExitDirection => FacingLeft ? new Vector2(-1, 0) : new Vector2(1, 0);
             public CollisionSmoke? Smoke { get; set; }
+            public bool HasDroppedEgg { get; set; }
         }
 
         private enum GrouseState

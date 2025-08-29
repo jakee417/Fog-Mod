@@ -326,6 +326,11 @@ namespace FogMod
                         if (knockdownData.LocationName == currentLocation && fromAnotherPlayer)
                             HandleGrouseKnockdownFromMessage(knockdownData);
                         break;
+                    case MessageType.ItemDrop:
+                        var itemDropData = e.ReadAs<ItemDropInfo>();
+                        if (itemDropData.LocationName == currentLocation && !Context.IsMainPlayer)
+                            HandleItemDropFromMessage(itemDropData);
+                        break;
                 }
             }
             catch
