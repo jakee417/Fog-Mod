@@ -17,21 +17,22 @@ namespace FogMod
             {
                 Vector2 screenPos = Game1.GlobalToLocal(Game1.viewport, p.Position);
                 Color color = ComposeParticleColor(p, fogColor, playerWorldCenter);
-                Texture2D tex = p.Texture;
-                if (tex == null) continue;
-                Vector2 origin = new Vector2(tex.Width / 2f, tex.Height / 2f);
-                float scale = p.Scale * FogCloudScale;
-                spriteBatch.Draw(
-                    tex,
-                    position: screenPos,
-                    sourceRectangle: null,
-                    color: color,
-                    rotation: 0f,
-                    origin: origin,
-                    scale: scale,
-                    effects: SpriteEffects.None,
-                    layerDepth: 0.8f
-                );
+                if (p.Texture is Texture2D tex)
+                {
+                    Vector2 origin = new Vector2(tex.Width / 2f, tex.Height / 2f);
+                    float scale = p.Scale * FogCloudScale;
+                    spriteBatch.Draw(
+                        tex,
+                        position: screenPos,
+                        sourceRectangle: null,
+                        color: color,
+                        rotation: 0f,
+                        origin: origin,
+                        scale: scale,
+                        effects: SpriteEffects.None,
+                        layerDepth: 0.8f
+                    );
+                }
             }
         }
 
@@ -42,23 +43,24 @@ namespace FogMod
             {
                 Vector2 screenPos = Game1.GlobalToLocal(Game1.viewport, p.Position);
                 Color color = ComposeSmokeColor(p, fogColor, playerWorldCenter);
-                Texture2D tex = p.Texture;
-                if (tex == null) continue;
-                Vector2 origin = new Vector2(tex.Width / 2f, tex.Height / 2f);
-                float lifeT = MathHelper.Clamp(p.AgeSeconds / Math.Max(0.001f, SmokeGrowthSeconds), 0f, 1f);
-                float growth = 1f + 1.0f * lifeT;
-                float scale = p.Scale * FogCloudScale * growth;
-                spriteBatch.Draw(
-                    tex,
-                    position: screenPos,
-                    sourceRectangle: null,
-                    color: color,
-                    rotation: 0f,
-                    origin: origin,
-                    scale: scale,
-                    effects: SpriteEffects.None,
-                    layerDepth: 0.81f
-                );
+                if (p.Texture is Texture2D tex)
+                {
+                    Vector2 origin = new Vector2(tex.Width / 2f, tex.Height / 2f);
+                    float lifeT = MathHelper.Clamp(p.AgeSeconds / Math.Max(0.001f, SmokeGrowthSeconds), 0f, 1f);
+                    float growth = 1f + 1.0f * lifeT;
+                    float scale = p.Scale * FogCloudScale * growth;
+                    spriteBatch.Draw(
+                        tex,
+                        position: screenPos,
+                        sourceRectangle: null,
+                        color: color,
+                        rotation: 0f,
+                        origin: origin,
+                        scale: scale,
+                        effects: SpriteEffects.None,
+                        layerDepth: 0.81f
+                    );
+                }
             }
         }
 

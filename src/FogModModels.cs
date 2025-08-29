@@ -14,32 +14,66 @@ namespace FogMod
             public float DailyFogStrength { get; init; }
             public float ProbabilityOfFogForADay { get; init; }
             public float ProbabilityOfFogRoll { get; init; }
+
+            public FogForecast(bool isFogDay, float dailyFogStrength, float probabilityOfFogForADay, float probabilityOfFogRoll)
+            {
+                IsFogDay = isFogDay;
+                DailyFogStrength = dailyFogStrength;
+                ProbabilityOfFogForADay = probabilityOfFogForADay;
+                ProbabilityOfFogRoll = probabilityOfFogRoll;
+            }
         }
 
         private struct FogParticle
         {
-            public Vector2 Position { get; set; }
-            public Vector2 Velocity { get; set; }
+            public Texture2D? Texture { get; init; }
             public float Scale { get; init; }
             public float Rotation { get; init; }
-            public float Alpha { get; set; }
-            public float AgeSeconds { get; set; }
-            public Texture2D Texture { get; init; }
-            public bool IsFadingOut { get; set; }
-            public float FadeOutSecondsLeft { get; set; }
-            public float FadeOutTotalSeconds { get; set; }
+            public Vector2 Position;
+            public Vector2 Velocity;
+            public float Alpha;
+            public float AgeSeconds;
+            public bool IsFadingOut;
+            public float FadeOutSecondsLeft;
+
+            public FogParticle(Texture2D texture, float scale, float rotation, Vector2 position, Vector2 velocity, float alpha, float ageSeconds, bool isFadingOut, float fadeOutSecondsLeft)
+            {
+                Texture = texture;
+                Scale = scale;
+                Rotation = rotation;
+                Position = position;
+                Velocity = velocity;
+                Alpha = alpha;
+                AgeSeconds = ageSeconds;
+                IsFadingOut = isFadingOut;
+                FadeOutSecondsLeft = fadeOutSecondsLeft;
+            }
         }
 
         public struct CellOccupancy
         {
-            public int[,] Counts;
-            public List<int>[,] Indices;
+            public int[,]? Counts;
+            public List<int>[,]? Indices;
+
+            public CellOccupancy(int width, int height)
+            {
+                Counts = new int[width, height];
+                Indices = new List<int>[width, height];
+            }
+
+            public bool IsValid => Counts != null && Indices != null;
         }
 
         private struct LightInfo
         {
-            public Vector2 Position;
-            public float RadiusPixels;
+            public Vector2 Position { get; init; }
+            public float RadiusPixels { get; init; }
+
+            public LightInfo(Vector2 position, float radiusPixels)
+            {
+                Position = position;
+                RadiusPixels = radiusPixels;
+            }
         }
 
         private class CollisionSmoke

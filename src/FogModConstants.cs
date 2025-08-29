@@ -50,6 +50,7 @@ namespace FogMod
         private const float GrouseFallDistance = 128f;
         private const float GrouseFadeOutDuration = 1.0f;
         private const float GrouseDamageFlashDuration = 0.3f;
+        private const float GrouseFeatherDropChance = 0.3f;
         private const int DamageSpriteWidth = 32;
         private const int DamageSpriteHeight = 28;
     }

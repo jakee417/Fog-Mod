@@ -71,6 +71,7 @@ namespace FogMod
 
         private void UpdateGrouse(float deltaSeconds)
         {
+            Monitor.Log("Grouse update");
             for (int i = grouse.Count - 1; i >= 0; i--)
             {
                 var g = grouse[i];
@@ -309,66 +310,57 @@ namespace FogMod
         private void DropFeatherAtImpact(Vector2 impactPosition, int grouseId)
         {
             Monitor.Log($"DropFeatherAtImpact called for grouse {grouseId} at {impactPosition}", LogLevel.Info);
-
-            // Use grouse ID as seed for deterministic drop chance
             var deterministicRng = new Random(grouseId);
-            bool shouldDropFeather = deterministicRng.NextDouble() < 0.3f; // 30% chance
-
+            bool shouldDropFeather = deterministicRng.NextDouble() < GrouseFeatherDropChance;
             Monitor.Log($"Feather drop chance: {shouldDropFeather}, IsMainPlayer: {Context.IsMainPlayer}", LogLevel.Info);
-
             if (shouldDropFeather)
             {
-                if (Context.IsMainPlayer)
+                Monitor.Log($"Creating feather drop at {impactPosition}", LogLevel.Info);
+                string featherItemId = "444";
+                var itemDropInfo = new ItemDropInfo
                 {
-                    Monitor.Log($"Creating feather drop at {impactPosition}", LogLevel.Info);
-                    // Host creates the item and syncs to others
-                    var feather = new StardewValley.Object("769", 1); // Duck Feather (Object ID 769)
-                    Game1.currentLocation.debris.Add(new StardewValley.Debris(
-                        feather,
-                        impactPosition,
-                        Game1.player.getStandingPosition()
-                    ));
-
-                    // Send to other players
-                    var itemDropInfo = new ItemDropInfo
-                    {
-                        LocationName = Game1.currentLocation?.NameOrUniqueName,
-                        Position = impactPosition,
-                        ItemId = "769",
-                        Quantity = 1,
-                        Timestamp = Game1.currentGameTime?.TotalGameTime.Ticks ?? 0
-                    };
-                    SendItemDropMessage(itemDropInfo);
-                }
+                    LocationName = Game1.currentLocation?.NameOrUniqueName,
+                    Position = impactPosition,
+                    ItemId = featherItemId,
+                    Quantity = 1,
+                    Timestamp = Game1.currentGameTime?.TotalGameTime.Ticks ?? 0
+                };
+                SendItemDropMessage(itemDropInfo);
+                CreateItemDrop(impactPosition, featherItemId, 1);
             }
         }
 
         private void DropEggAtLanding(Vector2 landingPosition, int grouseId)
         {
             Monitor.Log($"DropEggAtLanding called for grouse {grouseId} at {landingPosition}", LogLevel.Info);
-
-            if (Context.IsMainPlayer)
+            var deterministicRng = new Random(grouseId);
+            double roll = deterministicRng.NextDouble();
+            // Basic brown egg
+            string eggItemId = "180";
+            if (roll < 0.01)
             {
-                Monitor.Log($"Creating egg drop at {landingPosition}", LogLevel.Info);
-                string eggItemId = "180";
-                // Host always drops an egg where the grouse lands
-                var egg = new StardewValley.Object(eggItemId, 1); // Egg (Object ID 180)
-                // Send to other players
-                var itemDropInfo = new ItemDropInfo
-                {
-                    LocationName = Game1.currentLocation?.NameOrUniqueName,
-                    Position = landingPosition,
-                    ItemId = eggItemId,
-                    Quantity = 1,
-                    Timestamp = Game1.currentGameTime?.TotalGameTime.Ticks ?? 0
-                };
-                SendItemDropMessage(itemDropInfo);
-                Game1.currentLocation?.debris.Add(new StardewValley.Debris(
-                    egg,
-                    landingPosition,
-                    Game1.player.getStandingPosition()
-                ));
+                // Golden egg
+                eggItemId = "928";
             }
+            else if (roll >= 0.01 && roll < 0.06)
+            {
+                eggItemId = "182";
+            }
+            else if (roll >= 0.06 && roll < 0.1)
+            {
+                // Fried egg
+                eggItemId = "194";
+            }
+            var itemDropInfo = new ItemDropInfo
+            {
+                LocationName = Game1.currentLocation?.NameOrUniqueName,
+                Position = landingPosition,
+                ItemId = eggItemId,
+                Quantity = 1,
+                Timestamp = Game1.currentGameTime?.TotalGameTime.Ticks ?? 0
+            };
+            SendItemDropMessage(itemDropInfo);
+            CreateItemDrop(landingPosition, eggItemId, 1);
         }
     }
 }
