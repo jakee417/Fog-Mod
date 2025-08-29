@@ -10,56 +10,94 @@ namespace FogMod
     {
         private struct FogForecast
         {
-            public required bool IsFogDay { get; init; }
-            public required float DailyFogStrength { get; init; }
-            public required float ProbabilityOfFogForADay { get; init; }
-            public required float ProbabilityOfFogRoll { get; init; }
+            public bool IsFogDay { get; init; }
+            public float DailyFogStrength { get; init; }
+            public float ProbabilityOfFogForADay { get; init; }
+            public float ProbabilityOfFogRoll { get; init; }
+
+            public FogForecast(bool isFogDay, float dailyFogStrength, float probabilityOfFogForADay, float probabilityOfFogRoll)
+            {
+                IsFogDay = isFogDay;
+                DailyFogStrength = dailyFogStrength;
+                ProbabilityOfFogForADay = probabilityOfFogForADay;
+                ProbabilityOfFogRoll = probabilityOfFogRoll;
+            }
         }
 
         private struct FogParticle
         {
-            public required Texture2D Texture { get; init; }
-            public required float Scale { get; init; }
-            public required float Rotation { get; init; }
-            public required Vector2 Position;
-            public required Vector2 Velocity;
-            public required float Alpha;
-            public required float AgeSeconds;
-            public required bool IsFadingOut;
-            public required float FadeOutSecondsLeft;
+            public Texture2D? Texture { get; init; }
+            public float Scale { get; init; }
+            public float Rotation { get; init; }
+            public Vector2 Position;
+            public Vector2 Velocity;
+            public float Alpha;
+            public float AgeSeconds;
+            public bool IsFadingOut;
+            public float FadeOutSecondsLeft;
+
+            public FogParticle(Texture2D texture, float scale, float rotation, Vector2 position, Vector2 velocity, float alpha, float ageSeconds, bool isFadingOut, float fadeOutSecondsLeft)
+            {
+                Texture = texture;
+                Scale = scale;
+                Rotation = rotation;
+                Position = position;
+                Velocity = velocity;
+                Alpha = alpha;
+                AgeSeconds = ageSeconds;
+                IsFadingOut = isFadingOut;
+                FadeOutSecondsLeft = fadeOutSecondsLeft;
+            }
         }
 
         public struct CellOccupancy
         {
-            public required int[,] Counts;
-            public required List<int>[,] Indices;
+            public int[,]? Counts;
+            public List<int>[,]? Indices;
+
+            public CellOccupancy(int width, int height)
+            {
+                Counts = new int[width, height];
+                Indices = new List<int>[width, height];
+            }
+
+            public bool IsValid => Counts != null && Indices != null;
         }
 
         private struct LightInfo
         {
-            public Vector2 Position;
-            public float RadiusPixels;
+            public Vector2 Position { get; init; }
+            public float RadiusPixels { get; init; }
+
+            public LightInfo(Vector2 position, float radiusPixels)
+            {
+                Position = position;
+                RadiusPixels = radiusPixels;
+            }
         }
 
         private struct GrouseFlushInfo
         {
-            public string LocationName;
-            public Vector2 TreePosition;
-            public long Timestamp; // Game time for synchronization
+            public Vector2 Position { get; init; }
+
+            public CollisionSmoke(Vector2 position)
+            {
+                Position = position;
+            }
         }
 
         private class CollisionSmoke
         {
-            public required int GrouseId { get; init; }
-            public required Vector2 TreePosition { get; init; }
-            public required Vector2 Position;
-            public required Vector2 Velocity;
-            public required GrouseState State;
-            public required float StateTimer;
-            public required float Scale;
-            public required float Rotation;
-            public required float FlightHeight;
-            public required bool FacingLeft;
+            public int GrouseId { get; init; }
+            public Vector2 TreePosition { get; init; }
+            public Vector2 Position;
+            public Vector2 Velocity;
+            public GrouseState State;
+            public float StateTimer;
+            public float Scale;
+            public float Rotation;
+            public float FlightHeight;
+            public bool FacingLeft;
             public Vector2 GetExitDirection
             {
                 get
@@ -67,15 +105,40 @@ namespace FogMod
                     return FacingLeft ? new Vector2(-1, 0) : new Vector2(1, 0);
                 }
             }
-            public required float FlightTimer;
-            public required bool HasPlayedFlushSound;
-            public required bool HasBeenSpotted;
-            public required int AnimationFrame;
-            public required float AnimationTimer;
-            public required float Alpha;
-            public required float OriginalY;
-            public required float? DamageFlashTimer;
-            public required CollisionSmoke? Smoke;
+            public float FlightTimer;
+            public bool HasPlayedFlushSound;
+            public bool HasBeenSpotted;
+            public int AnimationFrame;
+            public float AnimationTimer;
+            public float Alpha;
+            public float OriginalY;
+            public float? DamageFlashTimer;
+            public CollisionSmoke? Smoke;
+            public bool HasDroppedEgg;
+
+            public Grouse(int grouseId, Vector2 treePosition, Vector2 position, Vector2 velocity, GrouseState state, float stateTimer, float scale, float rotation, float flightHeight, bool facingLeft, float flightTimer, bool hasPlayedFlushSound, bool hasBeenSpotted, int animationFrame, float animationTimer, float alpha, float originalY, float? damageFlashTimer, CollisionSmoke? smoke, bool hasDroppedEgg)
+            {
+                GrouseId = grouseId;
+                TreePosition = treePosition;
+                Position = position;
+                Velocity = velocity;
+                State = state;
+                StateTimer = stateTimer;
+                Scale = scale;
+                Rotation = rotation;
+                FlightHeight = flightHeight;
+                FacingLeft = facingLeft;
+                FlightTimer = flightTimer;
+                HasPlayedFlushSound = hasPlayedFlushSound;
+                HasBeenSpotted = hasBeenSpotted;
+                AnimationFrame = animationFrame;
+                AnimationTimer = animationTimer;
+                Alpha = alpha;
+                OriginalY = originalY;
+                DamageFlashTimer = damageFlashTimer;
+                Smoke = smoke;
+                HasDroppedEgg = hasDroppedEgg;
+            }
         }
 
         private enum GrouseState

@@ -90,7 +90,8 @@ namespace FogMod
             if (floatingParticles is List<FogParticle> particles)
                 floatingParticles = RemoveUnusedParticles(particles, grid, deltaSeconds, true);
             var occupancy = ComputeCellOccupancy();
-            occupancy.Counts = PopulateCellsUnderTarget(occupancy.Counts);
+            if (occupancy.Counts is int[,] counts)
+                occupancy.Counts = PopulateCellsUnderTarget(counts);
             RemoveFogOverTarget(occupancy);
             fogCellOccupancy = occupancy;
         }
@@ -179,25 +180,27 @@ namespace FogMod
                 for (int col = 0; col < grid.ExtCols; col++)
                 {
                     int target = MaximumFogParticlesPerCell;
-                    int eligible = occupancy.Indices[col, row] != null ? occupancy.Indices[col, row].Count : 0;
-                    int extra = eligible - target;
-                    if (extra <= 0)
-                        continue;
-
-                    var list = occupancy.Indices[col, row];
-                    if (list == null || list.Count == 0)
-                        continue;
-
-                    list.Sort((a, b) => floatingParticles[b].AgeSeconds.CompareTo(floatingParticles[a].AgeSeconds));
-                    int toFade = Math.Min(extra, list.Count);
-                    for (int k = 0; k < toFade; k++)
+                    if (occupancy.Indices is List<int>[,])
                     {
-                        int idx = list[k];
-                        var p = floatingParticles[idx];
-                        if (!p.IsFadingOut)
+                        int eligible = occupancy.Indices[col, row] != null ? occupancy.Indices[col, row].Count : 0;
+                        int extra = eligible - target;
+                        if (extra <= 0)
+                            continue;
+                        var list = occupancy.Indices[col, row];
+                        if (list == null || list.Count == 0)
+                            continue;
+
+                        list.Sort((a, b) => floatingParticles[b].AgeSeconds.CompareTo(floatingParticles[a].AgeSeconds));
+                        int toFade = Math.Min(extra, list.Count);
+                        for (int k = 0; k < toFade; k++)
                         {
-                            p.IsFadingOut = true;
-                            floatingParticles[idx] = p;
+                            int idx = list[k];
+                            var p = floatingParticles[idx];
+                            if (!p.IsFadingOut)
+                            {
+                                p.IsFadingOut = true;
+                                floatingParticles[idx] = p;
+                            }
                         }
                     }
                 }

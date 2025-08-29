@@ -18,33 +18,64 @@ namespace FogMod
 
         private struct ExplosionFlashInfo
         {
-            public required string LocationName { get; init; }
-            public required Vector2 CenterWorld { get; init; }
-            public required float RadiusPixels { get; init; }
-            public required float TimeLeft { get; set; }
+            public string LocationName { get; init; }
+            public Vector2 CenterWorld { get; init; }
+            public float RadiusPixels { get; init; }
+            public float TimeLeft { get; set; }
+
+            public ExplosionFlashInfo(string locationName, Vector2 centerWorld, float radiusPixels, float timeLeft)
+            {
+                LocationName = locationName;
+                CenterWorld = centerWorld;
+                RadiusPixels = radiusPixels;
+                TimeLeft = timeLeft;
+            }
         }
 
         private struct GrouseFlushInfo
         {
-            public required string? LocationName { get; init; }
-            public required int GrouseId { get; init; }
-            public required long Timestamp { get; init; }
+            public string? LocationName { get; init; }
+            public int GrouseId { get; init; }
+            public long Timestamp { get; init; }
+
+            public GrouseFlushInfo(string? locationName, int grouseId, long timestamp)
+            {
+                LocationName = locationName;
+                GrouseId = grouseId;
+                Timestamp = timestamp;
+            }
         }
 
         private struct GrouseKnockdownInfo
         {
-            public required string? LocationName { get; init; }
-            public required int GrouseId { get; init; }
-            public required long Timestamp { get; init; }
+            public string? LocationName { get; init; }
+            public int GrouseId { get; init; }
+            public long Timestamp { get; init; }
+
+            public GrouseKnockdownInfo(string? locationName, int grouseId, long timestamp)
+            {
+                LocationName = locationName;
+                GrouseId = grouseId;
+                Timestamp = timestamp;
+            }
         }
 
         private struct ItemDropInfo
         {
-            public required string? LocationName { get; init; }
-            public required Vector2 Position { get; init; }
-            public required string ItemId { get; init; }
-            public required int Quantity { get; init; }
-            public required long Timestamp { get; init; }
+            public string? LocationName { get; init; }
+            public Vector2 Position { get; init; }
+            public string ItemId { get; init; }
+            public int Quantity { get; init; }
+            public long Timestamp { get; init; }
+
+            public ItemDropInfo(string? locationName, Vector2 position, string itemId, int quantity, long timestamp)
+            {
+                LocationName = locationName;
+                Position = position;
+                ItemId = itemId;
+                Quantity = quantity;
+                Timestamp = timestamp;
+            }
         }
     }
 
@@ -156,16 +187,6 @@ namespace FogMod
             {
                 Monitor.Log($"HandleGrouseItemDropFromMessage failed: {ex.Message}", LogLevel.Error);
             }
-        }
-
-        private void CreateItemDrop(Vector2 position, string itemId, int quantity)
-        {
-            var item = new StardewValley.Object(itemId, quantity);
-            Game1.currentLocation.debris.Add(new StardewValley.Debris(
-                item,
-                position,
-                Game1.player.getStandingPosition()
-            ));
         }
     }
 }

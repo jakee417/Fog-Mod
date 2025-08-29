@@ -14,11 +14,11 @@ namespace FogMod
 {
     public partial class FogMod : Mod
     {
-        public required ModConfig Config { get; set; }
-        public required Random Random { get; set; }
+        public ModConfig Config { get; set; }
+        public Random Random { get; set; }
         private static readonly Vector2 globalWindDirection = new Vector2(WeatherDebris.globalWind, 0f);
         private static readonly Color DefaultFogColor = Color.LightGray;
-        public required GenericModConfigMenu.IGenericModConfigMenuApi gmcmApi { get; set; }
+        public GenericModConfigMenu.IGenericModConfigMenuApi? gmcmApi { get; set; }
         internal static FogMod? Instance;
         private bool isFogDay = false;
         private float probabilityOfFogForADay = 0.05f;
@@ -29,11 +29,11 @@ namespace FogMod
         private List<FogParticle> explosionSmokeParticles = new List<FogParticle>();
         private CellOccupancy smokeCellOccupancy;
         private List<LightInfo> lightSources = new List<LightInfo>();
-        public required List<Texture2D> cloudTextures { get; set; }
-        public required Texture2D whitePixel { get; set; }
-        public required Texture2D grouseTexture { get; set; }
-        public required Texture2D surprisedTexture { get; set; }
-        public required Texture2D damageTexture { get; set; }
+        public List<Texture2D>? cloudTextures { get; set; }
+        public Texture2D? whitePixel { get; set; }
+        public Texture2D? grouseTexture { get; set; }
+        public Texture2D? surprisedTexture { get; set; }
+        public Texture2D? damageTexture { get; set; }
         private FogGrid grid;
         private float time;
         private float breathBasePhase;
