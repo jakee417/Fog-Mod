@@ -1,3 +1,4 @@
+#nullable enable
 using Microsoft.Xna.Framework;
 using StardewValley;
 using StardewModdingAPI;
@@ -24,14 +25,14 @@ namespace FogMod
 
         private struct GrouseFlushInfo
         {
-            public required string LocationName { get; init; }
+            public required string? LocationName { get; init; }
             public required int GrouseId { get; init; }
             public required long Timestamp { get; init; }
         }
 
         private struct GrouseKnockdownInfo
         {
-            public required string LocationName { get; init; }
+            public required string? LocationName { get; init; }
             public required int GrouseId { get; init; }
             public required long Timestamp { get; init; }
         }
@@ -56,7 +57,7 @@ namespace FogMod
         {
             try
             {
-                FogMod.Instance.HandleExplosion(msg);
+                FogMod.Instance?.HandleExplosion(msg);
             }
             catch (Exception ex)
             {
@@ -79,7 +80,7 @@ namespace FogMod
                     var g = grouse[i];
                     if (g.GrouseId == flushInfo.GrouseId)
                     {
-                        FogMod.Instance.UpdateGrousePerched(g, true);
+                        FogMod.Instance?.UpdateGrousePerched(g, true);
                         break;
                     }
                 }
@@ -91,7 +92,7 @@ namespace FogMod
         }
 
         // Grouse Knockdown
-        public void SendGrouseKnockdownMessage(int grouseId, Vector2 projectilePosition, string locationName)
+        public void SendGrouseKnockdownMessage(int grouseId, Vector2 projectilePosition, string? locationName)
         {
             try
             {
@@ -114,7 +115,7 @@ namespace FogMod
         {
             try
             {
-                FogMod.Instance.KnockDownGrouse(knockdownInfo.GrouseId);
+                FogMod.Instance?.KnockDownGrouse(knockdownInfo.GrouseId);
             }
             catch (Exception ex)
             {

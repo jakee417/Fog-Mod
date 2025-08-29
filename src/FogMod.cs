@@ -1,3 +1,4 @@
+#nullable enable
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using StardewModdingAPI;
@@ -13,12 +14,12 @@ namespace FogMod
 {
     public partial class FogMod : Mod
     {
+        public required ModConfig Config { get; set; }
+        public required Random Random { get; set; }
         private static readonly Vector2 globalWindDirection = new Vector2(WeatherDebris.globalWind, 0f);
         private static readonly Color DefaultFogColor = Color.LightGray;
-        private GenericModConfigMenu.IGenericModConfigMenuApi gmcmApi;
-        internal static FogMod Instance { get; private set; }
-        private ModConfig config;
-        private Random random;
+        public required GenericModConfigMenu.IGenericModConfigMenuApi gmcmApi { get; set; }
+        internal static FogMod? Instance;
         private bool isFogDay = false;
         private float probabilityOfFogForADay = 0.05f;
         private float probabilityOfFogRoll = 0.0f;
@@ -28,21 +29,20 @@ namespace FogMod
         private List<FogParticle> explosionSmokeParticles = new List<FogParticle>();
         private CellOccupancy smokeCellOccupancy;
         private List<LightInfo> lightSources = new List<LightInfo>();
-        private List<Texture2D> cloudTextures;
-        private Texture2D whitePixel;
-        private Texture2D grouseTexture;
-        private Texture2D surprisedTexture;
-        private Texture2D damageTexture;
+        public required List<Texture2D> cloudTextures { get; set; }
+        public required Texture2D whitePixel { get; set; }
+        public required Texture2D grouseTexture { get; set; }
+        public required Texture2D surprisedTexture { get; set; }
+        public required Texture2D damageTexture { get; set; }
         private FogGrid grid;
-        private float time = 0f;
-        private float breathBasePhase = 0f;
+        private float time;
+        private float breathBasePhase;
         private float dailyFogStrength = 0f;
         private float lastWeatherFogIntensityFactor = 1f;
-        private GameLocation currentLocation = null;
         private List<Grouse> grouse = new List<Grouse>();
         private HashSet<Vector2> spawnedTreePositions = new HashSet<Vector2>();
         private int nextGrouseId = 1;
-        private string lastPlayerLocation = "";
+        private string? lastPlayerLocation;
         private static readonly int[] wingPattern = { 0, 1, 2, 3, 2, 1 };
 
         public override void Entry(IModHelper helper)
@@ -51,18 +51,21 @@ namespace FogMod
             Monitor.Log($"🌫️ Fog Mod (v{this.ModManifest.Version}) is loading! 🌫️", LogLevel.Alert);
 
             // Initialize random number generator
-            random = new Random();
+            Random = new Random();
 
             // Load config
-            config = Helper.ReadConfig<ModConfig>();
+            Config = Helper.ReadConfig<ModConfig>();
 
             // Subscribe to events
+#pragma warning disable CS8622 // Nullability of reference types in type of parameter doesn't match the target delegate (possibly because of nullability attributes).
             helper.Events.GameLoop.GameLaunched += OnGameLaunched;
+
             helper.Events.GameLoop.UpdateTicked += OnUpdateTicked;
             helper.Events.Display.Rendered += OnRendered;
             helper.Events.GameLoop.DayStarted += OnDayStarted;
             helper.Events.Multiplayer.ModMessageReceived += OnModMessageReceived;
             helper.Events.Input.ButtonPressed += OnButtonPressed;
+#pragma warning restore CS8622 // Nullability of reference types in type of parameter doesn't match the target delegate (possibly because of nullability attributes).
 
             // Harmony patches
             Instance = this;
@@ -85,7 +88,7 @@ namespace FogMod
         private void OnGameLaunched(object sender, GameLaunchedEventArgs e)
         {
             // Register with Generic Mod Config Menu using the typed API
-            gmcmApi = Helper.ModRegistry.GetApi<GenericModConfigMenu.IGenericModConfigMenuApi>("spacechase0.GenericModConfigMenu");
+            GenericModConfigMenu.IGenericModConfigMenuApi? gmcmApi = Helper.ModRegistry.GetApi<GenericModConfigMenu.IGenericModConfigMenuApi>("spacechase0.GenericModConfigMenu");
             if (gmcmApi != null)
             {
                 Monitor.Log("Generic Mod Config Menu API found! Registering options...", LogLevel.Info);
@@ -173,7 +176,7 @@ namespace FogMod
             if (!Context.IsWorldReady)
                 return;
 
-            if (!config.EnableDailyRandomFog)
+            if (!Config.EnableDailyRandomFog)
             {
                 isFogDay = true;
                 dailyFogStrength = 1f;
@@ -247,30 +250,27 @@ namespace FogMod
             breathBasePhase = time * (MathHelper.TwoPi / BreathPeriodSeconds);
 
             // Reset fog if we transitioned to a new location
-            if (Game1.currentLocation != null && Game1.currentLocation != currentLocation)
+            if (Game1.currentLocation != null && Game1.currentLocation.NameOrUniqueName != lastPlayerLocation)
             {
-                currentLocation = Game1.currentLocation;
+                lastPlayerLocation = Game1.currentLocation.NameOrUniqueName;
                 ResetAllParticlesOnLocationChange();
+                if (Config.EnableGrouseCritters && Game1.currentLocation.IsOutdoors)
+                    SpawnGrouseInTrees();
             }
             RefreshLightSources();
+            if (Config.EnableGrouseCritters && Game1.currentLocation != null && Game1.currentLocation.IsOutdoors)
+                UpdateGrouse(deltaSeconds);
             UpdateExplosionSmokeParticles(deltaSeconds);
             if (isFogDay && Game1.currentLocation != null && Game1.currentLocation.IsOutdoors)
                 UpdateFloatingFogParticles(deltaSeconds);
             UpdateExplosionFlashInfos(deltaSeconds);
-
-            // Update grouse
-            if (config.EnableGrouseCritters && Game1.currentLocation != null && Game1.currentLocation.IsOutdoors)
-            {
-                UpdateGrouse(deltaSeconds);
-                SpawnGrouseInTrees();
-            }
         }
 
         private void ResetAllParticlesOnLocationChange()
         {
             ResetFogParticles();
             ResetExplosionSmokeParticles();
-            if (config.EnableGrouseCritters)
+            if (Config.EnableGrouseCritters)
                 ResetGrouse();
         }
 
@@ -280,12 +280,12 @@ namespace FogMod
 
             // DrawDebugFogGrid(e.SpriteBatch);
 
-            if (config.DebugShowInfo)
+            if (Config.DebugShowInfo)
                 DrawDebugInfo(e.SpriteBatch);
 
             Color fogColor = GetEffectiveFogColor();
 
-            if (config.EnableGrouseCritters && Game1.currentLocation != null && Game1.currentLocation.IsOutdoors)
+            if (Config.EnableGrouseCritters && Game1.currentLocation != null && Game1.currentLocation.IsOutdoors)
                 DrawGrouse(e.SpriteBatch);
 
             DrawExplosionFlashes(e.SpriteBatch);
@@ -300,11 +300,11 @@ namespace FogMod
             {
                 if (!Enum.TryParse<MessageType>(e.Type, ignoreCase: true, out MessageType messageType))
                 {
-                    FogMod.Instance.Monitor.Log($"Unknown message type: {e.Type}", LogLevel.Warn);
+                    FogMod.Instance?.Monitor.Log($"Unknown message type: {e.Type}", LogLevel.Warn);
                     return;
                 }
                 bool fromAnotherPlayer = e.FromPlayerID != Game1.player.UniqueMultiplayerID;
-                string currentLocation = Game1.currentLocation?.NameOrUniqueName;
+                string? currentLocation = Game1.currentLocation?.NameOrUniqueName;
                 switch (messageType)
                 {
                     case MessageType.Explosion:
@@ -328,14 +328,14 @@ namespace FogMod
             }
             catch
             {
-                FogMod.Instance.Monitor.Log($"OnModMessageReceived failed - FromModID: {e.FromModID}, Type: {e.Type}, ThisModID: {this.ModManifest.UniqueID}, IsMainPlayer: {Context.IsMainPlayer}", LogLevel.Error);
+                FogMod.Instance?.Monitor.Log($"OnModMessageReceived failed - FromModID: {e.FromModID}, Type: {e.Type}, ThisModID: {this.ModManifest.UniqueID}, IsMainPlayer: {Context.IsMainPlayer}", LogLevel.Error);
             }
         }
 
         private void OnButtonPressed(object sender, ButtonPressedEventArgs e)
         {
             // Debug hotkey: G to spawn grouse at player location
-            if (e.Button == SButton.G && Context.IsPlayerFree && config.EnableGrouseCritters)
+            if (e.Button == SButton.G && Context.IsPlayerFree && Config.EnableGrouseCritters)
             {
                 Vector2 playerPosition = Game1.player.getStandingPosition();
                 if (Context.IsMainPlayer)

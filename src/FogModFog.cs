@@ -1,3 +1,4 @@
+#nullable enable
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using StardewModdingAPI;
@@ -18,7 +19,10 @@ namespace FogMod
                 {
                     for (int n = 0; n < MinimumFogParticlesPerCell; n++)
                     {
-                        floatingParticles.Add(CreateParticleInCell(col, row, grid.ExtOriginWorld));
+                        if (CreateParticleInCell(col, row, grid.ExtOriginWorld) is FogParticle p)
+                        {
+                            floatingParticles.Add(p);
+                        }
                     }
                 }
             }
@@ -34,12 +38,12 @@ namespace FogMod
             };
         }
 
-        private FogParticle CreateParticleInCell(int col, int row, Vector2 viewportTopLeftWorld)
+        private FogParticle? CreateParticleInCell(int col, int row, Vector2 viewportTopLeftWorld)
         {
-            float speed = FloatingParticleSpeed * (0.9f + (float)random.NextDouble() * 0.2f);
+            float speed = FloatingParticleSpeed * (0.9f + (float)Random.NextDouble() * 0.2f);
             Vector2 baseDir = globalWindDirection;
             Vector2 velocity;
-            float angleJitter = ((float)random.NextDouble() - 0.5f) * MathHelper.ToRadians(12f);
+            float angleJitter = ((float)Random.NextDouble() - 0.5f) * MathHelper.ToRadians(12f);
             float cos = (float)Math.Cos(angleJitter);
             float sin = (float)Math.Sin(angleJitter);
             Vector2 jitteredDir = new Vector2(
@@ -55,35 +59,36 @@ namespace FogMod
             velocity = jitteredDir * speed;
             float cellX = viewportTopLeftWorld.X + col * FogTileSize;
             float cellY = viewportTopLeftWorld.Y + row * FogTileSize;
-            float x = cellX + (float)random.NextDouble() * FogTileSize;
-            float y = cellY + (float)random.NextDouble() * FogTileSize;
-            float scale = DefaultFloatingScaleMin + (float)random.NextDouble() * Math.Max(0.01f, DefaultFloatingScaleMax - DefaultFloatingScaleMin);
-            float alpha = 0.35f + (float)random.NextDouble() * 0.35f;
-            Texture2D chosenTex = null;
+            float x = cellX + (float)Random.NextDouble() * FogTileSize;
+            float y = cellY + (float)Random.NextDouble() * FogTileSize;
+            float scale = DefaultFloatingScaleMin + (float)Random.NextDouble() * Math.Max(0.01f, DefaultFloatingScaleMax - DefaultFloatingScaleMin);
+            float alpha = 0.35f + (float)Random.NextDouble() * 0.35f;
             if (cloudTextures != null && cloudTextures.Count > 0)
             {
-                int idx = random.Next(cloudTextures.Count);
-                chosenTex = cloudTextures[idx];
+                int idx = Random.Next(cloudTextures.Count);
+                Texture2D chosenTex = cloudTextures[idx];
+                return new FogParticle
+                {
+                    Position = new Vector2(x, y),
+                    Velocity = velocity,
+                    Scale = scale,
+                    Rotation = 0f,
+                    Alpha = Math.Max(0.05f, Math.Min(0.6f, alpha)),
+                    AgeSeconds = 0f,
+                    Texture = chosenTex,
+                    IsFadingOut = false,
+                    FadeOutSecondsLeft = ParticleFadeOutSeconds,
+                };
             }
-            return new FogParticle
-            {
-                Position = new Vector2(x, y),
-                Velocity = velocity,
-                Scale = scale,
-                Rotation = 0f,
-                Alpha = Math.Max(0.05f, Math.Min(0.6f, alpha)),
-                AgeSeconds = 0f,
-                Texture = chosenTex,
-                IsFadingOut = false,
-                FadeOutSecondsLeft = ParticleFadeOutSeconds,
-            };
+            return null;
         }
 
         private void UpdateFloatingFogParticles(float deltaSeconds)
         {
             if (floatingParticles == null || floatingParticles.Count == 0)
                 InitializeFloatingFogParticles();
-            floatingParticles = RemoveUnusedParticles(floatingParticles, grid, deltaSeconds, true);
+            if (floatingParticles is List<FogParticle> particles)
+                floatingParticles = RemoveUnusedParticles(particles, grid, deltaSeconds, true);
             var occupancy = ComputeCellOccupancy();
             occupancy.Counts = PopulateCellsUnderTarget(occupancy.Counts);
             RemoveFogOverTarget(occupancy);
@@ -156,10 +161,11 @@ namespace FogMod
                     int need = target - counts[col, row];
                     for (int k = 0; k < need; k++)
                     {
-                        floatingParticles.Add(
-                            CreateParticleInCell(col, row, grid.ExtOriginWorld)
-                        );
-                        counts[col, row]++;
+                        if (CreateParticleInCell(col, row, grid.ExtOriginWorld) is FogParticle p)
+                        {
+                            floatingParticles.Add(p);
+                            counts[col, row]++;
+                        }
                     }
                 }
             }

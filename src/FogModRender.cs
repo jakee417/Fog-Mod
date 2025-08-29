@@ -1,8 +1,8 @@
+#nullable enable
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using StardewModdingAPI;
 using StardewValley;
-using StardewValley.TerrainFeatures;
 using System;
 using System.Linq;
 
@@ -210,7 +210,7 @@ namespace FogMod
             string smokeCountText = $"Smoke: {explosionSmokeParticles?.Count ?? 0}";
 
             string grouseInfo = "";
-            if (config.EnableGrouseCritters)
+            if (Config.EnableGrouseCritters)
             {
                 string grouseCountText = $"Grouse: {grouse?.Count ?? 0}";
                 int surprisedGrouse = grouse?.Where(g => g.State == GrouseState.Surprised).Count() ?? 0;
@@ -276,8 +276,8 @@ namespace FogMod
                     DrawLine(spriteBatch, squareFogTexture, d, a, lineColor, thickness);
 
                     // draw fog/smoke counts in top-right corner
-                    int fogCount = (col < countCols && row < countRows) ? fogCellOccupancy.Counts[col, row] : 0;
-                    int smokeCount = (col < smokeCols && row < smokeRows) ? smokeCellOccupancy.Counts[col, row] : 0;
+                    int fogCount = (col < countCols && row < countRows) ? (fogCellOccupancy.Counts is int[,] fogCounts ? fogCounts[col, row] : 0) : 0;
+                    int smokeCount = (col < smokeCols && row < smokeRows) ? (smokeCellOccupancy.Counts is int[,] smokeCounts ? smokeCounts[col, row] : 0) : 0;
                     string text = $"{fogCount}/{smokeCount}";
                     var size = font.MeasureString(text);
                     Vector2 pos = new Vector2(screenRect.Right - size.X - margin, screenRect.Top + margin);
