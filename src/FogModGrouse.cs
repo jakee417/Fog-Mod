@@ -236,6 +236,14 @@ namespace FogMod
         {
             g.StateTimer += deltaSeconds;
 
+            // Update damage flash timer
+            if (g.DamageFlashTimer > 0f)
+            {
+                g.DamageFlashTimer -= deltaSeconds;
+                if (g.DamageFlashTimer < 0f)
+                    g.DamageFlashTimer = 0f;
+            }
+
             // Check if we've fallen the set distance
             float fallProgress = (g.Position.Y - g.OriginalY) / GrouseFallDistance;
 
@@ -328,7 +336,17 @@ namespace FogMod
                     g.Velocity = new Vector2(g.Velocity.X * 0.8f, Math.Max(g.Velocity.Y + 100f, 150f));
                     g.FlightHeight = 0f;
                     g.Alpha = 1.0f;
-                    g.OriginalY = g.Position.Y; // Store original Y position
+                    Vector2 impactPosition = g.Position;
+                    g.OriginalY = impactPosition.Y;
+                    Vector2 screenPosition = Game1.GlobalToLocal(Game1.viewport, g.Position);
+                    screenPosition.Y -= GrouseSpriteHeight * g.Scale / 2f;
+
+                    // Initialize damage flash effect
+                    g.DamageFlashTimer = GrouseDamageFlashDuration;                    
+                    g.Smoke = new CollisionSmoke
+                    {
+                        Position = screenPosition
+                    };
                     grouse[i] = g;
 
                     // Play a sound effect

@@ -49,5 +49,8 @@ namespace FogMod
         private const float SurprisedSpriteScale = 4f;
         private const float GrouseFallDistance = 128f; // How far grouse falls when knocked down
         private const float GrouseFadeOutDuration = 1.0f; // How long it takes for knocked down grouse to fade out
+        private const float GrouseDamageFlashDuration = 0.3f; // How long the damage flash effect lasts
+        private const int DamageSpriteWidth = 32;
+        private const int DamageSpriteHeight = 28;
     }
 }

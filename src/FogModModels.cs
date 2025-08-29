@@ -56,6 +56,11 @@ namespace FogMod
             public long Timestamp; // Game time for synchronization
         }
 
+        private class CollisionSmoke
+        {
+            public Vector2 Position { get; set; }
+        }
+
         private class Grouse
         {
             public int GrouseId { get; set; } // Unique identifier for multiplayer sync
@@ -75,9 +80,9 @@ namespace FogMod
             public float AnimationTimer { get; set; }
             public float Alpha { get; set; } // For fade out effect when knocked down
             public float OriginalY { get; set; } // Y position when knocked down for fall distance calculation
-
-            // Computed property example
+            public float DamageFlashTimer { get; set; }
             public Vector2 GetExitDirection => FacingLeft ? new Vector2(-1, 0) : new Vector2(1, 0);
+            public CollisionSmoke Smoke { get; set; }
         }
 
         private enum GrouseState

@@ -155,9 +155,37 @@ namespace FogMod
                 effects: effects,
                 layerDepth: 0.85f
             );
+
+            // Draw damage indicator over the grouse when hit
+            if (g.DamageFlashTimer > 0f)
+            {
+                float ratio = g.DamageFlashTimer / GrouseDamageFlashDuration;
+                int damageFrameY = 0;
+                int damageFrameX = 0;
+                if (ratio < 0.33)
+                    damageFrameX = 2;
+                else if (ratio > 0.33 && ratio < 0.66)
+                    damageFrameX = 1;
+                Rectangle damageRect = new Rectangle(
+                    damageFrameX * DamageSpriteWidth,
+                    damageFrameY * DamageSpriteHeight,
+                    DamageSpriteWidth,
+                    DamageSpriteHeight
+                );
+                spriteBatch.Draw(
+                    damageTexture,
+                    position: g.Smoke.Position,
+                    sourceRectangle: damageRect,
+                    color: Color.White * ratio,
+                    rotation: (float)Math.Sin(ratio * 2.0f * Math.PI),
+                    origin: new Vector2(DamageSpriteWidth / 2f, DamageSpriteHeight / 2f),
+                    scale: 1.5f,
+                    effects: SpriteEffects.None,
+                    layerDepth: 0.86f
+                );
+            }
             if (surprisedTexture != null && g.State == GrouseState.Surprised && g.AnimationFrame == 3)
             {
-                Vector2 surprisedOrigin = new Vector2(surprisedTexture.Width / 2f, surprisedTexture.Height);
                 Vector2 surprisedPos = screenPos;
                 surprisedPos.Y -= GrouseSpriteHeight * g.Scale * 1.02f;
                 spriteBatch.Draw(
@@ -166,7 +194,7 @@ namespace FogMod
                     sourceRectangle: null,
                     color: Color.White,
                     rotation: 0f,
-                    origin: surprisedOrigin,
+                    origin: new Vector2(surprisedTexture.Width / 2f, surprisedTexture.Height),
                     scale: SurprisedSpriteScale,
                     effects: SpriteEffects.None,
                     layerDepth: 0.86f
