@@ -1,3 +1,4 @@
+#nullable enable
 using StardewModdingAPI;
 
 namespace FogMod

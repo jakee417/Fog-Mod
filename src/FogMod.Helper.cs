@@ -1,3 +1,5 @@
+#nullable enable
+using System;
 using Microsoft.Xna.Framework;
 using StardewModdingAPI;
 using StardewValley;
@@ -26,6 +28,13 @@ namespace FogMod
                 x ^= x >> 14;
                 return (x & 0x00FFFFFF) / (float)0x01000000; // [0,1)
             }
+        }
+
+        private bool DeterministicBool(Vector2 position, int variant)
+        {
+            int seed = (int)(position.X * 1000 + position.Y * 1000 + variant);
+            var rng = new Random(seed);
+            return rng.NextDouble() < 0.5;
         }
     }
 }

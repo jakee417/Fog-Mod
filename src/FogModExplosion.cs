@@ -1,3 +1,4 @@
+#nullable enable
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using StardewModdingAPI;
@@ -21,9 +22,9 @@ namespace FogMod
                 int[,] counts = occupancy.Counts;
                 for (int i = 0; i < count; i++)
                 {
-                    float ang = (float)(random.NextDouble() * MathHelper.TwoPi);
+                    float ang = (float)(Random.NextDouble() * MathHelper.TwoPi);
                     // uniform area distribution
-                    float r = (float)Math.Sqrt(random.NextDouble()) * Math.Max(8f, radiusPixels);
+                    float r = (float)Math.Sqrt(Random.NextDouble()) * Math.Max(8f, radiusPixels);
                     Vector2 pos = centerWorld + new Vector2((float)Math.Cos(ang) * r, (float)Math.Sin(ang) * r);
 
                     // Respect per-cell smoke cap before spawning
@@ -33,19 +34,19 @@ namespace FogMod
 
                     // velocity: outward + wind + jitter
                     Vector2 outward = r > 1e-3f ? Vector2.Normalize(pos - centerWorld) : new Vector2((float)Math.Cos(ang), (float)Math.Sin(ang));
-                    Vector2 v = outward * SmokeSpeed * (0.4f + (float)random.NextDouble() * 0.7f);
-                    Vector2 wind = globalWindDirection * SmokeSpeed * (0.4f + (float)random.NextDouble() * 0.6f);
+                    Vector2 v = outward * SmokeSpeed * (0.4f + (float)Random.NextDouble() * 0.7f);
+                    Vector2 wind = globalWindDirection * SmokeSpeed * (0.4f + (float)Random.NextDouble() * 0.6f);
                     // slight upward drift like heavy smoke rising slowly
-                    Vector2 rise = new Vector2(0f, -SmokeSpeed * MathHelper.Lerp(0.05f, 0.15f, (float)random.NextDouble()));
-                    Vector2 jitter = new Vector2(((float)random.NextDouble() - 0.5f) * SmokeSpeed, ((float)random.NextDouble() - 0.5f) * SmokeSpeed) * 0.25f;
+                    Vector2 rise = new Vector2(0f, -SmokeSpeed * MathHelper.Lerp(0.05f, 0.15f, (float)Random.NextDouble()));
+                    Vector2 jitter = new Vector2(((float)Random.NextDouble() - 0.5f) * SmokeSpeed, ((float)Random.NextDouble() - 0.5f) * SmokeSpeed) * 0.25f;
                     Vector2 vel = v + wind + rise + jitter;
 
                     // choose texture
-                    Texture2D tex = cloudTextures[random.Next(cloudTextures.Count)];
-                    float scale = MathHelper.Lerp(DefaultFloatingScaleMin, DefaultFloatingScaleMax, (float)random.NextDouble());
+                    Texture2D tex = cloudTextures[Random.Next(cloudTextures.Count)];
+                    float scale = MathHelper.Lerp(DefaultFloatingScaleMin, DefaultFloatingScaleMax, (float)Random.NextDouble());
                     // smoke is chunkier and grows; start a bit smaller
-                    scale *= MathHelper.Lerp(0.6f, 1.1f, (float)random.NextDouble());
-                    float alpha = MathHelper.Lerp(0.35f, 0.7f, (float)random.NextDouble());
+                    scale *= MathHelper.Lerp(0.6f, 1.1f, (float)Random.NextDouble());
+                    float alpha = MathHelper.Lerp(0.35f, 0.7f, (float)Random.NextDouble());
                     var particle = new FogParticle
                     {
                         Position = pos,

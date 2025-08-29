@@ -1,3 +1,4 @@
+#nullable enable
 using Microsoft.Xna.Framework;
 using StardewModdingAPI;
 using StardewValley;
@@ -11,40 +12,14 @@ namespace FogMod
         {
             grouse.Clear();
             spawnedTreePositions.Clear();
-            nextGrouseId = 1; // Reset ID counter
-            lastPlayerLocation = ""; // Reset location tracking
-        }
-
-        // Multiplayer synchronization methods
-
-
-        // Generate deterministic random values based on position and seed
-        private bool DeterministicBool(Vector2 position, int variant)
-        {
-            int seed = (int)(position.X * 1000 + position.Y * 1000 + variant);
-            var rng = new Random(seed);
-            return rng.NextDouble() < 0.5;
+            nextGrouseId = 1;
+            lastPlayerLocation = null;
         }
 
         private void SpawnGrouseInTrees()
         {
-            // Only the host should decide when to spawn grouse
-            if (!Context.IsMainPlayer)
-                return;
-
             if (Game1.currentLocation == null || grouse.Count >= GrouseMaxPerLocation)
                 return;
-
-            // Check if location changed to warrant new spawns
-            string currentLocationName = Game1.currentLocation.NameOrUniqueName ?? "Unknown";
-            bool locationChanged = currentLocationName != lastPlayerLocation;
-
-            // Only spawn if location changed
-            if (!locationChanged && lastPlayerLocation != "")
-                return;
-
-            // Update tracking variables
-            lastPlayerLocation = currentLocationName;
 
             // Get all tree positions that don't already have grouse
             var availableTrees = TreeHelper.GetAvailableTreePositions(Game1.currentLocation, spawnedTreePositions);

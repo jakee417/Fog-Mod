@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using Microsoft.Xna.Framework;
 using StardewValley;
