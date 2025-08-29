@@ -305,11 +305,28 @@ namespace FogMod
                 string? currentLocation = Game1.currentLocation?.NameOrUniqueName;
                 switch (messageType)
                 {
-                    if (Context.IsMainPlayer)
-                        return;
-                    var data = e.ReadAs<GrouseFlushInfo>();
-                    if (data.LocationName == Game1.currentLocation?.NameOrUniqueName)
-                        HandleGrouseFlushFromMessage(data);
+                    case MessageType.Explosion:
+                        if (Context.IsMainPlayer)
+                            return;
+                        var explosionData = e.ReadAs<ExplosionFlashInfo>();
+                        if (explosionData.LocationName == currentLocation)
+                            HandleExplosionFromMessage(explosionData);
+                        break;
+                    case MessageType.GrouseFlush:
+                        var flushData = e.ReadAs<GrouseFlushInfo>();
+                        if (flushData.LocationName == currentLocation && fromAnotherPlayer)
+                            HandleGrouseFlushFromMessage(flushData);
+                        break;
+                    case MessageType.GrouseKnockdown:
+                        var knockdownData = e.ReadAs<GrouseKnockdownInfo>();
+                        if (knockdownData.LocationName == currentLocation && fromAnotherPlayer)
+                            HandleGrouseKnockdownFromMessage(knockdownData);
+                        break;
+                    case MessageType.ItemDrop:
+                        var itemDropData = e.ReadAs<ItemDropInfo>();
+                        if (itemDropData.LocationName == currentLocation && !Context.IsMainPlayer)
+                            HandleItemDropFromMessage(itemDropData);
+                        break;
                 }
             }
             catch

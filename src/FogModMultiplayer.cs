@@ -12,7 +12,8 @@ namespace FogMod
         {
             Explosion,
             GrouseFlush,
-            GrouseKnockdown
+            GrouseKnockdown,
+            ItemDrop
         }
 
         private struct ExplosionFlashInfo

@@ -37,16 +37,18 @@ namespace FogMod
 
         private struct LightInfo
         {
-            public required Vector2 Position { get; init; }
-            public required float RadiusPixels { get; init; }
+            public Vector2 Position;
+            public float RadiusPixels;
         }
 
-        private class Grouse
+        private struct GrouseFlushInfo
         {
-            public required Vector2 Position { get; init; }
+            public string LocationName;
+            public Vector2 TreePosition;
+            public long Timestamp; // Game time for synchronization
         }
 
-        private struct Grouse
+        private class CollisionSmoke
         {
             public required int GrouseId { get; init; }
             public required Vector2 TreePosition { get; init; }

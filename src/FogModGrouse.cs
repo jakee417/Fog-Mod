@@ -60,7 +60,10 @@ namespace FogMod
                 AnimationFrame = 0,
                 AnimationTimer = 0f,
                 Alpha = 1.0f,
-                OriginalY = treePosition.Y
+                OriginalY = treePosition.Y,
+                DamageFlashTimer = null,
+                Smoke = null,
+                HasDroppedEgg = false
             };
             grouse.Add(newGrouse);
             spawnedTreePositions.Add(treePosition);
@@ -194,12 +197,17 @@ namespace FogMod
                 g.Velocity = new Vector2(g.Velocity.X, g.Velocity.Y + 500f * deltaSeconds);
             else
             {
-                // Landed - stop falling and start fading
+                // Landed - stop falling and drop egg (only once)
+                Vector2 landingPosition = new Vector2(g.Position.X, g.OriginalY + GrouseFallDistance);
+                if (!g.HasDroppedEgg)
+                {
+                    DropEggAtLanding(landingPosition, g.GrouseId);
+                    g.HasDroppedEgg = true;
+                }
                 g.Velocity = Vector2.Zero;
-                g.Position = new Vector2(g.Position.X, g.OriginalY + GrouseFallDistance);
-
-                // Start fading after landing
-                if (g.StateTimer > GrouseFallDistance / 150f) // Rough estimate of fall time
+                g.Position = landingPosition;
+                // Start fading
+                if (g.StateTimer > GrouseFallDistance / 150f)
                 {
                     float timeSinceLanding = g.StateTimer - (GrouseFallDistance / 150f);
                     float fadeProgress = timeSinceLanding / GrouseFadeOutDuration;
@@ -242,6 +250,36 @@ namespace FogMod
             }
         }
 
+        private void KnockDownGrouse(int grouseId)
+        {
+            for (int i = 0; i < grouse.Count; i++)
+            {
+                var g = grouse[i];
+                if (g.GrouseId == grouseId)
+                {
+                    g.State = GrouseState.KnockedDown;
+                    g.StateTimer = 0f;
+                    // Preserve the grouse's current momentum but add some downward force
+                    g.Velocity = new Vector2(g.Velocity.X * 0.8f, Math.Max(g.Velocity.Y + 100f, 150f));
+                    g.FlightHeight = 0f;
+                    g.Alpha = 1.0f;
+                    Vector2 impactPosition = g.Position;
+                    g.OriginalY = impactPosition.Y;
+                    Vector2 screenPosition = Game1.GlobalToLocal(Game1.viewport, g.Position);
+                    screenPosition.Y -= GrouseSpriteHeight * g.Scale / 2f;
+                    g.DamageFlashTimer = GrouseDamageFlashDuration;
+                    g.Smoke = new CollisionSmoke { Position = screenPosition };
+
+                    // Drop feather at impact point with random chance
+                    DropFeatherAtImpact(impactPosition, g.GrouseId);
+
+                    grouse[i] = g;
+                    PlayGrouseKnockdownSound(g);
+                    break;
+                }
+            }
+        }
+
         private bool IsGrouseOffScreen(Grouse g)
         {
             return !grid.GetExtendedBounds().Contains(new Point((int)g.Position.X, (int)g.Position.Y));
@@ -266,6 +304,71 @@ namespace FogMod
         {
             if (g.State == GrouseState.KnockedDown)
                 Game1.playSound("hitEnemy");
+        }
+
+        private void DropFeatherAtImpact(Vector2 impactPosition, int grouseId)
+        {
+            Monitor.Log($"DropFeatherAtImpact called for grouse {grouseId} at {impactPosition}", LogLevel.Info);
+
+            // Use grouse ID as seed for deterministic drop chance
+            var deterministicRng = new Random(grouseId);
+            bool shouldDropFeather = deterministicRng.NextDouble() < 0.3f; // 30% chance
+
+            Monitor.Log($"Feather drop chance: {shouldDropFeather}, IsMainPlayer: {Context.IsMainPlayer}", LogLevel.Info);
+
+            if (shouldDropFeather)
+            {
+                if (Context.IsMainPlayer)
+                {
+                    Monitor.Log($"Creating feather drop at {impactPosition}", LogLevel.Info);
+                    // Host creates the item and syncs to others
+                    var feather = new StardewValley.Object("769", 1); // Duck Feather (Object ID 769)
+                    Game1.currentLocation.debris.Add(new StardewValley.Debris(
+                        feather,
+                        impactPosition,
+                        Game1.player.getStandingPosition()
+                    ));
+
+                    // Send to other players
+                    var itemDropInfo = new ItemDropInfo
+                    {
+                        LocationName = Game1.currentLocation?.NameOrUniqueName,
+                        Position = impactPosition,
+                        ItemId = "769",
+                        Quantity = 1,
+                        Timestamp = Game1.currentGameTime?.TotalGameTime.Ticks ?? 0
+                    };
+                    SendItemDropMessage(itemDropInfo);
+                }
+            }
+        }
+
+        private void DropEggAtLanding(Vector2 landingPosition, int grouseId)
+        {
+            Monitor.Log($"DropEggAtLanding called for grouse {grouseId} at {landingPosition}", LogLevel.Info);
+
+            if (Context.IsMainPlayer)
+            {
+                Monitor.Log($"Creating egg drop at {landingPosition}", LogLevel.Info);
+                string eggItemId = "180";
+                // Host always drops an egg where the grouse lands
+                var egg = new StardewValley.Object(eggItemId, 1); // Egg (Object ID 180)
+                // Send to other players
+                var itemDropInfo = new ItemDropInfo
+                {
+                    LocationName = Game1.currentLocation?.NameOrUniqueName,
+                    Position = landingPosition,
+                    ItemId = eggItemId,
+                    Quantity = 1,
+                    Timestamp = Game1.currentGameTime?.TotalGameTime.Ticks ?? 0
+                };
+                SendItemDropMessage(itemDropInfo);
+                Game1.currentLocation?.debris.Add(new StardewValley.Debris(
+                    egg,
+                    landingPosition,
+                    Game1.player.getStandingPosition()
+                ));
+            }
         }
     }
 }
