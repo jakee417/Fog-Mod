@@ -42,7 +42,28 @@ namespace FogMod
 
         private void SpawnGrouseAtTree(Vector2 treePosition)
         {
-            var newGrouse = new Grouse(grouseId: nextGrouseId++, position: treePosition, treePosition: treePosition, facingLeft: DeterministicBool(treePosition, 1), velocity: Vector2.Zero, state: GrouseState.Perched, stateTimer: 0f, scale: GrouseScale, rotation: 0f, flightHeight: 0f, flightTimer: 0f, hasPlayedFlushSound: false, hasBeenSpotted: false, animationFrame: 0, animationTimer: 0f, alpha: 1.0f, originalY: treePosition.Y, damageFlashTimer: null, smoke: null, hasDroppedEgg: false);
+            var newGrouse = new Grouse
+            {
+                GrouseId = nextGrouseId++,
+                Position = treePosition,
+                TreePosition = treePosition,
+                Velocity = Vector2.Zero,
+                State = GrouseState.Perched,
+                StateTimer = 0f,
+                Scale = GrouseScale,
+                Rotation = 0f,
+                FlightHeight = 0f,
+                FacingLeft = DeterministicBool(treePosition, 1),
+                FlightTimer = 0f,
+                HasPlayedFlushSound = false,
+                HasBeenSpotted = false,
+                AnimationFrame = 0,
+                AnimationTimer = 0f,
+                Alpha = 1.0f,
+                OriginalY = treePosition.Y,
+                DamageFlashTimer = null,
+                Smoke = null
+            };
             grouse.Add(newGrouse);
             spawnedTreePositions.Add(treePosition);
         }
@@ -100,11 +121,15 @@ namespace FogMod
             if (fromMultiplayerSync || Vector2.Distance(g.Position, playerPos) < GrouseDetectionRadius)
             {
                 if (!fromMultiplayerSync)
-                // {
-                //     var flushInfo = new GrouseFlushInfo(locationName: Game1.currentLocation?.NameOrUniqueName, grouseId: g.GrouseId, timestamp: Game1.currentGameTime.TotalGameTime.Ticks);
-                //     SendGrouseFlushMessage(flushInfo);
-                // }
-                Monitor.Log("Grouse perche changed", LogLevel.Info);
+                {
+                    var flushInfo = new GrouseFlushInfo
+                    {
+                        LocationName = Game1.currentLocation?.NameOrUniqueName,
+                        GrouseId = g.GrouseId,
+                        Timestamp = Game1.currentGameTime.TotalGameTime.Ticks
+                    };
+                    SendGrouseFlushMessage(flushInfo);
+                }
                 g.State = GrouseState.Surprised;
                 g.StateTimer = 0f;
                 g.Velocity = Vector2.Zero;
@@ -171,15 +196,9 @@ namespace FogMod
                 g.Velocity = new Vector2(g.Velocity.X, g.Velocity.Y + 500f * deltaSeconds);
             else
             {
-                // Landed - stop falling and drop egg (only once)
-                Vector2 landingPosition = new Vector2(g.Position.X, g.OriginalY + GrouseFallDistance);
-                if (!g.HasDroppedEgg)
-                {
-                    DropEggAtLanding(landingPosition, g.GrouseId);
-                    g.HasDroppedEgg = true;
-                }
+                // Landed - stop falling
                 g.Velocity = Vector2.Zero;
-                g.Position = landingPosition;
+                g.Position = new Vector2(g.Position.X, g.OriginalY + GrouseFallDistance);
                 // Start fading
                 if (g.StateTimer > GrouseFallDistance / 150f)
                 {
@@ -243,10 +262,6 @@ namespace FogMod
                     screenPosition.Y -= GrouseSpriteHeight * g.Scale / 2f;
                     g.DamageFlashTimer = GrouseDamageFlashDuration;
                     g.Smoke = new CollisionSmoke { Position = screenPosition };
-
-                    // Drop feather at impact point with random chance
-                    DropFeatherAtImpact(impactPosition, g.GrouseId);
-
                     grouse[i] = g;
                     PlayGrouseKnockdownSound(g);
                     break;
@@ -278,55 +293,6 @@ namespace FogMod
         {
             if (g.State == GrouseState.KnockedDown)
                 Game1.playSound("hitEnemy");
-        }
-
-        private void DropFeatherAtImpact(Vector2 impactPosition, int grouseId)
-        {
-            Monitor.Log($"DropFeatherAtImpact called for grouse {grouseId} at {impactPosition}", LogLevel.Info);
-            var deterministicRng = new Random(grouseId);
-            bool shouldDropFeather = deterministicRng.NextDouble() < GrouseFeatherDropChance;
-            Monitor.Log($"Feather drop chance: {shouldDropFeather}, IsMainPlayer: {Context.IsMainPlayer}", LogLevel.Info);
-            if (shouldDropFeather)
-            {
-                Monitor.Log($"Creating feather drop at {impactPosition}", LogLevel.Info);
-                string featherItemId = "444";
-                var itemDropInfo = new ItemDropInfo(locationName: Game1.currentLocation?.NameOrUniqueName, position: impactPosition, itemId: featherItemId, quantity: 1, timestamp: Game1.currentGameTime?.TotalGameTime.Ticks ?? 0);
-                SendItemDropMessage(itemDropInfo);
-                CreateItemDrop(impactPosition, featherItemId, 1);
-            }
-        }
-
-        private void DropEggAtLanding(Vector2 landingPosition, int grouseId)
-        {
-            Monitor.Log($"DropEggAtLanding called for grouse {grouseId} at {landingPosition}", LogLevel.Info);
-            var deterministicRng = new Random(grouseId);
-            double roll = deterministicRng.NextDouble();
-            // Basic brown egg
-            string eggItemId = "180";
-            if (roll < 0.01)
-            {
-                // Golden egg
-                eggItemId = "928";
-            }
-            else if (roll >= 0.01 && roll < 0.06)
-            {
-                eggItemId = "182";
-            }
-            else if (roll >= 0.06 && roll < 0.1)
-            {
-                // Fried egg
-                eggItemId = "194";
-            }
-            var itemDropInfo = new ItemDropInfo
-            {
-                LocationName = Game1.currentLocation?.NameOrUniqueName,
-                Position = landingPosition,
-                ItemId = eggItemId,
-                Quantity = 1,
-                Timestamp = Game1.currentGameTime?.TotalGameTime.Ticks ?? 0
-            };
-            SendItemDropMessage(itemDropInfo);
-            CreateItemDrop(landingPosition, eggItemId, 1);
         }
     }
 }

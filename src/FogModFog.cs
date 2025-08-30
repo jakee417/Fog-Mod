@@ -31,6 +31,11 @@ namespace FogMod
         public void ResetFogParticles()
         {
             floatingParticles = new List<FogParticle>();
+            fogCellOccupancy = new CellOccupancy
+            {
+                Counts = new int[0, 0],
+                Indices = new List<int>[0, 0]
+            };
         }
 
         private FogParticle? CreateParticleInCell(int col, int row, Vector2 viewportTopLeftWorld)
@@ -62,23 +67,35 @@ namespace FogMod
             {
                 int idx = Random.Next(cloudTextures.Count);
                 Texture2D chosenTex = cloudTextures[idx];
-                return new FogParticle(position: new Vector2(x, y), velocity: velocity, scale: scale, rotation: 0f, alpha: Math.Max(0.05f, Math.Min(0.6f, alpha)), ageSeconds: 0f, texture: chosenTex, isFadingOut: false, fadeOutSecondsLeft: ParticleFadeOutSeconds);
+                return new FogParticle
+                {
+                    Position = new Vector2(x, y),
+                    Velocity = velocity,
+                    Scale = scale,
+                    Rotation = 0f,
+                    Alpha = Math.Max(0.05f, Math.Min(0.6f, alpha)),
+                    AgeSeconds = 0f,
+                    Texture = chosenTex,
+                    IsFadingOut = false,
+                    FadeOutSecondsLeft = ParticleFadeOutSeconds,
+                };
             }
             return null;
         }
 
         private void UpdateFloatingFogParticles(float deltaSeconds)
         {
-            if (floatingParticles.Count == 0)
+            if (floatingParticles == null || floatingParticles.Count == 0)
                 InitializeFloatingFogParticles();
-            RemoveUnusedParticles(ref floatingParticles, grid, deltaSeconds, true);
+            if (floatingParticles is List<FogParticle> particles)
+                floatingParticles = RemoveUnusedParticles(particles, grid, deltaSeconds, true);
             var occupancy = ComputeCellOccupancy();
-            PopulateCellsUnderTarget(ref occupancy.Counts);
+            occupancy.Counts = PopulateCellsUnderTarget(occupancy.Counts);
             RemoveFogOverTarget(occupancy);
             fogCellOccupancy = occupancy;
         }
 
-        private static void RemoveUnusedParticles(ref List<FogParticle> particles, FogGrid grid, float deltaSeconds, bool removeOffscreen)
+        private static List<FogParticle> RemoveUnusedParticles(List<FogParticle> particles, FogGrid grid, float deltaSeconds, bool removeOffscreen)
         {
             for (int i = particles.Count - 1; i >= 0; i--)
             {
@@ -101,6 +118,7 @@ namespace FogMod
                 }
                 particles[i] = p;
             }
+            return particles;
         }
 
         private CellOccupancy ComputeCellOccupancy()
@@ -133,7 +151,7 @@ namespace FogMod
             return new CellOccupancy { Counts = counts, Indices = indices };
         }
 
-        private void PopulateCellsUnderTarget(ref int[,] counts)
+        private int[,] PopulateCellsUnderTarget(int[,] counts)
         {
             for (int row = 0; row < grid.ExtRows; row++)
             {
@@ -151,6 +169,7 @@ namespace FogMod
                     }
                 }
             }
+            return counts;
         }
 
         private void RemoveFogOverTarget(CellOccupancy occupancy)
@@ -160,27 +179,25 @@ namespace FogMod
                 for (int col = 0; col < grid.ExtCols; col++)
                 {
                     int target = MaximumFogParticlesPerCell;
-                    if (occupancy.Indices is List<int>[,])
-                    {
-                        int eligible = occupancy.Indices[col, row] != null ? occupancy.Indices[col, row].Count : 0;
-                        int extra = eligible - target;
-                        if (extra <= 0)
-                            continue;
-                        var list = occupancy.Indices[col, row];
-                        if (list == null || list.Count == 0)
-                            continue;
+                    int eligible = occupancy.Indices[col, row] != null ? occupancy.Indices[col, row].Count : 0;
+                    int extra = eligible - target;
+                    if (extra <= 0)
+                        continue;
 
-                        list.Sort((a, b) => floatingParticles[b].AgeSeconds.CompareTo(floatingParticles[a].AgeSeconds));
-                        int toFade = Math.Min(extra, list.Count);
-                        for (int k = 0; k < toFade; k++)
+                    var list = occupancy.Indices[col, row];
+                    if (list == null || list.Count == 0)
+                        continue;
+
+                    list.Sort((a, b) => floatingParticles[b].AgeSeconds.CompareTo(floatingParticles[a].AgeSeconds));
+                    int toFade = Math.Min(extra, list.Count);
+                    for (int k = 0; k < toFade; k++)
+                    {
+                        int idx = list[k];
+                        var p = floatingParticles[idx];
+                        if (!p.IsFadingOut)
                         {
-                            int idx = list[k];
-                            var p = floatingParticles[idx];
-                            if (!p.IsFadingOut)
-                            {
-                                p.IsFadingOut = true;
-                                floatingParticles[idx] = p;
-                            }
+                            p.IsFadingOut = true;
+                            floatingParticles[idx] = p;
                         }
                     }
                 }
