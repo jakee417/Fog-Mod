@@ -58,7 +58,6 @@ namespace FogMod
 
             // Subscribe to events
             helper.Events.GameLoop.GameLaunched += OnGameLaunched;
-
             helper.Events.GameLoop.UpdateTicked += OnUpdateTicked;
             helper.Events.Display.Rendered += OnRendered;
             helper.Events.GameLoop.DayStarted += OnDayStarted;
@@ -201,13 +200,7 @@ namespace FogMod
             bool isFogDay = probabilityOfFogRoll <= probabilityOfFogForADay;
             float strengthRoll = (float)rng.NextDouble();
             float dailyFogStrength = MathHelper.Lerp(DailyRandomFogMin, DailyRandomFogMax, strengthRoll);
-            return new FogForecast
-            {
-                IsFogDay = isFogDay,
-                DailyFogStrength = dailyFogStrength,
-                ProbabilityOfFogForADay = probabilityOfFogForADay,
-                ProbabilityOfFogRoll = probabilityOfFogRoll
-            };
+            return new FogForecast(isFogDay, dailyFogStrength, probabilityOfFogForADay, probabilityOfFogRoll);
         }
 
         private static float ComputeProbabilityOfFogForADay()

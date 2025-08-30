@@ -48,18 +48,7 @@ namespace FogMod
                         // smoke is chunkier and grows; start a bit smaller
                         scale *= MathHelper.Lerp(0.6f, 1.1f, (float)Random.NextDouble());
                         float alpha = MathHelper.Lerp(0.35f, 0.7f, (float)Random.NextDouble());
-                        var particle = new FogParticle
-                        {
-                            Position = pos,
-                            Velocity = vel,
-                            Scale = scale,
-                            Rotation = 0f,
-                            Alpha = alpha,
-                            AgeSeconds = 0f,
-                            Texture = tex,
-                            IsFadingOut = false,
-                            FadeOutSecondsLeft = ParticleFadeOutSeconds,
-                        };
+                        var particle = new FogParticle(position: pos, velocity: vel, scale: scale, rotation: 0f, alpha: alpha, ageSeconds: 0f, texture: tex, isFadingOut: false, fadeOutSecondsLeft: ParticleFadeOutSeconds);
                         explosionSmokeParticles.Add(particle);
 
                         // Increment occupancy for the tile we just spawned into
@@ -74,11 +63,6 @@ namespace FogMod
         public void ResetExplosionSmokeParticles()
         {
             explosionSmokeParticles = new List<FogParticle>();
-            smokeCellOccupancy = new CellOccupancy
-            {
-                Counts = new int[grid.ExtCols, grid.ExtRows],
-                Indices = new List<int>[grid.ExtCols, grid.ExtRows]
-            };
         }
 
         private void UpdateExplosionFlashInfos(float deltaSeconds)
@@ -100,8 +84,7 @@ namespace FogMod
         private void UpdateExplosionSmokeParticles(float deltaSeconds)
         {
             // Update explosion smoke particles
-            if (explosionSmokeParticles != null && explosionSmokeParticles.Count > 0)
-                explosionSmokeParticles = RemoveUnusedParticles(explosionSmokeParticles, grid, deltaSeconds, false);
+            RemoveUnusedParticles(ref explosionSmokeParticles, grid, deltaSeconds, false);
 
             // Update occupancy snapshot for smoke particles
             smokeCellOccupancy = ComputeSmokeCellOccupancy();

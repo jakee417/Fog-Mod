@@ -52,8 +52,8 @@ namespace FogMod
 
         public struct CellOccupancy
         {
-            public int[,]? Counts;
-            public List<int>[,]? Indices;
+            public int[,] Counts;
+            public List<int>[,] Indices;
 
             public CellOccupancy(int width, int height)
             {
@@ -76,7 +76,7 @@ namespace FogMod
             }
         }
 
-        private struct GrouseFlushInfo
+        private struct CollisionSmoke
         {
             public Vector2 Position { get; init; }
 
@@ -86,7 +86,7 @@ namespace FogMod
             }
         }
 
-        private class CollisionSmoke
+        private class Grouse
         {
             public int GrouseId { get; init; }
             public Vector2 TreePosition { get; init; }

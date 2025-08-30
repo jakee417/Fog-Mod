@@ -31,11 +31,6 @@ namespace FogMod
         public void ResetFogParticles()
         {
             floatingParticles = new List<FogParticle>();
-            fogCellOccupancy = new CellOccupancy
-            {
-                Counts = new int[0, 0],
-                Indices = new List<int>[0, 0]
-            };
         }
 
         private FogParticle? CreateParticleInCell(int col, int row, Vector2 viewportTopLeftWorld)
@@ -67,36 +62,23 @@ namespace FogMod
             {
                 int idx = Random.Next(cloudTextures.Count);
                 Texture2D chosenTex = cloudTextures[idx];
-                return new FogParticle
-                {
-                    Position = new Vector2(x, y),
-                    Velocity = velocity,
-                    Scale = scale,
-                    Rotation = 0f,
-                    Alpha = Math.Max(0.05f, Math.Min(0.6f, alpha)),
-                    AgeSeconds = 0f,
-                    Texture = chosenTex,
-                    IsFadingOut = false,
-                    FadeOutSecondsLeft = ParticleFadeOutSeconds,
-                };
+                return new FogParticle(position: new Vector2(x, y), velocity: velocity, scale: scale, rotation: 0f, alpha: Math.Max(0.05f, Math.Min(0.6f, alpha)), ageSeconds: 0f, texture: chosenTex, isFadingOut: false, fadeOutSecondsLeft: ParticleFadeOutSeconds);
             }
             return null;
         }
 
         private void UpdateFloatingFogParticles(float deltaSeconds)
         {
-            if (floatingParticles == null || floatingParticles.Count == 0)
+            if (floatingParticles.Count == 0)
                 InitializeFloatingFogParticles();
-            if (floatingParticles is List<FogParticle> particles)
-                floatingParticles = RemoveUnusedParticles(particles, grid, deltaSeconds, true);
+            RemoveUnusedParticles(ref floatingParticles, grid, deltaSeconds, true);
             var occupancy = ComputeCellOccupancy();
-            if (occupancy.Counts is int[,] counts)
-                occupancy.Counts = PopulateCellsUnderTarget(counts);
+            PopulateCellsUnderTarget(ref occupancy.Counts);
             RemoveFogOverTarget(occupancy);
             fogCellOccupancy = occupancy;
         }
 
-        private static List<FogParticle> RemoveUnusedParticles(List<FogParticle> particles, FogGrid grid, float deltaSeconds, bool removeOffscreen)
+        private static void RemoveUnusedParticles(ref List<FogParticle> particles, FogGrid grid, float deltaSeconds, bool removeOffscreen)
         {
             for (int i = particles.Count - 1; i >= 0; i--)
             {
@@ -119,7 +101,6 @@ namespace FogMod
                 }
                 particles[i] = p;
             }
-            return particles;
         }
 
         private CellOccupancy ComputeCellOccupancy()
@@ -152,7 +133,7 @@ namespace FogMod
             return new CellOccupancy { Counts = counts, Indices = indices };
         }
 
-        private int[,] PopulateCellsUnderTarget(int[,] counts)
+        private void PopulateCellsUnderTarget(ref int[,] counts)
         {
             for (int row = 0; row < grid.ExtRows; row++)
             {
@@ -170,7 +151,6 @@ namespace FogMod
                     }
                 }
             }
-            return counts;
         }
 
         private void RemoveFogOverTarget(CellOccupancy occupancy)
