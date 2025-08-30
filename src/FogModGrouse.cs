@@ -12,12 +12,15 @@ namespace FogMod
         {
             grouse.Clear();
             spawnedTreePositions.Clear();
-            nextGrouseId = 1;
         }
 
         private void SpawnGrouseInTrees()
         {
             if (grouse.Count >= GrouseMaxPerLocation)
+                return;
+
+            // Only the main player should spawn grouse to ensure consistency
+            if (!Context.IsMainPlayer)
                 return;
 
             // Get all tree positions that don't already have grouse
@@ -41,7 +44,46 @@ namespace FogMod
 
         private void SpawnGrouseAtTree(Vector2 treePosition)
         {
-            var newGrouse = new Grouse(grouseId: nextGrouseId++, position: treePosition, treePosition: treePosition, facingLeft: DeterministicBool(treePosition, 1), velocity: Vector2.Zero, state: GrouseState.Perched, stateTimer: 0f, scale: GrouseScale, rotation: 0f, flightHeight: 0f, flightTimer: 0f, hasPlayedFlushSound: false, hasBeenSpotted: false, animationFrame: 0, animationTimer: 0f, alpha: 1.0f, originalY: treePosition.Y, damageFlashTimer: null, smoke: null, hasDroppedEgg: false);
+            // Generate deterministic grouse ID based on position and day for multiplayer consistency
+            string locationSeed = Game1.currentLocation.NameOrUniqueName ?? "Unknown";
+            int daySeed = (int)Game1.stats.DaysPlayed;
+            int deterministicId = (locationSeed.GetHashCode() ^ daySeed ^ (int)(treePosition.X * 1000 + treePosition.Y * 1000)) & 0x7FFFFFFF;
+
+            SpawnGrouseAtTreeWithId(treePosition, deterministicId);
+
+            // Send multiplayer message to sync grouse spawning to other players
+            var spawnInfo = new GrouseSpawnInfo(
+                locationName: Game1.currentLocation?.NameOrUniqueName,
+                treePosition: treePosition,
+                grouseId: deterministicId,
+                timestamp: Game1.currentGameTime?.TotalGameTime.Ticks ?? 0);
+            SendGrouseSpawnMessage(spawnInfo);
+        }
+
+        private void SpawnGrouseAtTreeWithId(Vector2 treePosition, int grouseId)
+        {
+            var newGrouse = new Grouse(
+                grouseId: grouseId,
+                position: treePosition,
+                treePosition: treePosition,
+                facingLeft: DeterministicBool(treePosition, 1),
+                velocity: Vector2.Zero,
+                state: GrouseState.Perched,
+                stateTimer: 0f,
+                scale: GrouseScale,
+                rotation: 0f,
+                flightHeight: 0f,
+                flightTimer: 0f,
+                hasPlayedFlushSound: false,
+                hasBeenSpotted: false,
+                animationFrame: 0,
+                animationTimer: 0f,
+                alpha: 1.0f,
+                originalY: treePosition.Y,
+                damageFlashTimer: null,
+                smoke: null,
+                hasDroppedEgg: false
+            );
             grouse.Add(newGrouse);
             spawnedTreePositions.Add(treePosition);
         }
@@ -100,7 +142,11 @@ namespace FogMod
             {
                 if (!fromMultiplayerSync)
                 {
-                    var flushInfo = new GrouseFlushInfo(locationName: Game1.currentLocation?.NameOrUniqueName, grouseId: g.GrouseId, timestamp: Game1.currentGameTime.TotalGameTime.Ticks);
+                    var flushInfo = new GrouseFlushInfo(
+                        locationName: Game1.currentLocation?.NameOrUniqueName,
+                        grouseId: g.GrouseId,
+                        timestamp: Game1.currentGameTime.TotalGameTime.Ticks
+                    );
                     SendGrouseFlushMessage(flushInfo);
                 }
                 g.State = GrouseState.Surprised;
@@ -285,9 +331,17 @@ namespace FogMod
             if (shouldDropFeather)
             {
                 string featherItemId = "444";
-                var itemDropInfo = new ItemDropInfo(locationName: Game1.currentLocation?.NameOrUniqueName, position: impactPosition, itemId: featherItemId, quantity: 1, timestamp: Game1.currentGameTime?.TotalGameTime.Ticks ?? 0);
+                var itemDropInfo = new ItemDropInfo(
+                    locationName: Game1.currentLocation?.NameOrUniqueName,
+                    position: impactPosition,
+                    itemId: featherItemId,
+                    quantity: 1,
+                    timestamp: Game1.currentGameTime?.TotalGameTime.Ticks ?? 0
+                );
                 SendItemDropMessage(itemDropInfo);
-                CreateItemDrop(impactPosition, featherItemId, 1);
+                // Only create the item drop on the main player to avoid duplicates
+                if (Context.IsMainPlayer)
+                    CreateItemDrop(impactPosition, featherItemId, 1);
             }
         }
 
@@ -320,7 +374,9 @@ namespace FogMod
                 Timestamp = Game1.currentGameTime?.TotalGameTime.Ticks ?? 0
             };
             SendItemDropMessage(itemDropInfo);
-            CreateItemDrop(landingPosition, eggItemId, 1);
+            // Only create the item drop on the main player to avoid duplicates
+            if (Context.IsMainPlayer)
+                CreateItemDrop(landingPosition, eggItemId, 1);
         }
     }
 }

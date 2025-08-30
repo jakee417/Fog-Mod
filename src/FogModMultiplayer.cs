@@ -3,7 +3,7 @@ using Microsoft.Xna.Framework;
 using StardewValley;
 using StardewModdingAPI;
 using System;
-using StardewValley.Locations;
+using System.Linq;
 
 namespace FogMod
 {
@@ -15,6 +15,7 @@ namespace FogMod
             public const string GrouseFlush = "GrouseFlush";
             public const string GrouseKnockdown = "GrouseKnockdown";
             public const string ItemDrop = "ItemDrop";
+            public const string GrouseSpawn = "GrouseSpawn";
         }
 
         private struct ExplosionFlashInfo
@@ -75,6 +76,22 @@ namespace FogMod
                 Position = position;
                 ItemId = itemId;
                 Quantity = quantity;
+                Timestamp = timestamp;
+            }
+        }
+
+        private struct GrouseSpawnInfo
+        {
+            public string? LocationName { get; init; }
+            public Vector2 TreePosition { get; init; }
+            public int GrouseId { get; init; }
+            public long Timestamp { get; init; }
+
+            public GrouseSpawnInfo(string? locationName, Vector2 treePosition, int grouseId, long timestamp)
+            {
+                LocationName = locationName;
+                TreePosition = treePosition;
+                GrouseId = grouseId;
                 Timestamp = timestamp;
             }
         }
@@ -177,11 +194,42 @@ namespace FogMod
         {
             try
             {
-                CreateItemDrop(itemDropInfo.Position, itemDropInfo.ItemId, itemDropInfo.Quantity);
+                // Only create item drops on the host to prevent duplicates
+                if (Context.IsMainPlayer)
+                    CreateItemDrop(itemDropInfo.Position, itemDropInfo.ItemId, itemDropInfo.Quantity);
             }
             catch (Exception ex)
             {
                 Monitor.Log($"HandleGrouseItemDropFromMessage failed: {ex.Message}", LogLevel.Error);
+            }
+        }
+
+        // Grouse Spawn Handling
+        private void SendGrouseSpawnMessage(GrouseSpawnInfo spawnInfo)
+        {
+            try
+            {
+                Helper.Multiplayer.SendMessage(spawnInfo, MessageType.GrouseSpawn);
+            }
+            catch (Exception ex)
+            {
+                Monitor.Log($"SendGrouseSpawnMessage failed: {ex.Message}", LogLevel.Error);
+            }
+        }
+
+        private void HandleGrouseSpawnFromMessage(GrouseSpawnInfo spawnInfo)
+        {
+            try
+            {
+                // Only spawn grouse if we don't already have one with this ID
+                if (!grouse.Any(g => g.GrouseId == spawnInfo.GrouseId))
+                {
+                    SpawnGrouseAtTreeWithId(spawnInfo.TreePosition, spawnInfo.GrouseId);
+                }
+            }
+            catch (Exception ex)
+            {
+                Monitor.Log($"HandleGrouseSpawnFromMessage failed: {ex.Message}", LogLevel.Error);
             }
         }
     }

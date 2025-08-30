@@ -91,6 +91,11 @@ namespace FogMod
                 if (FogMod.Instance == null || !FogMod.Instance.Config.EnableGrouseCritters)
                     return;
 
+                // Only process projectile collisions on the client that fired the projectile
+                // This prevents multiple knockdown messages for the same grouse
+                if (__instance.theOneWhoFiredMe.Get(location) != Game1.player)
+                    return;
+
                 Vector2 projectilePos = __instance.position.Value;
                 // Adjust for projectile scale.
                 projectilePos.X += 8f * 4f;

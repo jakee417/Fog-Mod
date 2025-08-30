@@ -44,7 +44,6 @@ namespace FogMod
         private GameLocation? lastLocation = null;
         private List<Grouse> grouse = new List<Grouse>();
         private HashSet<Vector2> spawnedTreePositions = new HashSet<Vector2>();
-        private int nextGrouseId = 1;
         private static readonly int[] wingPattern = { 0, 1, 2, 3, 2, 1 };
 
         public override void Entry(IModHelper helper)
@@ -267,7 +266,7 @@ namespace FogMod
 
         private void OnRendered(object? sender, RenderedEventArgs e)
         {
-            if (!Context.IsWorldReady) return;
+            if (!Context.IsWorldReady || Game1.currentLocation == null) return;
 
             // DrawDebugFogGrid(e.SpriteBatch);
 
@@ -281,7 +280,7 @@ namespace FogMod
 
             DrawExplosionFlashes(e.SpriteBatch);
             DrawExplosionSmokeParticles(e.SpriteBatch, fogColor);
-            if (isFogDay && Game1.currentLocation?.IsOutdoors == true)
+            if (isFogDay && Game1.currentLocation.IsOutdoors)
                 DrawFloatingFogParticles(e.SpriteBatch, fogColor);
         }
 
@@ -314,6 +313,11 @@ namespace FogMod
                         var itemDropData = e.ReadAs<ItemDropInfo>();
                         if (itemDropData.LocationName == currentLocation)
                             HandleItemDropFromMessage(itemDropData);
+                        break;
+                    case MessageType.GrouseSpawn:
+                        var spawnData = e.ReadAs<GrouseSpawnInfo>();
+                        if (spawnData.LocationName == currentLocation)
+                            HandleGrouseSpawnFromMessage(spawnData);
                         break;
                     default:
                         Monitor.Log($"OnModMessageReceived: Unknown message type '{e.Type}' from mod '{e.FromModID}'", LogLevel.Warn);
