@@ -55,10 +55,10 @@ namespace FogMod
             public int[,] Counts;
             public List<int>[,] Indices;
 
-            public CellOccupancy(int width, int height)
+            public CellOccupancy(int[,] counts, List<int>[,] indices)
             {
-                Counts = new int[width, height];
-                Indices = new List<int>[width, height];
+                Counts = counts;
+                Indices = indices;
             }
 
             public bool IsValid => Counts != null && Indices != null;

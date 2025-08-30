@@ -39,9 +39,12 @@ namespace FogMod
 
         private void CreateItemDrop(Vector2 position, string itemId, int quantity)
         {
-            var item = new StardewValley.Object(itemId, quantity);
+            var item = new StardewValley.Object(
+                itemId: itemId,
+                initialStack: quantity
+            );
             Debris debris = new Debris(
-                item,
+                item: item,
                 position,
                 Game1.player.getStandingPosition()
             );

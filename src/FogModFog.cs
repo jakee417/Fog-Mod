@@ -12,7 +12,10 @@ namespace FogMod
         private void InitializeFloatingFogParticles()
         {
             floatingParticles = new List<FogParticle>();
-            grid = new FogGrid(FogTileSize, DefaultFogGridBufferCells);
+            grid = new FogGrid(
+                cellSize: FogTileSize,
+                bufferCells: DefaultFogGridBufferCells
+            );
             for (int row = 0; row < grid.ExtRows; row++)
             {
                 for (int col = 0; col < grid.ExtCols; col++)
@@ -62,7 +65,17 @@ namespace FogMod
             {
                 int idx = Random.Next(cloudTextures.Count);
                 Texture2D chosenTex = cloudTextures[idx];
-                return new FogParticle(position: new Vector2(x, y), velocity: velocity, scale: scale, rotation: 0f, alpha: Math.Max(0.05f, Math.Min(0.6f, alpha)), ageSeconds: 0f, texture: chosenTex, isFadingOut: false, fadeOutSecondsLeft: ParticleFadeOutSeconds);
+                return new FogParticle(
+                    position: new Vector2(x, y),
+                    velocity: velocity,
+                    scale: scale,
+                    rotation: 0f,
+                    alpha: Math.Max(0.05f, Math.Min(0.6f, alpha)),
+                    ageSeconds: 0f,
+                    texture: chosenTex,
+                    isFadingOut: false,
+                    fadeOutSecondsLeft: ParticleFadeOutSeconds
+                );
             }
             return null;
         }
@@ -130,7 +143,10 @@ namespace FogMod
                     list.Add(i);
                 }
             }
-            return new CellOccupancy { Counts = counts, Indices = indices };
+            return new CellOccupancy(
+                counts: counts,
+                indices: indices
+            );
         }
 
         private void PopulateCellsUnderTarget(ref int[,] counts)

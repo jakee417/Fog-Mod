@@ -27,7 +27,7 @@ namespace FogMod
                         ? rawPos * 64f + new Vector2(32f, 32f)
                         : rawPos;
                     float radiusPixels = ls.radius.Value * 64f; // tiles to pixels
-                    lightSources.Add(new LightInfo { Position = pos, RadiusPixels = radiusPixels });
+                    lightSources.Add(new LightInfo(position: pos, radiusPixels: radiusPixels));
                 }
             }
             catch { }

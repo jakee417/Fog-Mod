@@ -48,7 +48,17 @@ namespace FogMod
                         // smoke is chunkier and grows; start a bit smaller
                         scale *= MathHelper.Lerp(0.6f, 1.1f, (float)Random.NextDouble());
                         float alpha = MathHelper.Lerp(0.35f, 0.7f, (float)Random.NextDouble());
-                        var particle = new FogParticle(position: pos, velocity: vel, scale: scale, rotation: 0f, alpha: alpha, ageSeconds: 0f, texture: tex, isFadingOut: false, fadeOutSecondsLeft: ParticleFadeOutSeconds);
+                        var particle = new FogParticle(
+                            position: pos,
+                            velocity: vel,
+                            scale: scale,
+                            rotation: 0f,
+                            alpha: alpha,
+                            ageSeconds: 0f,
+                            texture: tex,
+                            isFadingOut: false,
+                            fadeOutSecondsLeft: ParticleFadeOutSeconds
+                        );
                         explosionSmokeParticles.Add(particle);
 
                         // Increment occupancy for the tile we just spawned into
@@ -113,7 +123,10 @@ namespace FogMod
                     list.Add(i);
                 }
             }
-            return new CellOccupancy { Counts = counts, Indices = indices };
+            return new CellOccupancy(
+                counts: counts,
+                indices: indices
+            );
         }
 
         private void RemoveExtraSmokeOverTarget(CellOccupancy occupancy)

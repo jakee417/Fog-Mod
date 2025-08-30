@@ -156,7 +156,11 @@ namespace FogMod
             try
             {
                 // Any player can broadcast grouse knockdowns when they hit one
-                var knockDownInfo = new GrouseKnockdownInfo(locationName: locationName, grouseId: grouseId, timestamp: Game1.currentGameTime?.TotalGameTime.Ticks ?? 0);
+                var knockDownInfo = new GrouseKnockdownInfo(
+                    locationName: locationName,
+                    grouseId: grouseId,
+                    timestamp: Game1.currentGameTime?.TotalGameTime.Ticks ?? 0
+                );
                 Helper.Multiplayer.SendMessage(knockDownInfo, MessageType.GrouseKnockdown);
             }
             catch (Exception ex)

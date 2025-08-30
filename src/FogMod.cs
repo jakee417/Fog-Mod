@@ -198,7 +198,12 @@ namespace FogMod
             bool isFogDay = probabilityOfFogRoll <= probabilityOfFogForADay;
             float strengthRoll = (float)rng.NextDouble();
             float dailyFogStrength = MathHelper.Lerp(DailyRandomFogMin, DailyRandomFogMax, strengthRoll);
-            return new FogForecast(isFogDay, dailyFogStrength, probabilityOfFogForADay, probabilityOfFogRoll);
+            return new FogForecast(
+                isFogDay: isFogDay,
+                dailyFogStrength: dailyFogStrength,
+                probabilityOfFogForADay: probabilityOfFogForADay,
+                probabilityOfFogRoll: probabilityOfFogRoll
+            );
         }
 
         private static float ComputeProbabilityOfFogForADay()
@@ -232,7 +237,10 @@ namespace FogMod
             if (!Context.IsWorldReady) return;
 
             // Update grid snapshot
-            grid = new FogGrid(FogTileSize, DefaultFogGridBufferCells);
+            grid = new FogGrid(
+                cellSize: FogTileSize,
+                bufferCells: DefaultFogGridBufferCells
+            );
 
             float deltaSeconds = (float)Game1.currentGameTime.ElapsedGameTime.TotalSeconds;
             time += deltaSeconds;

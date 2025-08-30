@@ -56,7 +56,8 @@ namespace FogMod
                 locationName: Game1.currentLocation?.NameOrUniqueName,
                 treePosition: treePosition,
                 grouseId: deterministicId,
-                timestamp: Game1.currentGameTime?.TotalGameTime.Ticks ?? 0);
+                timestamp: Game1.currentGameTime?.TotalGameTime.Ticks ?? 0
+            );
             SendGrouseSpawnMessage(spawnInfo);
         }
 
@@ -286,7 +287,7 @@ namespace FogMod
                     Vector2 screenPosition = Game1.GlobalToLocal(Game1.viewport, g.Position);
                     screenPosition.Y -= GrouseSpriteHeight * g.Scale / 2f;
                     g.DamageFlashTimer = GrouseDamageFlashDuration;
-                    g.Smoke = new CollisionSmoke { Position = screenPosition };
+                    g.Smoke = new CollisionSmoke(position: screenPosition);
 
                     // Drop feather at impact point with random chance
                     DropFeatherAtImpact(impactPosition, g.GrouseId);
@@ -365,14 +366,13 @@ namespace FogMod
                 // Fried egg
                 eggItemId = "194";
             }
-            var itemDropInfo = new ItemDropInfo
-            {
-                LocationName = Game1.currentLocation?.NameOrUniqueName,
-                Position = landingPosition,
-                ItemId = eggItemId,
-                Quantity = 1,
-                Timestamp = Game1.currentGameTime?.TotalGameTime.Ticks ?? 0
-            };
+            var itemDropInfo = new ItemDropInfo(
+                locationName: Game1.currentLocation?.NameOrUniqueName,
+                position: landingPosition,
+                itemId: eggItemId,
+                quantity: 1,
+                timestamp: Game1.currentGameTime?.TotalGameTime.Ticks ?? 0
+            );
             SendItemDropMessage(itemDropInfo);
             // Only create the item drop on the main player to avoid duplicates
             if (Context.IsMainPlayer)
