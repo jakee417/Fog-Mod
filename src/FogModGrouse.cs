@@ -2,7 +2,6 @@ using Microsoft.Xna.Framework;
 using StardewModdingAPI;
 using StardewValley;
 using System;
-using System.Collections.Generic;
 
 namespace FogMod
 {
@@ -17,40 +16,7 @@ namespace FogMod
         }
 
         // Multiplayer synchronization methods
-        private void HandleGrouseFlushFromMessage(GrouseFlushInfo flushInfo)
-        {
-            // Find grouse at the specified tree position and force flush it
-            for (int i = 0; i < grouse.Count; i++)
-            {
-                var g = grouse[i];
-                if (Vector2.Distance(g.TreePosition, flushInfo.TreePosition) < 32f && g.State == GrouseState.Perched)
-                {
-                    // Force surprise this grouse to synchronize with other players
-                    g.State = GrouseState.Surprised;
-                    g.StateTimer = 0f;
-                    g.Velocity = Vector2.Zero;
-                    g.HasPlayedFlushSound = false;
-                    g.HasBeenSpotted = false;
-                    g.FacingLeft = DeterministicBool(g.TreePosition, 1);
-                    grouse[i] = g;
-                    break;
-                }
-            }
-        }
 
-        private void SendGrouseFlushMessage(Grouse g)
-        {
-            if (!Context.IsMainPlayer) return;
-
-            var flushInfo = new GrouseFlushInfo
-            {
-                LocationName = Game1.currentLocation?.NameOrUniqueName,
-                TreePosition = g.TreePosition,
-                Timestamp = Game1.currentGameTime.TotalGameTime.Ticks
-            };
-
-            Helper.Multiplayer.SendMessage(flushInfo, GrouseFlushMessageType);
-        }
 
         // Generate deterministic random values based on position and seed
         private bool DeterministicBool(Vector2 position, int variant)
@@ -101,7 +67,6 @@ namespace FogMod
 
         private void SpawnGrouseAtTree(Vector2 treePosition)
         {
-            // treePosition is calculated by TreeHelper using leaf positions or fallback logic
             var newGrouse = new Grouse
             {
                 GrouseId = nextGrouseId++,
@@ -122,15 +87,12 @@ namespace FogMod
                 Alpha = 1.0f,
                 OriginalY = treePosition.Y
             };
-
             grouse.Add(newGrouse);
             spawnedTreePositions.Add(treePosition);
         }
 
         private void UpdateGrouse(float deltaSeconds)
         {
-            Vector2 playerPos = Game1.player.getStandingPosition();
-
             for (int i = grouse.Count - 1; i >= 0; i--)
             {
                 var g = grouse[i];
@@ -139,7 +101,7 @@ namespace FogMod
                 switch (g.State)
                 {
                     case GrouseState.Perched:
-                        UpdateGrousePerched(g, playerPos, deltaSeconds);
+                        UpdateGrousePerched(g, false);
                         break;
 
                     case GrouseState.Surprised:
@@ -162,7 +124,7 @@ namespace FogMod
                 g.Position += g.Velocity * deltaSeconds;
                 UpdateGrouseAnimation(ref g, deltaSeconds);
 
-                // Remove if off screen and flying (since flying now means leaving), or if faded out
+                // Potential grouse cleanup
                 if ((g.State == GrouseState.Flying && IsGrouseOffScreen(g)) || g.Alpha <= 0f)
                 {
                     spawnedTreePositions.Remove(g.TreePosition);
@@ -175,14 +137,25 @@ namespace FogMod
             }
         }
 
-        private void UpdateGrousePerched(Grouse g, Vector2 playerPos, float deltaSeconds)
+        private void UpdateGrousePerched(Grouse g, bool fromMultiplayerSync)
         {
-            if (Vector2.Distance(g.Position, playerPos) < GrouseDetectionRadius)
+            Vector2 playerPos = Game1.player.getStandingPosition();
+            // Either someone triggered a new flush or we are syncing from another player.
+            if (fromMultiplayerSync || Vector2.Distance(g.Position, playerPos) < GrouseDetectionRadius)
             {
+                if (!fromMultiplayerSync)
+                {
+                    var flushInfo = new GrouseFlushInfo
+                    {
+                        LocationName = Game1.currentLocation?.NameOrUniqueName,
+                        GrouseId = g.GrouseId,
+                        Timestamp = Game1.currentGameTime.TotalGameTime.Ticks
+                    };
+                    SendGrouseFlushMessage(flushInfo);
+                }
                 g.State = GrouseState.Surprised;
                 g.StateTimer = 0f;
                 g.Velocity = Vector2.Zero;
-                SendGrouseFlushMessage(g);
             }
         }
 
@@ -235,23 +208,15 @@ namespace FogMod
         private void UpdateGrouseKnockedDown(Grouse g, float deltaSeconds)
         {
             g.StateTimer += deltaSeconds;
-
-            // Update damage flash timer
             if (g.DamageFlashTimer > 0f)
             {
                 g.DamageFlashTimer -= deltaSeconds;
                 if (g.DamageFlashTimer < 0f)
                     g.DamageFlashTimer = 0f;
             }
-
-            // Check if we've fallen the set distance
             float fallProgress = (g.Position.Y - g.OriginalY) / GrouseFallDistance;
-
             if (fallProgress < 1.0f)
-            {
-                // Still falling - apply gravity
                 g.Velocity = new Vector2(g.Velocity.X, g.Velocity.Y + 500f * deltaSeconds);
-            }
             else
             {
                 // Landed - stop falling and start fading
@@ -302,6 +267,32 @@ namespace FogMod
             }
         }
 
+        private void KnockDownGrouse(int grouseId)
+        {
+            for (int i = 0; i < grouse.Count; i++)
+            {
+                var g = grouse[i];
+                if (g.GrouseId == grouseId)
+                {
+                    g.State = GrouseState.KnockedDown;
+                    g.StateTimer = 0f;
+                    // Preserve the grouse's current momentum but add some downward force
+                    g.Velocity = new Vector2(g.Velocity.X * 0.8f, Math.Max(g.Velocity.Y + 100f, 150f));
+                    g.FlightHeight = 0f;
+                    g.Alpha = 1.0f;
+                    Vector2 impactPosition = g.Position;
+                    g.OriginalY = impactPosition.Y;
+                    Vector2 screenPosition = Game1.GlobalToLocal(Game1.viewport, g.Position);
+                    screenPosition.Y -= GrouseSpriteHeight * g.Scale / 2f;
+                    g.DamageFlashTimer = GrouseDamageFlashDuration;
+                    g.Smoke = new CollisionSmoke { Position = screenPosition };
+                    grouse[i] = g;
+                    PlayGrouseKnockdownSound(g);
+                    break;
+                }
+            }
+        }
+
         private bool IsGrouseOffScreen(Grouse g)
         {
             return !grid.GetExtendedBounds().Contains(new Point((int)g.Position.X, (int)g.Position.Y));
@@ -322,38 +313,10 @@ namespace FogMod
                 Game1.playSound("fishSlap");
         }
 
-        private void KnockDownGrouse(int grouseId)
+        private void PlayGrouseKnockdownSound(Grouse g)
         {
-            for (int i = 0; i < grouse.Count; i++)
-            {
-                var g = grouse[i];
-                if (g.GrouseId == grouseId)
-                {
-                    // Change state to knocked down
-                    g.State = GrouseState.KnockedDown;
-                    g.StateTimer = 0f;
-                    // Preserve the grouse's current momentum but add some downward force
-                    g.Velocity = new Vector2(g.Velocity.X * 0.8f, Math.Max(g.Velocity.Y + 100f, 150f));
-                    g.FlightHeight = 0f;
-                    g.Alpha = 1.0f;
-                    Vector2 impactPosition = g.Position;
-                    g.OriginalY = impactPosition.Y;
-                    Vector2 screenPosition = Game1.GlobalToLocal(Game1.viewport, g.Position);
-                    screenPosition.Y -= GrouseSpriteHeight * g.Scale / 2f;
-
-                    // Initialize damage flash effect
-                    g.DamageFlashTimer = GrouseDamageFlashDuration;
-                    g.Smoke = new CollisionSmoke
-                    {
-                        Position = screenPosition
-                    };
-                    grouse[i] = g;
-
-                    // Play a sound effect
-                    Game1.playSound("hitEnemy");
-                    break;
-                }
-            }
+            if (g.State == GrouseState.KnockedDown)
+                Game1.playSound("hitEnemy");
         }
     }
 }

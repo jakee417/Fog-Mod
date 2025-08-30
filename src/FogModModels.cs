@@ -9,21 +9,21 @@ namespace FogMod
     {
         private struct FogForecast
         {
-            public bool IsFogDay;
-            public float DailyFogStrength;
-            public float ProbabilityOfFogForADay;
-            public float ProbabilityOfFogRoll;
+            public bool IsFogDay { get; init; }
+            public float DailyFogStrength { get; init; }
+            public float ProbabilityOfFogForADay { get; init; }
+            public float ProbabilityOfFogRoll { get; init; }
         }
 
         private struct FogParticle
         {
             public Vector2 Position { get; set; }
             public Vector2 Velocity { get; set; }
-            public float Scale { get; set; }
-            public float Rotation { get; set; }
+            public float Scale { get; init; }
+            public float Rotation { get; init; }
             public float Alpha { get; set; }
             public float AgeSeconds { get; set; }
-            public Texture2D Texture { get; set; }
+            public Texture2D Texture { get; init; }
             public bool IsFadingOut { get; set; }
             public float FadeOutSecondsLeft { get; set; }
             public float FadeOutTotalSeconds { get; set; }
@@ -35,38 +35,24 @@ namespace FogMod
             public List<int>[,] Indices;
         }
 
-        private struct ExplosionFlashInfo
-        {
-            public string LocationName;
-            public Vector2 CenterWorld;
-            public float RadiusPixels;
-            public float TimeLeft;
-        }
-
         private struct LightInfo
         {
             public Vector2 Position;
             public float RadiusPixels;
         }
 
-        private struct GrouseFlushInfo
-        {
-            public string LocationName;
-            public Vector2 TreePosition;
-            public long Timestamp; // Game time for synchronization
-        }
-
         private class CollisionSmoke
         {
             public Vector2 Position { get; set; }
+
         }
 
         private class Grouse
         {
-            public int GrouseId { get; set; } // Unique identifier for multiplayer sync
+            public int GrouseId { get; init; }
             public Vector2 Position { get; set; }
             public Vector2 Velocity { get; set; }
-            public Vector2 TreePosition { get; set; }
+            public Vector2 TreePosition { get; init; }
             public GrouseState State { get; set; }
             public float StateTimer { get; set; }
             public float Scale { get; set; }
@@ -78,20 +64,20 @@ namespace FogMod
             public bool HasBeenSpotted { get; set; }
             public int AnimationFrame { get; set; }
             public float AnimationTimer { get; set; }
-            public float Alpha { get; set; } // For fade out effect when knocked down
-            public float OriginalY { get; set; } // Y position when knocked down for fall distance calculation
-            public float DamageFlashTimer { get; set; }
+            public float Alpha { get; set; }
+            public float OriginalY { get; set; }
+            public float? DamageFlashTimer { get; set; }
             public Vector2 GetExitDirection => FacingLeft ? new Vector2(-1, 0) : new Vector2(1, 0);
-            public CollisionSmoke Smoke { get; set; }
+            public CollisionSmoke? Smoke { get; set; }
         }
 
         private enum GrouseState
         {
-            Perched,    // Sitting in tree, invisible until player gets close
-            Surprised,  // Brief moment of being startled before flush
-            Flushing,   // Quick takeoff animation (3 seconds)
-            Flying,     // Flying off screen and will be removed
-            KnockedDown // Hit by projectile, falling to ground
+            Perched,
+            Surprised,
+            Flushing,
+            Flying,
+            KnockedDown
         }
     }
 }
