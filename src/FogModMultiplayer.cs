@@ -3,6 +3,7 @@ using Microsoft.Xna.Framework;
 using StardewValley;
 using StardewModdingAPI;
 using System;
+using StardewValley.Locations;
 
 namespace FogMod
 {
@@ -138,13 +139,8 @@ namespace FogMod
             try
             {
                 // Any player can broadcast grouse knockdowns when they hit one
-                var knockdownInfo = new GrouseKnockdownInfo
-                {
-                    LocationName = locationName,
-                    GrouseId = grouseId,
-                    Timestamp = Game1.currentGameTime?.TotalGameTime.Ticks ?? 0
-                };
-                Helper.Multiplayer.SendMessage(knockdownInfo, MessageType.GrouseKnockdown.ToString());
+                var knockDownInfo = new GrouseKnockdownInfo(locationName: locationName, grouseId: grouseId, timestamp: Game1.currentGameTime?.TotalGameTime.Ticks ?? 0);
+                Helper.Multiplayer.SendMessage(knockDownInfo, MessageType.GrouseKnockdown.ToString());
             }
             catch (Exception ex)
             {

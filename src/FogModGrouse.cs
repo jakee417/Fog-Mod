@@ -42,36 +42,13 @@ namespace FogMod
 
         private void SpawnGrouseAtTree(Vector2 treePosition)
         {
-            var newGrouse = new Grouse
-            {
-                GrouseId = nextGrouseId++,
-                Position = treePosition,
-                TreePosition = treePosition,
-                Velocity = Vector2.Zero,
-                State = GrouseState.Perched,
-                StateTimer = 0f,
-                Scale = GrouseScale,
-                Rotation = 0f,
-                FlightHeight = 0f,
-                FacingLeft = DeterministicBool(treePosition, 1),
-                FlightTimer = 0f,
-                HasPlayedFlushSound = false,
-                HasBeenSpotted = false,
-                AnimationFrame = 0,
-                AnimationTimer = 0f,
-                Alpha = 1.0f,
-                OriginalY = treePosition.Y,
-                DamageFlashTimer = null,
-                Smoke = null,
-                HasDroppedEgg = false
-            };
+            var newGrouse = new Grouse(grouseId: nextGrouseId++, position: treePosition, treePosition: treePosition, facingLeft: DeterministicBool(treePosition, 1), velocity: Vector2.Zero, state: GrouseState.Perched, stateTimer: 0f, scale: GrouseScale, rotation: 0f, flightHeight: 0f, flightTimer: 0f, hasPlayedFlushSound: false, hasBeenSpotted: false, animationFrame: 0, animationTimer: 0f, alpha: 1.0f, originalY: treePosition.Y, damageFlashTimer: null, smoke: null, hasDroppedEgg: false);
             grouse.Add(newGrouse);
             spawnedTreePositions.Add(treePosition);
         }
 
         private void UpdateGrouse(float deltaSeconds)
         {
-            Monitor.Log("Grouse update");
             for (int i = grouse.Count - 1; i >= 0; i--)
             {
                 var g = grouse[i];
@@ -123,15 +100,11 @@ namespace FogMod
             if (fromMultiplayerSync || Vector2.Distance(g.Position, playerPos) < GrouseDetectionRadius)
             {
                 if (!fromMultiplayerSync)
-                {
-                    var flushInfo = new GrouseFlushInfo
-                    {
-                        LocationName = Game1.currentLocation?.NameOrUniqueName,
-                        GrouseId = g.GrouseId,
-                        Timestamp = Game1.currentGameTime.TotalGameTime.Ticks
-                    };
-                    SendGrouseFlushMessage(flushInfo);
-                }
+                // {
+                //     var flushInfo = new GrouseFlushInfo(locationName: Game1.currentLocation?.NameOrUniqueName, grouseId: g.GrouseId, timestamp: Game1.currentGameTime.TotalGameTime.Ticks);
+                //     SendGrouseFlushMessage(flushInfo);
+                // }
+                Monitor.Log("Grouse perche changed", LogLevel.Info);
                 g.State = GrouseState.Surprised;
                 g.StateTimer = 0f;
                 g.Velocity = Vector2.Zero;
@@ -317,14 +290,7 @@ namespace FogMod
             {
                 Monitor.Log($"Creating feather drop at {impactPosition}", LogLevel.Info);
                 string featherItemId = "444";
-                var itemDropInfo = new ItemDropInfo
-                {
-                    LocationName = Game1.currentLocation?.NameOrUniqueName,
-                    Position = impactPosition,
-                    ItemId = featherItemId,
-                    Quantity = 1,
-                    Timestamp = Game1.currentGameTime?.TotalGameTime.Ticks ?? 0
-                };
+                var itemDropInfo = new ItemDropInfo(locationName: Game1.currentLocation?.NameOrUniqueName, position: impactPosition, itemId: featherItemId, quantity: 1, timestamp: Game1.currentGameTime?.TotalGameTime.Ticks ?? 0);
                 SendItemDropMessage(itemDropInfo);
                 CreateItemDrop(impactPosition, featherItemId, 1);
             }
