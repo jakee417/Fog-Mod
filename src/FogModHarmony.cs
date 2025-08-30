@@ -1,3 +1,4 @@
+#nullable enable
 using Microsoft.Xna.Framework;
 using StardewModdingAPI;
 using StardewValley;
@@ -30,15 +31,15 @@ namespace FogMod
             }
             catch
             {
-                FogMod.Instance.Monitor.Log($"OnBombExplodedPostfix failed - IsMainPlayer: {Context.IsMainPlayer}, Location: {__instance?.Name}", LogLevel.Error);
+                FogMod.Instance?.Monitor.Log($"OnBombExplodedPostfix failed - IsMainPlayer: {Context.IsMainPlayer}, Location: {__instance?.Name}", LogLevel.Error);
             }
         }
 
         private void HandleExplosion(ExplosionFlashInfo info)
         {
 
-            FogMod.Instance.explosionFlashInfos.Add(info);
-            FogMod.Instance.SpawnExplosionSmoke(info.CenterWorld, info.RadiusPixels);
+            FogMod.Instance?.explosionFlashInfos.Add(info);
+            FogMod.Instance?.SpawnExplosionSmoke(info.CenterWorld, info.RadiusPixels);
         }
 
         // TV Weather Report
@@ -78,7 +79,7 @@ namespace FogMod
                 FogMod.FogForecast forecast = FogMod.ComputeFogForecast(daysPlayed);
                 string text = "And no fog!";
                 // Either the player wants fog everyday or it gets forecasted.
-                if (!FogMod.Instance.config.EnableDailyRandomFog || forecast.IsFogDay)
+                if (!FogMod.Instance?.Config.EnableDailyRandomFog is bool enableDailyRandomFog && enableDailyRandomFog || forecast.IsFogDay)
                 {
                     string playersName = Game1.player.Name;
                     text = $"And bad news! the fog's getting thicker... and {playersName}'s getting larger!";
@@ -93,7 +94,7 @@ namespace FogMod
         {
             try
             {
-                if (FogMod.Instance == null || !FogMod.Instance.config.EnableGrouseCritters)
+                if (FogMod.Instance == null || !FogMod.Instance.Config.EnableGrouseCritters)
                     return;
 
                 Vector2 projectilePos = __instance.position.Value;
@@ -119,7 +120,7 @@ namespace FogMod
             }
             catch (Exception ex)
             {
-                FogMod.Instance.Monitor.Log($"OnProjectileUpdatePostfix failed: {ex.Message}", LogLevel.Error);
+                FogMod.Instance?.Monitor.Log($"OnProjectileUpdatePostfix failed: {ex.Message}", LogLevel.Error);
             }
         }
     }

@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using StardewModdingAPI;
 
@@ -22,8 +23,8 @@ namespace FogMod
             {
                 configMenu.Register(
                     ModManifest,
-                    () => { config = new ModConfig(); Monitor.Log("Config reset to defaults", LogLevel.Info); },
-                            () => { Helper.WriteConfig(config); Monitor.Log("Config saved", LogLevel.Info); },
+                    () => { Config = new ModConfig(); Monitor.Log("Config reset to defaults", LogLevel.Info); },
+                            () => { Helper.WriteConfig(Config); Monitor.Log("Config saved", LogLevel.Info); },
                             titleScreenOnly: false
                         );
 
@@ -35,10 +36,10 @@ namespace FogMod
 
                 configMenu.AddBoolOption(
                     ModManifest,
-                    () => config.EnableDailyRandomFog,
+                    () => Config.EnableDailyRandomFog,
                     value =>
                     {
-                        config.EnableDailyRandomFog = value;
+                        Config.EnableDailyRandomFog = value;
                         InitializeDailyFogStrength();
                         ResetFogParticles();
                     },
@@ -48,32 +49,32 @@ namespace FogMod
 
                 configMenu.AddBoolOption(
                     ModManifest,
-                    () => config.EnableWeatherBasedFog,
-                    value => config.EnableWeatherBasedFog = value,
+                    () => Config.EnableWeatherBasedFog,
+                    value => Config.EnableWeatherBasedFog = value,
                     () => "Weather Based Fog Effect",
                     () => "Enable or disable weather-based fog effect (rain, storms, snow, etc.)"
                 );
 
                 configMenu.AddBoolOption(
                     ModManifest,
-                    () => config.EnableTimeOfDayFog,
-                    value => config.EnableTimeOfDayFog = value,
+                    () => Config.EnableTimeOfDayFog,
+                    value => Config.EnableTimeOfDayFog = value,
                     () => "Time of Day Fog Effect",
                     () => "Enable or disable time of day fog effect (daylight, night, etc.)"
                 );
 
                 configMenu.AddBoolOption(
                     ModManifest,
-                    () => config.ParticleStrength,
-                    value => config.ParticleStrength = value,
+                    () => Config.ParticleStrength,
+                    value => Config.ParticleStrength = value,
                     () => "Particle Strength",
                     () => "Set the strength of the particle effect high/low"
                 );
 
                 configMenu.AddBoolOption(
                     ModManifest,
-                    () => config.LightThinningStrength,
-                    value => config.LightThinningStrength = value,
+                    () => Config.LightThinningStrength,
+                    value => Config.LightThinningStrength = value,
                     () => "Light Thinning Strength",
                     () => "Set the strength of the light thinning effect high/low"
                 );
@@ -86,8 +87,8 @@ namespace FogMod
 
                 configMenu.AddBoolOption(
                     ModManifest,
-                    () => config.EnableGrouseCritters,
-                    value => config.EnableGrouseCritters = value,
+                    () => Config.EnableGrouseCritters,
+                    value => Config.EnableGrouseCritters = value,
                     () => "Enable Grouse Critters",
                     () => "Spawn grouse birds in trees that flush when you get close. Requires restart to take full effect."
                 );
@@ -100,8 +101,8 @@ namespace FogMod
 
                 configMenu.AddBoolOption(
                     ModManifest,
-                    () => config.DebugShowInfo,
-                    value => config.DebugShowInfo = value,
+                    () => Config.DebugShowInfo,
+                    value => Config.DebugShowInfo = value,
                     () => "Show Debugging Information",
                     () => "Display debugging information in the top-left corner"
                 );

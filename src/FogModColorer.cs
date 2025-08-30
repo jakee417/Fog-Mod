@@ -1,3 +1,4 @@
+#nullable enable
 using Microsoft.Xna.Framework;
 using StardewModdingAPI;
 using StardewValley;
@@ -15,7 +16,7 @@ namespace FogMod
             Color fog = FogAtLocation();
 
             // Adjust fog for weather
-            if (config.EnableWeatherBasedFog)
+            if (Config.EnableWeatherBasedFog)
                 fog = AdjustFogForWeather(fog);
 
             return fog;
@@ -108,10 +109,10 @@ namespace FogMod
                 : 1f;
             // Opacity affects
             float cellBreath = ComputeCellBreathOpacity(p.Position);
-            float timeOfDay = config.EnableTimeOfDayFog ? ComputeTimeOfDayOpacityMultiplier() : 1.0f;
+            float timeOfDay = Config.EnableTimeOfDayFog ? ComputeTimeOfDayOpacityMultiplier() : 1.0f;
             float lightAlphaMult = ComputeLightThinningMultiplier(p.Position);
             float dailyMult = GetDailyFogAlphaMultiplier();
-            float a = (config.ParticleStrength ? DefaultFogAlpha : DefaultFogAlphaWeak) * p.Alpha * fadeIn * fadeOut * cellBreath * timeOfDay * dailyMult;
+            float a = (Config.ParticleStrength ? DefaultFogAlpha : DefaultFogAlphaWeak) * p.Alpha * fadeIn * fadeOut * cellBreath * timeOfDay * dailyMult;
             a = MathHelper.Clamp(a, 0f, 1f) * lightAlphaMult;
             return ApplyExplosionTintPerBlasts(baseColor, p.Position) * a;
         }
@@ -124,7 +125,7 @@ namespace FogMod
             fadeToFloorT = fadeToFloorT * fadeToFloorT * (3f - 2f * fadeToFloorT);
             float lightAlphaMult = ComputeLightThinningMultiplier(p.Position);
             Color smokeTone = LerpColor(baseColor, Color.DimGray, 0.85f); ;
-            float initialOpacity = (config.ParticleStrength ? DefaultFogAlpha : DefaultFogAlphaWeak) * p.Alpha * fadeIn;
+            float initialOpacity = (Config.ParticleStrength ? DefaultFogAlpha : DefaultFogAlphaWeak) * p.Alpha * fadeIn;
             float currentOpacity = MathHelper.Lerp(initialOpacity, SmokeMinAlpha, fadeToFloorT);
             float a = currentOpacity * lightAlphaMult;
             return ApplyExplosionTintPerBlasts(smokeTone, p.Position) * a;
@@ -132,13 +133,13 @@ namespace FogMod
 
         private float GetDailyFogAlphaMultiplier()
         {
-            return config.EnableDailyRandomFog ? MathHelper.Clamp(dailyFogStrength, 0f, 4f) : 1f;
+            return Config.EnableDailyRandomFog ? MathHelper.Clamp(dailyFogStrength, 0f, 4f) : 1f;
         }
 
         private float ComputeLightThinningMultiplier(Vector2 worldPosition)
         {
             float warmth = ComputeLightWarmth(worldPosition);
-            return MathHelper.Clamp(1f - warmth * (config.LightThinningStrength ? LightThinningStrength : LightThinningStrengthWeak), 0f, 1f);
+            return MathHelper.Clamp(1f - warmth * (Config.LightThinningStrength ? LightThinningStrength : LightThinningStrengthWeak), 0f, 1f);
         }
 
         private float ComputeLightWarmth(Vector2 worldPosition)
@@ -205,7 +206,7 @@ namespace FogMod
             // Since we apply to alpha, clamp to [0,1]
             return MathHelper.Clamp(mult, 0f, 1f);
         }
-        
+
         private Color ApplyExplosionTintPerBlasts(Color inputColor, Vector2 worldPosition)
         {
             if (explosionFlashInfos == null || explosionFlashInfos.Count == 0)
