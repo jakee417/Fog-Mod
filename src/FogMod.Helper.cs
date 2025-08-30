@@ -36,5 +36,16 @@ namespace FogMod
             var rng = new Random(seed);
             return rng.NextDouble() < 0.5;
         }
+
+        private void CreateItemDrop(Vector2 position, string itemId, int quantity)
+        {
+            var item = new StardewValley.Object(itemId, quantity);
+            Debris debris = new Debris(
+                item,
+                position,
+                Game1.player.getStandingPosition()
+            );
+            Game1.currentLocation.debris.Add(debris);
+        }
     }
 }

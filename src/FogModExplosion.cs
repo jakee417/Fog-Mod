@@ -19,51 +19,42 @@ namespace FogMod
                 int count = Math.Max(24, Math.Min(220, (int)(radiusPixels * 0.45f)));
                 // Start from current occupancy so we can cap per-tile spawns
                 var occupancy = ComputeSmokeCellOccupancy();
-                int[,] counts = occupancy.Counts;
-                for (int i = 0; i < count; i++)
+                if (occupancy.Counts is int[,])
                 {
-                    float ang = (float)(Random.NextDouble() * MathHelper.TwoPi);
-                    // uniform area distribution
-                    float r = (float)Math.Sqrt(Random.NextDouble()) * Math.Max(8f, radiusPixels);
-                    Vector2 pos = centerWorld + new Vector2((float)Math.Cos(ang) * r, (float)Math.Sin(ang) * r);
-
-                    // Respect per-cell smoke cap before spawning
-                    (int row, int col) = grid.GetCellFromPosition(pos);
-                    if (col >= 0 && col < grid.ExtCols && row >= 0 && row < grid.ExtRows && counts[col, row] >= MaximumSmokeParticlesPerCell)
-                        continue;
-
-                    // velocity: outward + wind + jitter
-                    Vector2 outward = r > 1e-3f ? Vector2.Normalize(pos - centerWorld) : new Vector2((float)Math.Cos(ang), (float)Math.Sin(ang));
-                    Vector2 v = outward * SmokeSpeed * (0.4f + (float)Random.NextDouble() * 0.7f);
-                    Vector2 wind = globalWindDirection * SmokeSpeed * (0.4f + (float)Random.NextDouble() * 0.6f);
-                    // slight upward drift like heavy smoke rising slowly
-                    Vector2 rise = new Vector2(0f, -SmokeSpeed * MathHelper.Lerp(0.05f, 0.15f, (float)Random.NextDouble()));
-                    Vector2 jitter = new Vector2(((float)Random.NextDouble() - 0.5f) * SmokeSpeed, ((float)Random.NextDouble() - 0.5f) * SmokeSpeed) * 0.25f;
-                    Vector2 vel = v + wind + rise + jitter;
-
-                    // choose texture
-                    Texture2D tex = cloudTextures[Random.Next(cloudTextures.Count)];
-                    float scale = MathHelper.Lerp(DefaultFloatingScaleMin, DefaultFloatingScaleMax, (float)Random.NextDouble());
-                    // smoke is chunkier and grows; start a bit smaller
-                    scale *= MathHelper.Lerp(0.6f, 1.1f, (float)Random.NextDouble());
-                    float alpha = MathHelper.Lerp(0.35f, 0.7f, (float)Random.NextDouble());
-                    var particle = new FogParticle
+                    for (int i = 0; i < count; i++)
                     {
-                        Position = pos,
-                        Velocity = vel,
-                        Scale = scale,
-                        Rotation = 0f,
-                        Alpha = alpha,
-                        AgeSeconds = 0f,
-                        Texture = tex,
-                        IsFadingOut = false,
-                        FadeOutSecondsLeft = ParticleFadeOutSeconds,
-                    };
-                    explosionSmokeParticles.Add(particle);
+                        float ang = (float)(Random.NextDouble() * MathHelper.TwoPi);
+                        // uniform area distribution
+                        float r = (float)Math.Sqrt(Random.NextDouble()) * Math.Max(8f, radiusPixels);
+                        Vector2 pos = centerWorld + new Vector2((float)Math.Cos(ang) * r, (float)Math.Sin(ang) * r);
 
-                    // Increment occupancy for the tile we just spawned into
-                    if (col >= 0 && col < grid.ExtCols && row >= 0 && row < grid.ExtRows)
-                        counts[col, row] += 1;
+                        // Respect per-cell smoke cap before spawning
+                        (int row, int col) = grid.GetCellFromPosition(pos);
+                        if (col >= 0 && col < grid.ExtCols && row >= 0 && row < grid.ExtRows && occupancy.Counts[col, row] >= MaximumSmokeParticlesPerCell)
+                            continue;
+
+                        // velocity: outward + wind + jitter
+                        Vector2 outward = r > 1e-3f ? Vector2.Normalize(pos - centerWorld) : new Vector2((float)Math.Cos(ang), (float)Math.Sin(ang));
+                        Vector2 v = outward * SmokeSpeed * (0.4f + (float)Random.NextDouble() * 0.7f);
+                        Vector2 wind = globalWindDirection * SmokeSpeed * (0.4f + (float)Random.NextDouble() * 0.6f);
+                        // slight upward drift like heavy smoke rising slowly
+                        Vector2 rise = new Vector2(0f, -SmokeSpeed * MathHelper.Lerp(0.05f, 0.15f, (float)Random.NextDouble()));
+                        Vector2 jitter = new Vector2(((float)Random.NextDouble() - 0.5f) * SmokeSpeed, ((float)Random.NextDouble() - 0.5f) * SmokeSpeed) * 0.25f;
+                        Vector2 vel = v + wind + rise + jitter;
+
+                        // choose texture
+                        Texture2D tex = cloudTextures[Random.Next(cloudTextures.Count)];
+                        float scale = MathHelper.Lerp(DefaultFloatingScaleMin, DefaultFloatingScaleMax, (float)Random.NextDouble());
+                        // smoke is chunkier and grows; start a bit smaller
+                        scale *= MathHelper.Lerp(0.6f, 1.1f, (float)Random.NextDouble());
+                        float alpha = MathHelper.Lerp(0.35f, 0.7f, (float)Random.NextDouble());
+                        var particle = new FogParticle(position: pos, velocity: vel, scale: scale, rotation: 0f, alpha: alpha, ageSeconds: 0f, texture: tex, isFadingOut: false, fadeOutSecondsLeft: ParticleFadeOutSeconds);
+                        explosionSmokeParticles.Add(particle);
+
+                        // Increment occupancy for the tile we just spawned into
+                        if (col >= 0 && col < grid.ExtCols && row >= 0 && row < grid.ExtRows)
+                            occupancy.Counts[col, row] += 1;
+                    }
                 }
             }
             catch { }
@@ -72,11 +63,6 @@ namespace FogMod
         public void ResetExplosionSmokeParticles()
         {
             explosionSmokeParticles = new List<FogParticle>();
-            smokeCellOccupancy = new CellOccupancy
-            {
-                Counts = new int[grid.ExtCols, grid.ExtRows],
-                Indices = new List<int>[grid.ExtCols, grid.ExtRows]
-            };
         }
 
         private void UpdateExplosionFlashInfos(float deltaSeconds)
@@ -98,8 +84,7 @@ namespace FogMod
         private void UpdateExplosionSmokeParticles(float deltaSeconds)
         {
             // Update explosion smoke particles
-            if (explosionSmokeParticles != null && explosionSmokeParticles.Count > 0)
-                explosionSmokeParticles = RemoveUnusedParticles(explosionSmokeParticles, grid, deltaSeconds, false);
+            RemoveUnusedParticles(ref explosionSmokeParticles, grid, deltaSeconds, false);
 
             // Update occupancy snapshot for smoke particles
             smokeCellOccupancy = ComputeSmokeCellOccupancy();
@@ -155,6 +140,7 @@ namespace FogMod
                         if (!p.IsFadingOut)
                         {
                             p.IsFadingOut = true;
+                            p.FadeOutSecondsLeft = ParticleFadeOutSeconds;
                             explosionSmokeParticles[idx] = p;
                         }
                     }

@@ -3,6 +3,7 @@ using Microsoft.Xna.Framework;
 using StardewValley;
 using StardewModdingAPI;
 using System;
+using StardewValley.Locations;
 
 namespace FogMod
 {
@@ -12,29 +13,70 @@ namespace FogMod
         {
             Explosion,
             GrouseFlush,
-            GrouseKnockdown
+            GrouseKnockdown,
+            ItemDrop
         }
 
         private struct ExplosionFlashInfo
         {
-            public required string LocationName { get; init; }
-            public required Vector2 CenterWorld { get; init; }
-            public required float RadiusPixels { get; init; }
-            public required float TimeLeft { get; set; }
+            public string LocationName { get; init; }
+            public Vector2 CenterWorld { get; init; }
+            public float RadiusPixels { get; init; }
+            public float TimeLeft { get; set; }
+
+            public ExplosionFlashInfo(string locationName, Vector2 centerWorld, float radiusPixels, float timeLeft)
+            {
+                LocationName = locationName;
+                CenterWorld = centerWorld;
+                RadiusPixels = radiusPixels;
+                TimeLeft = timeLeft;
+            }
         }
 
         private struct GrouseFlushInfo
         {
-            public required string? LocationName { get; init; }
-            public required int GrouseId { get; init; }
-            public required long Timestamp { get; init; }
+            public string? LocationName { get; init; }
+            public int GrouseId { get; init; }
+            public long Timestamp { get; init; }
+
+            public GrouseFlushInfo(string? locationName, int grouseId, long timestamp)
+            {
+                LocationName = locationName;
+                GrouseId = grouseId;
+                Timestamp = timestamp;
+            }
         }
 
         private struct GrouseKnockdownInfo
         {
-            public required string? LocationName { get; init; }
-            public required int GrouseId { get; init; }
-            public required long Timestamp { get; init; }
+            public string? LocationName { get; init; }
+            public int GrouseId { get; init; }
+            public long Timestamp { get; init; }
+
+            public GrouseKnockdownInfo(string? locationName, int grouseId, long timestamp)
+            {
+                LocationName = locationName;
+                GrouseId = grouseId;
+                Timestamp = timestamp;
+            }
+        }
+
+        private struct ItemDropInfo
+        {
+            public string? LocationName { get; init; }
+            public Vector2 Position { get; init; }
+            public string ItemId { get; init; }
+            public int Quantity { get; init; }
+            public long Timestamp { get; init; }
+
+            public ItemDropInfo(string? locationName, Vector2 position, string itemId, int quantity, long timestamp)
+            {
+                LocationName = locationName;
+                Position = position;
+                ItemId = itemId;
+                Quantity = quantity;
+                Timestamp = timestamp;
+            }
         }
     }
 
@@ -97,13 +139,8 @@ namespace FogMod
             try
             {
                 // Any player can broadcast grouse knockdowns when they hit one
-                var knockdownInfo = new GrouseKnockdownInfo
-                {
-                    LocationName = locationName,
-                    GrouseId = grouseId,
-                    Timestamp = Game1.currentGameTime?.TotalGameTime.Ticks ?? 0
-                };
-                Helper.Multiplayer.SendMessage(knockdownInfo, MessageType.GrouseKnockdown.ToString());
+                var knockDownInfo = new GrouseKnockdownInfo(locationName: locationName, grouseId: grouseId, timestamp: Game1.currentGameTime?.TotalGameTime.Ticks ?? 0);
+                Helper.Multiplayer.SendMessage(knockDownInfo, MessageType.GrouseKnockdown.ToString());
             }
             catch (Exception ex)
             {
@@ -120,6 +157,31 @@ namespace FogMod
             catch (Exception ex)
             {
                 Monitor.Log($"HandleGrouseKnockdownFromMessage failed: {ex.Message}", LogLevel.Error);
+            }
+        }
+
+        // Item Drop Handling
+        private void SendItemDropMessage(ItemDropInfo itemDropInfo)
+        {
+            try
+            {
+                Helper.Multiplayer.SendMessage(itemDropInfo, MessageType.ItemDrop.ToString());
+            }
+            catch (Exception ex)
+            {
+                Monitor.Log($"SendGrouseItemDropMessage failed: {ex.Message}", LogLevel.Error);
+            }
+        }
+
+        private void HandleItemDropFromMessage(ItemDropInfo itemDropInfo)
+        {
+            try
+            {
+                CreateItemDrop(itemDropInfo.Position, itemDropInfo.ItemId, itemDropInfo.Quantity);
+            }
+            catch (Exception ex)
+            {
+                Monitor.Log($"HandleGrouseItemDropFromMessage failed: {ex.Message}", LogLevel.Error);
             }
         }
     }
