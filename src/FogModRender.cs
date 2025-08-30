@@ -97,7 +97,7 @@ namespace FogMod
 
             foreach (var g in grouse)
             {
-                if (g.State == GrouseState.Perched || g.Location != Game1.currentLocation?.NameOrUniqueName)
+                if (g.Location != Game1.currentLocation?.NameOrUniqueName)
                     continue;
 
                 DrawSingleGrouse(spriteBatch, g);
