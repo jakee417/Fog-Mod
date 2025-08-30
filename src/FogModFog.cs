@@ -4,11 +4,78 @@ using Microsoft.Xna.Framework.Graphics;
 using StardewModdingAPI;
 using System;
 using System.Collections.Generic;
+using StardewValley;
 
 namespace FogMod
 {
     public partial class FogMod : Mod
     {
+        private void InitializeDailyFogStrength()
+        {
+            if (!Context.IsWorldReady)
+                return;
+
+            if (!Config.EnableDailyRandomFog)
+            {
+                isFogDay = true;
+                dailyFogStrength = 1f;
+                probabilityOfFogForADay = 1f;
+                probabilityOfFogRoll = 0f;
+                return;
+            }
+
+            int daysPlayed = (int)Game1.stats.DaysPlayed;
+            FogForecast forecast = ComputeFogForecast(daysPlayed);
+            isFogDay = forecast.IsFogDay;
+            dailyFogStrength = forecast.DailyFogStrength;
+            probabilityOfFogForADay = forecast.ProbabilityOfFogForADay;
+            probabilityOfFogRoll = forecast.ProbabilityOfFogRoll;
+        }
+
+        private static FogForecast ComputeFogForecast(int daysPlayed)
+        {
+            // Use a deterministic per-day seed for both fog presence and strength
+            int seed = daysPlayed ^ (int)(Game1.uniqueIDForThisGame & 0x7FFFFFFF);
+            var rng = new Random(seed);
+            float probabilityOfFogRoll = (float)rng.NextDouble();
+            float probabilityOfFogForADay = ComputeProbabilityOfFogForADay();
+            bool isFogDay = probabilityOfFogRoll <= probabilityOfFogForADay;
+            float strengthRoll = (float)rng.NextDouble();
+            float dailyFogStrength = MathHelper.Lerp(DailyRandomFogMin, DailyRandomFogMax, strengthRoll);
+            return new FogForecast(
+                isFogDay: isFogDay,
+                dailyFogStrength: dailyFogStrength,
+                probabilityOfFogForADay: probabilityOfFogForADay,
+                probabilityOfFogRoll: probabilityOfFogRoll
+            );
+        }
+
+        private static float ComputeProbabilityOfFogForADay()
+        {
+            string season = Game1.currentSeason;
+            float seasonalProbability;
+            switch (season)
+            {
+                case "spring":
+                    seasonalProbability = 0.12f;
+                    break;
+                case "summer":
+                    seasonalProbability = 0.03f;
+                    break;
+                case "fall":
+                case "autumn":
+                    seasonalProbability = 0.14f;
+                    break;
+                case "winter":
+                    seasonalProbability = 0.06f;
+                    break;
+                default:
+                    seasonalProbability = 0.08f;
+                    break;
+            }
+            return seasonalProbability;
+        }
+
         private void InitializeFloatingFogParticles()
         {
             floatingParticles = new List<FogParticle>();

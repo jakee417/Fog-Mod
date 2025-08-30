@@ -96,18 +96,6 @@ namespace FogMod
                 Timestamp = timestamp;
             }
         }
-
-        private struct GrouseLocationRemovalInfo
-        {
-            public string? LocationName { get; init; }
-            public long Timestamp { get; init; }
-
-            public GrouseLocationRemovalInfo(string? locationName, long timestamp)
-            {
-                LocationName = locationName;
-                Timestamp = timestamp;
-            }
-        }
     }
 
     public partial class FogMod : Mod
@@ -247,37 +235,6 @@ namespace FogMod
             catch (Exception ex)
             {
                 Monitor.Log($"HandleGrouseSpawnFromMessage failed: {ex.Message}", LogLevel.Error);
-            }
-        }
-
-        // Grouse Location Removal Handling
-        private void SendGrouseLocationRemovalMessage(GrouseLocationRemovalInfo removalInfo)
-        {
-            try
-            {
-                Helper.Multiplayer.SendMessage(removalInfo, MessageType.GrouseLocationRemoval);
-            }
-            catch (Exception ex)
-            {
-                Monitor.Log($"SendGrouseLocationRemovalMessage failed: {ex.Message}", LogLevel.Error);
-            }
-        }
-
-        private void HandleGrouseLocationRemovalFromMessage(GrouseLocationRemovalInfo removalInfo)
-        {
-            try
-            {
-                // Remove all grouse from the specified location (client-side cleanup)
-                // Since we don't track location per grouse, we can only clean up when leaving location
-                if (removalInfo.LocationName != Game1.currentLocation?.NameOrUniqueName)
-                {
-                    // If we're not in the removed location, no action needed
-                    Monitor.Log($"🐦 Location {removalInfo.LocationName} no longer active - grouse removed", LogLevel.Debug);
-                }
-            }
-            catch (Exception ex)
-            {
-                Monitor.Log($"HandleGrouseLocationRemovalFromMessage failed: {ex.Message}", LogLevel.Error);
             }
         }
     }

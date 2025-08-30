@@ -4,6 +4,7 @@ using StardewModdingAPI;
 using StardewValley;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace FogMod
 {
@@ -37,26 +38,11 @@ namespace FogMod
 
             // Detect changes in active locations
             List<string> newLocations = new List<string>();
-            List<string> removedLocations = new List<string>();
-
-            // Find new locations
             foreach (string locationName in currentActiveLocationNames)
             {
                 if (!lastActiveLocationNames.Contains(locationName))
                     newLocations.Add(locationName);
             }
-
-            // Find removed locations
-            foreach (string locationName in lastActiveLocationNames)
-            {
-                if (!currentActiveLocationNames.Contains(locationName))
-                    removedLocations.Add(locationName);
-            }
-
-            // Update our tracking
-            lastActiveLocationNames = currentActiveLocationNames;
-
-            // Handle new locations
             foreach (string locationName in newLocations)
             {
                 Monitor.Log($"🐦 New active location detected: {locationName} - spawning grouse", LogLevel.Debug);
@@ -64,22 +50,17 @@ namespace FogMod
                 SpawnGrouseForTreeLocations(availableTrees, locationName);
             }
 
-            // Handle removed locations
-            foreach (string locationName in removedLocations)
-            {
-                Monitor.Log($"🐦 Location no longer active: {locationName} - removing grouse", LogLevel.Debug);
-                RemoveGrouseFromLocation(locationName);
-            }
+            // Update our tracking
+            lastActiveLocationNames = currentActiveLocationNames;
         }
 
         private void SpawnGrouseForTreeLocations(List<Vector2> availableTrees, string locationName)
         {
-            // Use deterministic spawning based on location and day
             int locationSeed = locationName.GetHashCode();
             int daySeed = (int)Game1.stats.DaysPlayed;
             var locationRng = new Random(locationSeed ^ daySeed);
 
-            int grouseCount = 0;
+            int grouseCount = grouse.Where(g => g.Location == locationName).Count();
             foreach (var treePos in availableTrees)
             {
                 if (grouseCount >= GrouseMaxPerLocation)
@@ -91,16 +72,6 @@ namespace FogMod
                     grouseCount++;
                 }
             }
-        }
-
-        private void RemoveGrouseFromLocation(string locationName)
-        {
-            // Send removal message for all grouse in this location
-            var removalInfo = new GrouseLocationRemovalInfo(
-                locationName: locationName,
-                timestamp: Game1.currentGameTime?.TotalGameTime.Ticks ?? 0
-            );
-            SendGrouseLocationRemovalMessage(removalInfo);
         }
 
         private void SpawnGrouse(Vector2 position, string locationName)
@@ -116,7 +87,8 @@ namespace FogMod
                 grouseId: grouseId,
                 timestamp: Game1.currentGameTime?.TotalGameTime.Ticks ?? 0
             );
-            SendGrouseSpawnMessage(spawnInfo);
+            if (Context.IsMainPlayer)
+                SendGrouseSpawnMessage(spawnInfo);
             var newGrouse = new Grouse(
                 grouseId: grouseId,
                 position: position,
