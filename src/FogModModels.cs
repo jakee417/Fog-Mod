@@ -15,7 +15,7 @@ namespace FogMod
             public float ProbabilityOfFogRoll;
         }
 
-        private class FogParticle
+        private struct FogParticle
         {
             public Vector2 Position { get; set; }
             public Vector2 Velocity { get; set; }
