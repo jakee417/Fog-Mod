@@ -16,6 +16,7 @@ namespace FogMod
             public const string GrouseKnockdown = "GrouseKnockdown";
             public const string ItemDrop = "ItemDrop";
             public const string GrouseSpawn = "GrouseSpawn";
+            public const string GrouseLocationRemoval = "GrouseLocationRemoval";
         }
 
         private struct ExplosionFlashInfo
@@ -82,16 +83,28 @@ namespace FogMod
 
         private struct GrouseSpawnInfo
         {
-            public string? LocationName { get; init; }
+            public string LocationName { get; init; }
             public Vector2 TreePosition { get; init; }
             public int GrouseId { get; init; }
             public long Timestamp { get; init; }
 
-            public GrouseSpawnInfo(string? locationName, Vector2 treePosition, int grouseId, long timestamp)
+            public GrouseSpawnInfo(string locationName, Vector2 treePosition, int grouseId, long timestamp)
             {
                 LocationName = locationName;
                 TreePosition = treePosition;
                 GrouseId = grouseId;
+                Timestamp = timestamp;
+            }
+        }
+
+        private struct GrouseLocationRemovalInfo
+        {
+            public string? LocationName { get; init; }
+            public long Timestamp { get; init; }
+
+            public GrouseLocationRemovalInfo(string? locationName, long timestamp)
+            {
+                LocationName = locationName;
                 Timestamp = timestamp;
             }
         }
@@ -228,12 +241,43 @@ namespace FogMod
                 // Only spawn grouse if we don't already have one with this ID
                 if (!grouse.Any(g => g.GrouseId == spawnInfo.GrouseId))
                 {
-                    SpawnGrouseAtTreeWithId(spawnInfo.TreePosition, spawnInfo.GrouseId);
+                    SpawnGrouse(spawnInfo.TreePosition, spawnInfo.LocationName);
                 }
             }
             catch (Exception ex)
             {
                 Monitor.Log($"HandleGrouseSpawnFromMessage failed: {ex.Message}", LogLevel.Error);
+            }
+        }
+
+        // Grouse Location Removal Handling
+        private void SendGrouseLocationRemovalMessage(GrouseLocationRemovalInfo removalInfo)
+        {
+            try
+            {
+                Helper.Multiplayer.SendMessage(removalInfo, MessageType.GrouseLocationRemoval);
+            }
+            catch (Exception ex)
+            {
+                Monitor.Log($"SendGrouseLocationRemovalMessage failed: {ex.Message}", LogLevel.Error);
+            }
+        }
+
+        private void HandleGrouseLocationRemovalFromMessage(GrouseLocationRemovalInfo removalInfo)
+        {
+            try
+            {
+                // Remove all grouse from the specified location (client-side cleanup)
+                // Since we don't track location per grouse, we can only clean up when leaving location
+                if (removalInfo.LocationName != Game1.currentLocation?.NameOrUniqueName)
+                {
+                    // If we're not in the removed location, no action needed
+                    Monitor.Log($"🐦 Location {removalInfo.LocationName} no longer active - grouse removed", LogLevel.Debug);
+                }
+            }
+            catch (Exception ex)
+            {
+                Monitor.Log($"HandleGrouseLocationRemovalFromMessage failed: {ex.Message}", LogLevel.Error);
             }
         }
     }

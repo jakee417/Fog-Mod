@@ -97,7 +97,7 @@ namespace FogMod
 
             foreach (var g in grouse)
             {
-                if (g.State == GrouseState.Perched)
+                if (g.State == GrouseState.Perched || g.Location != Game1.currentLocation?.NameOrUniqueName)
                     continue;
 
                 DrawSingleGrouse(spriteBatch, g);
@@ -130,7 +130,7 @@ namespace FogMod
                 case GrouseState.Flushing:
                 case GrouseState.Flying:
                     // Map animation frame to wing pattern: 0→1→2→3→2→1→0→1→2→3...
-                    frameX = FogMod.wingPattern[g.AnimationFrame % FogMod.wingPattern.Length];
+                    frameX = Grouse.wingPattern[g.AnimationFrame % Grouse.wingPattern.Length];
                     frameY = 1;
                     break;
 

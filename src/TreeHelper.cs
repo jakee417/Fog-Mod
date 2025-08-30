@@ -17,7 +17,7 @@ namespace FogMod
             );
         }
 
-        public static List<Vector2> GetAvailableTreePositions(GameLocation location, HashSet<Vector2> spawnedTreePositions)
+        public static List<Vector2> GetAvailableTreePositions(GameLocation location)
         {
             var availableTrees = new List<Vector2>();
 
@@ -29,11 +29,7 @@ namespace FogMod
                 if (pair.Value is Tree tree && tree.growthStage.Value >= Tree.treeStage)
                 {
                     Vector2 treePos = GetGrouseSpawnPosition(tree);
-
-                    if (!spawnedTreePositions.Contains(treePos))
-                    {
-                        availableTrees.Add(treePos);
-                    }
+                    availableTrees.Add(treePos);
                 }
             }
             return availableTrees;

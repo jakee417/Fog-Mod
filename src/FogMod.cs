@@ -43,8 +43,7 @@ namespace FogMod
         private float lastWeatherFogIntensityFactor = 1f;
         private GameLocation? lastLocation = null;
         private List<Grouse> grouse = new List<Grouse>();
-        private HashSet<Vector2> spawnedTreePositions = new HashSet<Vector2>();
-        private static readonly int[] wingPattern = { 0, 1, 2, 3, 2, 1 };
+        private HashSet<string> lastActiveLocationNames = new HashSet<string>();
 
         public override void Entry(IModHelper helper)
         {
@@ -258,8 +257,9 @@ namespace FogMod
             // Update grouse
             if (Config.EnableGrouseCritters && Game1.currentLocation.IsOutdoors)
             {
-                if (Game1.currentLocation != lastLocation || lastLocation == null)
-                    SpawnGrouseInTrees();
+                SpawnGrouseInTrees();
+                if (Context.IsMainPlayer)
+                    BroadcastExistingGrouse();
                 UpdateGrouse(deltaSeconds);
             }
             lastLocation = Game1.currentLocation;
@@ -327,6 +327,10 @@ namespace FogMod
                         if (spawnData.LocationName == currentLocation)
                             HandleGrouseSpawnFromMessage(spawnData);
                         break;
+                    case MessageType.GrouseLocationRemoval:
+                        var removalData = e.ReadAs<GrouseLocationRemovalInfo>();
+                        HandleGrouseLocationRemovalFromMessage(removalData);
+                        break;
                     default:
                         Monitor.Log($"OnModMessageReceived: Unknown message type '{e.Type}' from mod '{e.FromModID}'", LogLevel.Warn);
                         break;
@@ -340,13 +344,13 @@ namespace FogMod
 
         private void OnButtonPressed(object? sender, ButtonPressedEventArgs e)
         {
-            // Debug hotkey: G to spawn grouse at player location
-            if (e.Button == SButton.G && Config.EnableGrouseCritters && Game1.currentLocation.IsOutdoors)
+            // Debug hotkey: G to spawn grouse at main player's location.
+            if (e.Button == SButton.G && Config.EnableGrouseCritters && Game1.currentLocation.IsOutdoors && Context.IsMainPlayer)
             {
                 Vector2 playerPosition = Game1.player.getStandingPosition();
                 FarmerHelper.raiseHands(Game1.player);
                 Vector2 spawnPosition = playerPosition + new Vector2(0, -Game1.player.FarmerSprite.SpriteHeight * 2.5f);
-                SpawnGrouseAtTree(spawnPosition);
+                SpawnGrouse(spawnPosition, Game1.currentLocation.NameOrUniqueName);
                 Game1.addHUDMessage(new HUDMessage("Grouse Released!", 2));
             }
         }

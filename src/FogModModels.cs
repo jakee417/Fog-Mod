@@ -15,7 +15,12 @@ namespace FogMod
             public float ProbabilityOfFogForADay { get; init; }
             public float ProbabilityOfFogRoll { get; init; }
 
-            public FogForecast(bool isFogDay, float dailyFogStrength, float probabilityOfFogForADay, float probabilityOfFogRoll)
+            public FogForecast(
+                bool isFogDay,
+                float dailyFogStrength,
+                float probabilityOfFogForADay,
+                float probabilityOfFogRoll
+            )
             {
                 IsFogDay = isFogDay;
                 DailyFogStrength = dailyFogStrength;
@@ -36,7 +41,17 @@ namespace FogMod
             public bool IsFadingOut;
             public float FadeOutSecondsLeft;
 
-            public FogParticle(Texture2D texture, float scale, float rotation, Vector2 position, Vector2 velocity, float alpha, float ageSeconds, bool isFadingOut, float fadeOutSecondsLeft)
+            public FogParticle(
+                Texture2D texture,
+                float scale,
+                float rotation,
+                Vector2 position,
+                Vector2 velocity,
+                float alpha,
+                float ageSeconds,
+                bool isFadingOut,
+                float fadeOutSecondsLeft
+            )
             {
                 Texture = texture;
                 Scale = scale;
@@ -88,10 +103,12 @@ namespace FogMod
 
         private class Grouse
         {
+            public static readonly int[] wingPattern = { 0, 1, 2, 3, 2, 1 };
             public int GrouseId { get; init; }
+            public string Location { get; init; }
+            public Vector2 TreePosition { get; init; }
             public Vector2 Position;
             public Vector2 Velocity;
-            public Vector2 TreePosition;
             public GrouseState State;
             public float StateTimer;
             public float Scale;
@@ -110,8 +127,31 @@ namespace FogMod
             public CollisionSmoke? Smoke;
             public bool HasDroppedEgg;
 
-            public Grouse(Vector2 position, Vector2 velocity, Vector2 treePosition, GrouseState state, float stateTimer, int grouseId, float scale, float rotation, float flightHeight, bool facingLeft, float flightTimer, bool hasPlayedFlushSound, bool hasBeenSpotted, int animationFrame, float animationTimer, float alpha, float originalY, float? damageFlashTimer, CollisionSmoke? smoke, bool hasDroppedEgg)
+            public Grouse(
+                string location,
+                Vector2 position,
+                Vector2 velocity,
+                Vector2 treePosition,
+                GrouseState state,
+                float stateTimer,
+                int grouseId,
+                float scale,
+                float rotation,
+                float flightHeight,
+                bool facingLeft,
+                float flightTimer,
+                bool hasPlayedFlushSound,
+                bool hasBeenSpotted,
+                int animationFrame,
+                float animationTimer,
+                float alpha,
+                float originalY,
+                float? damageFlashTimer,
+                CollisionSmoke? smoke,
+                bool hasDroppedEgg
+            )
             {
+                Location = location;
                 Position = position;
                 Velocity = velocity;
                 TreePosition = treePosition;
@@ -132,6 +172,11 @@ namespace FogMod
                 DamageFlashTimer = damageFlashTimer;
                 Smoke = smoke;
                 HasDroppedEgg = hasDroppedEgg;
+            }
+
+            public static int GetDeterministicId(int locationSeed, int daySeed, Vector2 treePos)
+            {
+                return (locationSeed.GetHashCode() ^ daySeed ^ (int)(treePos.X * 1000 + treePos.Y * 1000)) & 0x7FFFFFFF;
             }
         }
 
