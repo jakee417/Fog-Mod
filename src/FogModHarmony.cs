@@ -19,13 +19,7 @@ namespace FogMod
                 Vector2 center = tileLocation * 64f + new Vector2(32f, 32f);
                 float radiusPx = Math.Max(64f, radius * 64f * 2f);
                 string location = __instance?.NameOrUniqueName ?? "Unknown";
-                ExplosionFlashInfo info = new()
-                {
-                    LocationName = location,
-                    CenterWorld = center,
-                    RadiusPixels = radiusPx,
-                    TimeLeft = ExplosionFlashDurationSeconds
-                };
+                ExplosionFlashInfo info = new ExplosionFlashInfo(locationName: location, centerWorld: center, radiusPixels: radiusPx, timeLeft: ExplosionFlashDurationSeconds);
                 FogMod.Instance.SendExplosionMessage(info);
                 FogMod.Instance.HandleExplosion(info);
             }

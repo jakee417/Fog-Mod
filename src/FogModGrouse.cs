@@ -13,12 +13,11 @@ namespace FogMod
             grouse.Clear();
             spawnedTreePositions.Clear();
             nextGrouseId = 1;
-            lastPlayerLocation = null;
         }
 
         private void SpawnGrouseInTrees()
         {
-            if (Game1.currentLocation == null || grouse.Count >= GrouseMaxPerLocation)
+            if (grouse.Count >= GrouseMaxPerLocation)
                 return;
 
             // Get all tree positions that don't already have grouse
@@ -100,11 +99,10 @@ namespace FogMod
             if (fromMultiplayerSync || Vector2.Distance(g.Position, playerPos) < GrouseDetectionRadius)
             {
                 if (!fromMultiplayerSync)
-                // {
-                //     var flushInfo = new GrouseFlushInfo(locationName: Game1.currentLocation?.NameOrUniqueName, grouseId: g.GrouseId, timestamp: Game1.currentGameTime.TotalGameTime.Ticks);
-                //     SendGrouseFlushMessage(flushInfo);
-                // }
-                Monitor.Log("Grouse perche changed", LogLevel.Info);
+                {
+                    var flushInfo = new GrouseFlushInfo(locationName: Game1.currentLocation?.NameOrUniqueName, grouseId: g.GrouseId, timestamp: Game1.currentGameTime.TotalGameTime.Ticks);
+                    SendGrouseFlushMessage(flushInfo);
+                }
                 g.State = GrouseState.Surprised;
                 g.StateTimer = 0f;
                 g.Velocity = Vector2.Zero;
@@ -282,13 +280,10 @@ namespace FogMod
 
         private void DropFeatherAtImpact(Vector2 impactPosition, int grouseId)
         {
-            Monitor.Log($"DropFeatherAtImpact called for grouse {grouseId} at {impactPosition}", LogLevel.Info);
             var deterministicRng = new Random(grouseId);
             bool shouldDropFeather = deterministicRng.NextDouble() < GrouseFeatherDropChance;
-            Monitor.Log($"Feather drop chance: {shouldDropFeather}, IsMainPlayer: {Context.IsMainPlayer}", LogLevel.Info);
             if (shouldDropFeather)
             {
-                Monitor.Log($"Creating feather drop at {impactPosition}", LogLevel.Info);
                 string featherItemId = "444";
                 var itemDropInfo = new ItemDropInfo(locationName: Game1.currentLocation?.NameOrUniqueName, position: impactPosition, itemId: featherItemId, quantity: 1, timestamp: Game1.currentGameTime?.TotalGameTime.Ticks ?? 0);
                 SendItemDropMessage(itemDropInfo);
@@ -298,7 +293,6 @@ namespace FogMod
 
         private void DropEggAtLanding(Vector2 landingPosition, int grouseId)
         {
-            Monitor.Log($"DropEggAtLanding called for grouse {grouseId} at {landingPosition}", LogLevel.Info);
             var deterministicRng = new Random(grouseId);
             double roll = deterministicRng.NextDouble();
             // Basic brown egg

@@ -14,8 +14,10 @@ namespace FogMod
 {
     public partial class FogMod : Mod
     {
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
         public ModConfig Config { get; set; }
-        public Random Random { get; set; }
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
+        public Random Random = new Random();
         private static readonly Vector2 globalWindDirection = new Vector2(WeatherDebris.globalWind, 0f);
         private static readonly Color DefaultFogColor = Color.LightGray;
         public GenericModConfigMenu.IGenericModConfigMenuApi? gmcmApi { get; set; }
@@ -39,20 +41,16 @@ namespace FogMod
         private float breathBasePhase;
         private float dailyFogStrength = 0f;
         private float lastWeatherFogIntensityFactor = 1f;
-        private GameLocation currentLocation = null;
+        private GameLocation? lastLocation = null;
         private List<Grouse> grouse = new List<Grouse>();
         private HashSet<Vector2> spawnedTreePositions = new HashSet<Vector2>();
         private int nextGrouseId = 1;
-        private string lastPlayerLocation = "";
         private static readonly int[] wingPattern = { 0, 1, 2, 3, 2, 1 };
 
         public override void Entry(IModHelper helper)
         {
             // Test log that should definitely appear
             Monitor.Log($"🌫️ Fog Mod (v{this.ModManifest.Version}) is loading! 🌫️", LogLevel.Alert);
-
-            // Initialize random number generator
-            Random = new Random();
 
             // Load config
             Config = Helper.ReadConfig<ModConfig>();
@@ -242,31 +240,29 @@ namespace FogMod
             breathBasePhase = time * (MathHelper.TwoPi / BreathPeriodSeconds);
 
             // Reset fog if we transitioned to a new location
-            if (Game1.currentLocation != null && Game1.currentLocation != currentLocation)
-            {
-                currentLocation = Game1.currentLocation;
+            if (Game1.currentLocation != lastLocation || lastLocation == null)
                 ResetAllParticlesOnLocationChange();
-            }
             RefreshLightSources();
             UpdateExplosionSmokeParticles(deltaSeconds);
-            if (isFogDay && Game1.currentLocation != null && Game1.currentLocation.IsOutdoors)
+            if (isFogDay && Game1.currentLocation.IsOutdoors)
                 UpdateFloatingFogParticles(deltaSeconds);
             UpdateExplosionFlashInfos(deltaSeconds);
 
             // Update grouse
-            if (Config.EnableGrouseCritters && Game1.currentLocation != null && Game1.currentLocation.IsOutdoors)
+            if (Config.EnableGrouseCritters && Game1.currentLocation.IsOutdoors)
             {
+                if (Game1.currentLocation != lastLocation || lastLocation == null)
+                    SpawnGrouseInTrees();
                 UpdateGrouse(deltaSeconds);
-                SpawnGrouseInTrees();
             }
+            lastLocation = Game1.currentLocation;
         }
 
         private void ResetAllParticlesOnLocationChange()
         {
             ResetFogParticles();
             ResetExplosionSmokeParticles();
-            if (Config.EnableGrouseCritters)
-                ResetGrouse();
+            ResetGrouse();
         }
 
         private void OnRendered(object? sender, RenderedEventArgs e)
@@ -280,12 +276,12 @@ namespace FogMod
 
             Color fogColor = GetEffectiveFogColor();
 
-            if (Config.EnableGrouseCritters && Game1.currentLocation != null && Game1.currentLocation.IsOutdoors)
+            if (Config.EnableGrouseCritters && Game1.currentLocation.IsOutdoors)
                 DrawGrouse(e.SpriteBatch);
 
             DrawExplosionFlashes(e.SpriteBatch);
             DrawExplosionSmokeParticles(e.SpriteBatch, fogColor);
-            if (isFogDay && Game1.currentLocation != null && Game1.currentLocation.IsOutdoors)
+            if (isFogDay && Game1.currentLocation?.IsOutdoors == true)
                 DrawFloatingFogParticles(e.SpriteBatch, fogColor);
         }
 
@@ -293,36 +289,34 @@ namespace FogMod
         {
             try
             {
-                if (!Enum.TryParse<MessageType>(e.Type, ignoreCase: true, out MessageType messageType))
-                {
-                    FogMod.Instance?.Monitor.Log($"Unknown message type: {e.Type}", LogLevel.Warn);
+                if (e.FromPlayerID == Game1.player.UniqueMultiplayerID)
                     return;
-                }
-                bool fromAnotherPlayer = e.FromPlayerID != Game1.player.UniqueMultiplayerID;
+
                 string? currentLocation = Game1.currentLocation?.NameOrUniqueName;
-                switch (messageType)
+                switch (e.Type)
                 {
                     case MessageType.Explosion:
-                        if (Context.IsMainPlayer)
-                            return;
                         var explosionData = e.ReadAs<ExplosionFlashInfo>();
                         if (explosionData.LocationName == currentLocation)
                             HandleExplosionFromMessage(explosionData);
                         break;
                     case MessageType.GrouseFlush:
                         var flushData = e.ReadAs<GrouseFlushInfo>();
-                        if (flushData.LocationName == currentLocation && fromAnotherPlayer)
+                        if (flushData.LocationName == currentLocation)
                             HandleGrouseFlushFromMessage(flushData);
                         break;
                     case MessageType.GrouseKnockdown:
                         var knockdownData = e.ReadAs<GrouseKnockdownInfo>();
-                        if (knockdownData.LocationName == currentLocation && fromAnotherPlayer)
+                        if (knockdownData.LocationName == currentLocation)
                             HandleGrouseKnockdownFromMessage(knockdownData);
                         break;
                     case MessageType.ItemDrop:
                         var itemDropData = e.ReadAs<ItemDropInfo>();
-                        if (itemDropData.LocationName == currentLocation && !Context.IsMainPlayer)
+                        if (itemDropData.LocationName == currentLocation)
                             HandleItemDropFromMessage(itemDropData);
+                        break;
+                    default:
+                        Monitor.Log($"OnModMessageReceived: Unknown message type '{e.Type}' from mod '{e.FromModID}'", LogLevel.Warn);
                         break;
                 }
             }
@@ -335,16 +329,13 @@ namespace FogMod
         private void OnButtonPressed(object? sender, ButtonPressedEventArgs e)
         {
             // Debug hotkey: G to spawn grouse at player location
-            if (e.Button == SButton.G && Context.IsPlayerFree && Config.EnableGrouseCritters)
+            if (e.Button == SButton.G && Config.EnableGrouseCritters && Game1.currentLocation.IsOutdoors)
             {
                 Vector2 playerPosition = Game1.player.getStandingPosition();
-                if (Context.IsMainPlayer)
-                {
-                    FarmerHelper.raiseHands(Game1.player);
-                    Vector2 spawnPosition = playerPosition + new Vector2(0, -Game1.player.FarmerSprite.SpriteHeight * 2.5f);
-                    SpawnGrouseAtTree(spawnPosition);
-                    Game1.addHUDMessage(new HUDMessage("Grouse Released!", 2));
-                }
+                FarmerHelper.raiseHands(Game1.player);
+                Vector2 spawnPosition = playerPosition + new Vector2(0, -Game1.player.FarmerSprite.SpriteHeight * 2.5f);
+                SpawnGrouseAtTree(spawnPosition);
+                Game1.addHUDMessage(new HUDMessage("Grouse Released!", 2));
             }
         }
     }

@@ -9,12 +9,12 @@ namespace FogMod
 {
     public partial class FogMod : Mod
     {
-        private enum MessageType
+        private class MessageType
         {
-            Explosion,
-            GrouseFlush,
-            GrouseKnockdown,
-            ItemDrop
+            public const string Explosion = "Explosion";
+            public const string GrouseFlush = "GrouseFlush";
+            public const string GrouseKnockdown = "GrouseKnockdown";
+            public const string ItemDrop = "ItemDrop";
         }
 
         private struct ExplosionFlashInfo
@@ -87,7 +87,7 @@ namespace FogMod
         {
             try
             {
-                Helper.Multiplayer.SendMessage(msg, MessageType.Explosion.ToString());
+                Helper.Multiplayer.SendMessage(msg, MessageType.Explosion);
             }
             catch (Exception ex)
             {
@@ -110,7 +110,7 @@ namespace FogMod
         // Grouse Flush
         private void SendGrouseFlushMessage(GrouseFlushInfo flushInfo)
         {
-            Helper.Multiplayer.SendMessage(flushInfo, MessageType.GrouseFlush.ToString());
+            Helper.Multiplayer.SendMessage(flushInfo, MessageType.GrouseFlush);
         }
 
         private void HandleGrouseFlushFromMessage(GrouseFlushInfo flushInfo)
@@ -140,7 +140,7 @@ namespace FogMod
             {
                 // Any player can broadcast grouse knockdowns when they hit one
                 var knockDownInfo = new GrouseKnockdownInfo(locationName: locationName, grouseId: grouseId, timestamp: Game1.currentGameTime?.TotalGameTime.Ticks ?? 0);
-                Helper.Multiplayer.SendMessage(knockDownInfo, MessageType.GrouseKnockdown.ToString());
+                Helper.Multiplayer.SendMessage(knockDownInfo, MessageType.GrouseKnockdown);
             }
             catch (Exception ex)
             {
@@ -165,7 +165,7 @@ namespace FogMod
         {
             try
             {
-                Helper.Multiplayer.SendMessage(itemDropInfo, MessageType.ItemDrop.ToString());
+                Helper.Multiplayer.SendMessage(itemDropInfo, MessageType.ItemDrop);
             }
             catch (Exception ex)
             {

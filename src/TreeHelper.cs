@@ -21,7 +21,7 @@ namespace FogMod
         {
             var availableTrees = new List<Vector2>();
 
-            if (location?.terrainFeatures == null)
+            if (location.terrainFeatures == null)
                 return availableTrees;
 
             foreach (var pair in location.terrainFeatures.Pairs)
