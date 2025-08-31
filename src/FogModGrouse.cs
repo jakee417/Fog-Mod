@@ -34,7 +34,6 @@ namespace FogMod
                     numLocations++;
                 }
             }
-            Monitor.Log($"🐦 Spawned {spawnedGrouse} grouse in trees across {numLocations} locations", LogLevel.Debug);
         }
 
         private int SpawnGrouseForTrees(List<Tree> availableTrees, string locationName)
@@ -42,7 +41,6 @@ namespace FogMod
             int locationSeed = locationName.GetHashCode();
             int daySeed = (int)Game1.stats.DaysPlayed;
             var locationRng = new Random(locationSeed ^ daySeed);
-
             int grouseCount = grouse.Where(g => g.Location == locationName).Count();
             foreach (var tree in availableTrees)
             {
@@ -81,9 +79,8 @@ namespace FogMod
 
         private void UpdateGrouse(float deltaSeconds)
         {
-            for (int i = grouse.Count - 1; i >= 0; i--)
+            foreach (var g in grouse)
             {
-                var g = grouse[i];
                 g.StateTimer += deltaSeconds;
 
                 switch (g.State)
@@ -108,16 +105,12 @@ namespace FogMod
                         UpdateGrouseKnockedDown(g, deltaSeconds);
                         break;
                 }
-
                 g.Position += g.Velocity * deltaSeconds;
-                UpdateGrouseAnimation(ref g, deltaSeconds);
-
-                // Potential grouse cleanup
-                if (((g.State == GrouseState.Flushing || g.State == GrouseState.Flying) && IsGrouseOffScreen(g)) || g.Alpha <= 0f)
-                    grouse.RemoveAt(i);
-                else
-                    grouse[i] = g;
+                UpdateGrouseAnimation(g, deltaSeconds);
             }
+
+            // Cleanup grouse
+            grouse.RemoveWhere(RemoveGrouse);
         }
 
         private void UpdateGrousePerched(NetGrouse g)
@@ -210,7 +203,7 @@ namespace FogMod
             }
         }
 
-        private void UpdateGrouseAnimation(ref NetGrouse g, float deltaSeconds)
+        private void UpdateGrouseAnimation(NetGrouse g, float deltaSeconds)
         {
             g.AnimationTimer += deltaSeconds;
             float animationSpeed = g.State switch
@@ -253,34 +246,30 @@ namespace FogMod
             }
         }
 
-        private void KnockDownGrouse(int grouseId)
+        private bool RemoveGrouse(NetGrouse g)
         {
-            for (int i = 0; i < grouse.Count; i++)
-            {
-                var g = grouse[i];
-                if (g.GrouseId == grouseId)
-                {
-                    g.State = GrouseState.KnockedDown;
-                    g.StateTimer = 0f;
-                    // Preserve the grouse's current momentum but add some downward force
-                    g.Velocity = new Vector2(g.Velocity.X * 0.8f, Math.Max(g.Velocity.Y + 100f, 150f));
-                    g.FlightHeight = 0f;
-                    g.Alpha = 1.0f;
-                    Vector2 impactPosition = g.Position;
-                    g.OriginalY = impactPosition.Y;
-                    Vector2 screenPosition = Game1.GlobalToLocal(Game1.viewport, g.Position);
-                    screenPosition.Y -= GrouseSpriteHeight * g.Scale / 2f;
-                    g.DamageFlashTimer = GrouseDamageFlashDuration;
-                    g.Smoke = new CollisionSmoke(position: screenPosition);
+            bool offscreen = (g.State == GrouseState.Flushing || g.State == GrouseState.Flying) && IsGrouseOffScreen(g);
+            return offscreen || g.Alpha <= 0f;
+        }
 
-                    // Drop feather at impact point with random chance
-                    DropFeatherAtImpact(impactPosition, g.GrouseId);
+        private void KnockDownGrouse(NetGrouse g)
+        {
+            g.State = GrouseState.KnockedDown;
+            g.StateTimer = 0f;
+            // Preserve the grouse's current momentum but add some downward force
+            g.Velocity = new Vector2(g.Velocity.X * 0.8f, Math.Max(g.Velocity.Y + 100f, 150f));
+            g.FlightHeight = 0f;
+            g.Alpha = 1.0f;
+            Vector2 impactPosition = g.Position;
+            g.OriginalY = impactPosition.Y;
+            Vector2 screenPosition = Game1.GlobalToLocal(Game1.viewport, g.Position);
+            screenPosition.Y -= GrouseSpriteHeight * g.Scale / 2f;
+            g.DamageFlashTimer = GrouseDamageFlashDuration;
+            g.Smoke = new CollisionSmoke(position: screenPosition);
 
-                    grouse[i] = g;
-                    PlayGrouseKnockdownSound(g);
-                    break;
-                }
-            }
+            // Drop feather at impact point with random chance
+            DropFeatherAtImpact(impactPosition, g.GrouseId);
+            PlayGrouseKnockdownSound(g);
         }
 
         private bool IsGrouseOffScreen(NetGrouse g)
@@ -336,20 +325,15 @@ namespace FogMod
             double roll = deterministicRng.NextDouble();
             // Basic brown egg
             string eggItemId = "180";
+            // Golden egg
             if (roll < 0.01)
-            {
-                // Golden egg
                 eggItemId = "928";
-            }
+            // Large Brown egg
             else if (roll >= 0.01 && roll < 0.06)
-            {
                 eggItemId = "182";
-            }
+            // Fried egg
             else if (roll >= 0.06 && roll < 0.1)
-            {
-                // Fried egg
                 eggItemId = "194";
-            }
             var itemDropInfo = new ItemDropInfo(
                 locationName: Game1.currentLocation?.NameOrUniqueName,
                 position: landingPosition,

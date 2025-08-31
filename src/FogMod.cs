@@ -197,9 +197,7 @@ namespace FogMod
 
             // Update grouse
             if (Config.EnableGrouseCritters)
-            {
                 UpdateGrouse(deltaSeconds);
-            }
         }
 
         private void ResetAllParticlesOnLocationChange()

@@ -176,7 +176,7 @@ namespace FogMod
                     layerDepth: 0.86f
                 );
             }
-            if (surprisedTexture != null && g.State == GrouseState.Surprised && g.AnimationFrame == 3)
+            if (surprisedTexture != null && g.State == GrouseState.Surprised && g.AnimationFrame == 4)
             {
                 Vector2 surprisedPos = screenPos;
                 surprisedPos.Y -= GrouseSpriteHeight * g.Scale * 1.02f;
