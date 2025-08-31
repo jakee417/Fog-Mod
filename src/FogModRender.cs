@@ -205,12 +205,13 @@ namespace FogMod
             string grouseInfo = "";
             if (Config.EnableGrouseCritters)
             {
-                string grouseCountText = $"Grouse: {grouse?.Count ?? 0}";
+                string grouseCountText = $"Grouse: {grouse?.Count ?? 0} in {outdoorLocations.Count()} locations";
+                string grouseInLocation = $"Grouse In {Game1.currentLocation?.NameOrUniqueName ?? "Unknown"}: {grouse?.Count(g => g.Location == Game1.currentLocation?.NameOrUniqueName) ?? 0}";
                 int surprisedGrouse = grouse?.Where(g => g.State == GrouseState.Surprised).Count() ?? 0;
                 int flyingGrouse = grouse?.Where(g => g.State == GrouseState.Flushing || g.State == GrouseState.Flying).Count() ?? 0;
                 int knockedDownGrouse = grouse?.Where(g => g.State == GrouseState.KnockedDown).Count() ?? 0;
                 string stateText = $"Surprised: {surprisedGrouse}, Flying: {flyingGrouse}, Knocked Down: {knockedDownGrouse}";
-                grouseInfo = $"\n{grouseCountText}\n{stateText}";
+                grouseInfo = $"\n{grouseCountText}\n{grouseInLocation}\n{stateText}";
             }
 
             string timeOfDayMultiplierText = $"Time of day multiplier: {ComputeTimeOfDayOpacityMultiplier():F2}";

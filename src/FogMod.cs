@@ -9,6 +9,7 @@ using System;
 using System.Collections.Generic;
 using HarmonyLib;
 using StardewValley.Objects;
+using System.Linq;
 
 namespace FogMod
 {
@@ -43,7 +44,7 @@ namespace FogMod
         private float lastWeatherFogIntensityFactor = 1f;
         private GameLocation? lastLocation = null;
         private List<Grouse> grouse = new List<Grouse>();
-        private HashSet<string> locationNamesSeenToday = new HashSet<string>();
+        private readonly IEnumerable<GameLocation> outdoorLocations = Game1.locations.Where(loc => loc.IsOutdoors);
 
         public override void Entry(IModHelper helper)
         {
@@ -196,11 +197,6 @@ namespace FogMod
             // Update grouse
             if (Config.EnableGrouseCritters)
             {
-                if (Context.IsMainPlayer)
-                {
-                    SpawnGrouseInTrees();
-                    BroadcastExistingGrouse();
-                }
                 UpdateGrouse(deltaSeconds);
             }
         }

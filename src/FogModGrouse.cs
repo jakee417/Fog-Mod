@@ -15,31 +15,29 @@ namespace FogMod
         private void InitializeGrouse()
         {
             grouse.Clear();
-            locationNamesSeenToday.Clear();
+            SpawnGrouseInTrees(outdoorLocations);
         }
 
-        private void SpawnGrouseInTrees()
+        private void SpawnGrouseInTrees(IEnumerable<GameLocation> locations)
         {
-            // Get current active locations
-            IEnumerable<GameLocation> activeLocations = Helper.Multiplayer.GetActiveLocations();
-            HashSet<string> currentActiveLocationNames = new HashSet<string>();
+            if (!Context.IsMainPlayer)
+                return;
 
-            // Build set of active outdoor location names
-            foreach (GameLocation loc in activeLocations)
+            int spawnedGrouse = 0;
+            int numLocations = 0;
+            foreach (GameLocation loc in locations)
             {
-                if (loc.IsOutdoors && !locationNamesSeenToday.Contains(loc.NameOrUniqueName))
+                if (loc.IsOutdoors)
                 {
-                    Monitor.Log($"🐦 New active location detected: {loc.NameOrUniqueName} - spawning grouse", LogLevel.Debug);
-                    currentActiveLocationNames.Add(loc.NameOrUniqueName);
                     List<Tree> availableTrees = TreeHelper.GetAvailableTreePositions(loc);
-                    SpawnGrouseForTrees(availableTrees, loc.NameOrUniqueName);
+                    spawnedGrouse += SpawnGrouseForTrees(availableTrees, loc.NameOrUniqueName);
+                    numLocations++;
                 }
             }
-            // Update our tracking
-            locationNamesSeenToday.UnionWith(currentActiveLocationNames);
+            Monitor.Log($"🐦 Spawned {spawnedGrouse} grouse in trees across {numLocations} locations", LogLevel.Debug);
         }
 
-        private void SpawnGrouseForTrees(List<Tree> availableTrees, string locationName)
+        private int SpawnGrouseForTrees(List<Tree> availableTrees, string locationName)
         {
             int locationSeed = locationName.GetHashCode();
             int daySeed = (int)Game1.stats.DaysPlayed;
@@ -59,6 +57,7 @@ namespace FogMod
                     grouseCount++;
                 }
             }
+            return grouseCount;
         }
 
         private void SpawnGrouse(Vector2 treePosition, Vector2 spawnPosition, string locationName)
