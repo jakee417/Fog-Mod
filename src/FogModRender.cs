@@ -119,23 +119,14 @@ namespace FogMod
             switch (g.State)
             {
                 case GrouseState.Perched:
-                    frameX = 0;
-                    frameY = 0;
-                    break;
                 case GrouseState.Surprised:
-                    // Cycle through top row: sitting left (0) → standing right (1) → standing left (2) → surprised forward (3)
+                case GrouseState.KnockedDown:
                     frameX = g.AnimationFrame;
                     frameY = 0;
                     break;
                 case GrouseState.Flushing:
                 case GrouseState.Flying:
-                    // Map animation frame to wing pattern: 0→1→2→3→2→1→0→1→2→3...
                     frameX = Grouse.wingPattern[g.AnimationFrame % Grouse.wingPattern.Length];
-                    frameY = 1;
-                    break;
-
-                case GrouseState.KnockedDown:
-                    frameX = 2;
                     frameY = 1;
                     break;
             }

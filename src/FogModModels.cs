@@ -103,10 +103,11 @@ namespace FogMod
 
         private class Grouse
         {
-            public static readonly int[] wingPattern = { 0, 1, 2, 3, 2, 1 };
+            public static readonly int[] wingPattern = { 0, 1, 2, 3, 4, 3, 2, 1 };
             public int GrouseId { get; init; }
             public string Location { get; init; }
             public Vector2 TreePosition { get; init; }
+            public Vector2 SpawnPosition { get; init; }
             public Vector2 Position;
             public Vector2 Velocity;
             public GrouseState State;
@@ -132,6 +133,7 @@ namespace FogMod
                 Vector2 position,
                 Vector2 velocity,
                 Vector2 treePosition,
+                Vector2 spawnPosition,
                 GrouseState state,
                 float stateTimer,
                 int grouseId,
@@ -155,6 +157,7 @@ namespace FogMod
                 Position = position;
                 Velocity = velocity;
                 TreePosition = treePosition;
+                SpawnPosition = spawnPosition;
                 State = state;
                 StateTimer = stateTimer;
                 GrouseId = grouseId;
@@ -174,9 +177,9 @@ namespace FogMod
                 HasDroppedEgg = hasDroppedEgg;
             }
 
-            public static int GetDeterministicId(int locationSeed, int daySeed, Vector2 treePos)
+            public static int GetDeterministicId(int locationSeed, int daySeed, Vector2 treePosition)
             {
-                return (locationSeed.GetHashCode() ^ daySeed ^ (int)(treePos.X * 1000 + treePos.Y * 1000)) & 0x7FFFFFFF;
+                return (locationSeed.GetHashCode() ^ daySeed ^ (int)(treePosition.X * 1000 + treePosition.Y * 1000)) & 0x7FFFFFFF;
             }
         }
 

@@ -85,13 +85,15 @@ namespace FogMod
         {
             public string LocationName { get; init; }
             public Vector2 TreePosition { get; init; }
+            public Vector2 SpawnPosition { get; init; }
             public int GrouseId { get; init; }
             public long Timestamp { get; init; }
 
-            public GrouseSpawnInfo(string locationName, Vector2 treePosition, int grouseId, long timestamp)
+            public GrouseSpawnInfo(string locationName, Vector2 treePosition, Vector2 spawnPosition, int grouseId, long timestamp)
             {
                 LocationName = locationName;
                 TreePosition = treePosition;
+                SpawnPosition = spawnPosition;
                 GrouseId = grouseId;
                 Timestamp = timestamp;
             }
@@ -229,7 +231,7 @@ namespace FogMod
                 // Only spawn grouse if we don't already have one with this ID
                 if (!grouse.Any(g => g.GrouseId == spawnInfo.GrouseId))
                 {
-                    SpawnGrouse(spawnInfo.TreePosition, spawnInfo.LocationName);
+                    SpawnGrouse(spawnInfo.TreePosition, spawnInfo.SpawnPosition, spawnInfo.LocationName);
                 }
             }
             catch (Exception ex)

@@ -1,6 +1,7 @@
 #nullable enable
 using Microsoft.Xna.Framework;
 using StardewModdingAPI;
+using StardewValley.TerrainFeatures;
 using StardewValley;
 using System;
 using System.Collections.Generic;
@@ -10,80 +11,69 @@ namespace FogMod
 {
     public partial class FogMod : Mod
     {
-        private void ResetGrouse()
+
+        private void InitializeGrouse()
         {
             grouse.Clear();
+            locationNamesSeenToday.Clear();
         }
 
         private void SpawnGrouseInTrees()
         {
-            // Only the main player should manage grouse spawning for all active locations
-            if (!Context.IsMainPlayer)
-                return;
-
             // Get current active locations
-            Dictionary<string, GameLocation> locationsByName = new();
             IEnumerable<GameLocation> activeLocations = Helper.Multiplayer.GetActiveLocations();
             HashSet<string> currentActiveLocationNames = new HashSet<string>();
 
             // Build set of active outdoor location names
             foreach (GameLocation loc in activeLocations)
             {
-                if (loc.IsOutdoors)
+                if (loc.IsOutdoors && !locationNamesSeenToday.Contains(loc.NameOrUniqueName))
                 {
+                    Monitor.Log($"🐦 New active location detected: {loc.NameOrUniqueName} - spawning grouse", LogLevel.Debug);
                     currentActiveLocationNames.Add(loc.NameOrUniqueName);
-                    locationsByName[loc.NameOrUniqueName] = loc;
+                    List<Tree> availableTrees = TreeHelper.GetAvailableTreePositions(loc);
+                    SpawnGrouseForTrees(availableTrees, loc.NameOrUniqueName);
                 }
             }
-
-            // Detect changes in active locations
-            List<string> newLocations = new List<string>();
-            foreach (string locationName in currentActiveLocationNames)
-            {
-                if (!lastActiveLocationNames.Contains(locationName))
-                    newLocations.Add(locationName);
-            }
-            foreach (string locationName in newLocations)
-            {
-                Monitor.Log($"🐦 New active location detected: {locationName} - spawning grouse", LogLevel.Debug);
-                List<Vector2> availableTrees = TreeHelper.GetAvailableTreePositions(locationsByName[locationName]);
-                SpawnGrouseForTreeLocations(availableTrees, locationName);
-            }
-
             // Update our tracking
-            lastActiveLocationNames = currentActiveLocationNames;
+            locationNamesSeenToday.UnionWith(currentActiveLocationNames);
         }
 
-        private void SpawnGrouseForTreeLocations(List<Vector2> availableTrees, string locationName)
+        private void SpawnGrouseForTrees(List<Tree> availableTrees, string locationName)
         {
             int locationSeed = locationName.GetHashCode();
             int daySeed = (int)Game1.stats.DaysPlayed;
             var locationRng = new Random(locationSeed ^ daySeed);
 
             int grouseCount = grouse.Where(g => g.Location == locationName).Count();
-            foreach (var treePos in availableTrees)
+            foreach (var tree in availableTrees)
             {
                 if (grouseCount >= GrouseMaxPerLocation)
                     break;
 
                 if (locationRng.NextDouble() < GrouseSpawnChance)
                 {
-                    SpawnGrouse(treePos, locationName);
+                    Vector2 treePosition = TreeHelper.GetTreePosition(tree);
+                    Vector2 spawnPosition = TreeHelper.GetGrouseSpawnPosition(tree);
+                    SpawnGrouse(treePosition, spawnPosition, locationName);
                     grouseCount++;
                 }
             }
         }
 
-        private void SpawnGrouse(Vector2 position, string locationName)
+        private void SpawnGrouse(Vector2 treePosition, Vector2 spawnPosition, string locationName)
         {
             int grouseId = Grouse.GetDeterministicId(
                 locationSeed: locationName.GetHashCode(),
                 daySeed: (int)Game1.stats.DaysPlayed,
-                treePos: position
+                treePosition: treePosition
             );
+            if (grouse.Any(g => g.GrouseId == grouseId))
+                return;
             var spawnInfo = new GrouseSpawnInfo(
                 locationName: locationName,
-                treePosition: position,
+                treePosition: treePosition,
+                spawnPosition: spawnPosition,
                 grouseId: grouseId,
                 timestamp: Game1.currentGameTime?.TotalGameTime.Ticks ?? 0
             );
@@ -91,10 +81,11 @@ namespace FogMod
                 SendGrouseSpawnMessage(spawnInfo);
             var newGrouse = new Grouse(
                 grouseId: grouseId,
-                position: position,
-                treePosition: position,
+                position: spawnPosition,
+                treePosition: treePosition,
+                spawnPosition: spawnPosition,
                 location: locationName,
-                facingLeft: DeterministicBool(position, 1),
+                facingLeft: DeterministicBool(spawnPosition, 1),
                 velocity: Vector2.Zero,
                 state: GrouseState.Perched,
                 stateTimer: 0f,
@@ -107,7 +98,7 @@ namespace FogMod
                 animationFrame: 0,
                 animationTimer: 0f,
                 alpha: 1.0f,
-                originalY: position.Y,
+                originalY: spawnPosition.Y,
                 damageFlashTimer: null,
                 smoke: null,
                 hasDroppedEgg: false
@@ -149,7 +140,7 @@ namespace FogMod
                 UpdateGrouseAnimation(ref g, deltaSeconds);
 
                 // Potential grouse cleanup
-                if ((g.State == GrouseState.Flying && IsGrouseOffScreen(g)) || g.Alpha <= 0f)
+                if (((g.State == GrouseState.Flushing || g.State == GrouseState.Flying) && IsGrouseOffScreen(g)) || g.Alpha <= 0f)
                     grouse.RemoveAt(i);
                 else
                     grouse[i] = g;
@@ -261,8 +252,8 @@ namespace FogMod
             g.AnimationTimer += deltaSeconds;
             float animationSpeed = g.State switch
             {
-                GrouseState.Perched => 0f,
-                GrouseState.Surprised => 3f,
+                GrouseState.Perched => 0.5f,
+                GrouseState.Surprised => 4f,
                 GrouseState.Flushing => 36f,
                 GrouseState.Flying => 12f,
                 GrouseState.KnockedDown => 0f, // No animation when knocked down
@@ -272,10 +263,15 @@ namespace FogMod
             if (animationSpeed > 0f && g.AnimationTimer >= 1f / animationSpeed)
             {
                 g.AnimationTimer = 0f;
-                if (g.State == GrouseState.Surprised)
+                if (g.State == GrouseState.Perched)
                 {
-                    // Cycle through top row once: 0→1→2→3, then stay at 3
-                    if (g.HasBeenSpotted && g.AnimationFrame < 3)
+                    // Cycle through top sitting: sitting left (0) → sitting left (1)
+                    g.AnimationFrame = (g.AnimationFrame + 1) % 2;
+                }
+                else if (g.State == GrouseState.Surprised)
+                {
+                    // Cycle through top row once: 0→1→2→3→4, then stay at 4
+                    if (g.HasBeenSpotted && g.AnimationFrame < 4)
                     {
                         g.AnimationFrame++;
                         PlaySurpriseSound(g);
@@ -286,6 +282,10 @@ namespace FogMod
                     // Smooth wing cycle: 0→1→2→3→2→1→0→1→2→3...
                     g.AnimationFrame = (g.AnimationFrame + 1) % Grouse.wingPattern.Length;
                     PlayWingBeatSound(g);
+                }
+                else if (g.State == GrouseState.KnockedDown)
+                {
+                    g.AnimationFrame = 2;
                 }
             }
         }
@@ -327,7 +327,7 @@ namespace FogMod
 
         private void PlaySurpriseSound(Grouse g)
         {
-            if (!g.HasPlayedFlushSound && g.AnimationFrame == 3)
+            if (!g.HasPlayedFlushSound && g.AnimationFrame == 4)
             {
                 Game1.playSound("crow");
                 g.HasPlayedFlushSound = true;
@@ -336,7 +336,7 @@ namespace FogMod
 
         private void PlayWingBeatSound(Grouse g)
         {
-            if (g.AnimationFrame == 2)
+            if (g.AnimationFrame == 3)
                 Game1.playSound("fishSlap");
         }
 
@@ -411,6 +411,7 @@ namespace FogMod
                     var spawnInfo = new GrouseSpawnInfo(
                     locationName: location,
                     treePosition: g.TreePosition,
+                    spawnPosition: g.SpawnPosition,
                     grouseId: g.GrouseId,
                     timestamp: Game1.currentGameTime?.TotalGameTime.Ticks ?? 0
                 );

@@ -23,20 +23,26 @@ namespace FogMod
             );
         }
 
-        public static List<Vector2> GetAvailableTreePositions(GameLocation location)
+        public static Vector2 GetTreePosition(Tree tree)
         {
-            var availableTrees = new List<Vector2>();
+            Rectangle renderBounds = tree.getRenderBounds();
+            return new Vector2(
+                renderBounds.X + renderBounds.Width / 2f,
+                renderBounds.Y + renderBounds.Height
+            );
+        }
+
+        public static List<Tree> GetAvailableTreePositions(GameLocation location)
+        {
+            var availableTrees = new List<Tree>();
 
             if (location.terrainFeatures == null)
                 return availableTrees;
 
             foreach (var pair in location.terrainFeatures.Pairs)
             {
-                if (pair.Value is Tree tree && tree.growthStage.Value >= Tree.treeStage)
-                {
-                    Vector2 treePos = GetGrouseSpawnPosition(tree);
-                    availableTrees.Add(treePos);
-                }
+                if (pair.Value is Tree tree && tree.growthStage.Value >= Tree.treeStage && tree.stump.Value == false)
+                    availableTrees.Add(tree);
             }
             return availableTrees;
         }

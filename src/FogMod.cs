@@ -43,7 +43,7 @@ namespace FogMod
         private float lastWeatherFogIntensityFactor = 1f;
         private GameLocation? lastLocation = null;
         private List<Grouse> grouse = new List<Grouse>();
-        private HashSet<string> lastActiveLocationNames = new HashSet<string>();
+        private HashSet<string> locationNamesSeenToday = new HashSet<string>();
 
         public override void Entry(IModHelper helper)
         {
@@ -163,6 +163,7 @@ namespace FogMod
         private void OnDayStarted(object? sender, DayStartedEventArgs e)
         {
             InitializeDailyFogStrength();
+            InitializeGrouse();
         }
 
         private void OnUpdateTicked(object? sender, UpdateTickedEventArgs e)
@@ -181,29 +182,33 @@ namespace FogMod
 
             // Reset fog if we transitioned to a new location
             if (Game1.currentLocation != lastLocation || lastLocation == null)
+            {
                 ResetAllParticlesOnLocationChange();
+                lastLocation = Game1.currentLocation;
+            }
+
             RefreshLightSources();
             UpdateExplosionSmokeParticles(deltaSeconds);
-            if (isFogDay && Game1.currentLocation.IsOutdoors)
+            if (isFogDay && Game1.currentLocation != null && Game1.currentLocation.IsOutdoors)
                 UpdateFloatingFogParticles(deltaSeconds);
             UpdateExplosionFlashInfos(deltaSeconds);
 
             // Update grouse
             if (Config.EnableGrouseCritters)
             {
-                SpawnGrouseInTrees();
                 if (Context.IsMainPlayer)
+                {
+                    SpawnGrouseInTrees();
                     BroadcastExistingGrouse();
+                }
                 UpdateGrouse(deltaSeconds);
             }
-            lastLocation = Game1.currentLocation;
         }
 
         private void ResetAllParticlesOnLocationChange()
         {
             ResetFogParticles();
             ResetExplosionSmokeParticles();
-            ResetGrouse();
         }
 
         private void OnRendered(object? sender, RenderedEventArgs e)
@@ -276,7 +281,7 @@ namespace FogMod
                 Vector2 playerPosition = Game1.player.getStandingPosition();
                 FarmerHelper.raiseHands(Game1.player);
                 Vector2 spawnPosition = playerPosition + new Vector2(0, -Game1.player.FarmerSprite.SpriteHeight * 2.5f);
-                SpawnGrouse(spawnPosition, Game1.currentLocation.NameOrUniqueName);
+                SpawnGrouse(spawnPosition, spawnPosition, Game1.currentLocation.NameOrUniqueName);
                 Game1.addHUDMessage(new HUDMessage("Grouse Released!", 2));
             }
         }

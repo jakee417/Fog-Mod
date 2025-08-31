@@ -38,7 +38,7 @@ namespace FogMod
         private const float GrouseFlushSpeed = 200f;
         private const float GrouseBobAmplitude = 10f;
         private const float GrouseExitSpeed = 400f;
-        private const float GrouseSurprisedDuration = 1.5f;
+        private const float GrouseSurprisedDuration = 2.0f;
         private const float GrouseFlushDuration = 2.0f;
         private const float GrouseSpawnChance = 0.1f;
         private const float GrouseScale = 4f;
