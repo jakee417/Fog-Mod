@@ -62,45 +62,19 @@ namespace FogMod
 
         private void SpawnGrouse(Vector2 treePosition, Vector2 spawnPosition, string locationName)
         {
-            int grouseId = Grouse.GetDeterministicId(
+            int grouseId = NetGrouse.GetDeterministicId(
                 locationSeed: locationName.GetHashCode(),
                 daySeed: (int)Game1.stats.DaysPlayed,
                 treePosition: treePosition
             );
             if (grouse.Any(g => g.GrouseId == grouseId))
                 return;
-            var spawnInfo = new GrouseSpawnInfo(
+            NetGrouse newGrouse = new NetGrouse(
+                grouseId: grouseId,
                 locationName: locationName,
                 treePosition: treePosition,
                 spawnPosition: spawnPosition,
-                grouseId: grouseId,
-                timestamp: Game1.currentGameTime?.TotalGameTime.Ticks ?? 0
-            );
-            if (Context.IsMainPlayer)
-                SendGrouseSpawnMessage(spawnInfo);
-            var newGrouse = new Grouse(
-                grouseId: grouseId,
-                position: spawnPosition,
-                treePosition: treePosition,
-                spawnPosition: spawnPosition,
-                location: locationName,
-                facingLeft: DeterministicBool(spawnPosition, 1),
-                velocity: Vector2.Zero,
-                state: GrouseState.Perched,
-                stateTimer: 0f,
-                scale: GrouseScale,
-                rotation: 0f,
-                flightHeight: 0f,
-                flightTimer: 0f,
-                hasPlayedFlushSound: false,
-                hasBeenSpotted: false,
-                animationFrame: 0,
-                animationTimer: 0f,
-                alpha: 1.0f,
-                originalY: spawnPosition.Y,
-                damageFlashTimer: null,
-                smoke: null,
-                hasDroppedEgg: false
+                facingLeft: DeterministicBool(spawnPosition, 1)
             );
             grouse.Add(newGrouse);
         }
@@ -115,7 +89,7 @@ namespace FogMod
                 switch (g.State)
                 {
                     case GrouseState.Perched:
-                        UpdateGrousePerched(g, false);
+                        UpdateGrousePerched(g);
                         break;
 
                     case GrouseState.Surprised:
@@ -146,28 +120,18 @@ namespace FogMod
             }
         }
 
-        private void UpdateGrousePerched(Grouse g, bool fromMultiplayerSync)
+        private void UpdateGrousePerched(NetGrouse g)
         {
             Vector2 playerPos = Game1.player.getStandingPosition();
-            // Either someone triggered a new flush or we are syncing from another player.
-            if (fromMultiplayerSync || Vector2.Distance(g.Position, playerPos) < GrouseDetectionRadius)
+            if (Vector2.Distance(g.Position, playerPos) < GrouseDetectionRadius)
             {
-                if (!fromMultiplayerSync)
-                {
-                    var flushInfo = new GrouseFlushInfo(
-                        locationName: Game1.currentLocation?.NameOrUniqueName,
-                        grouseId: g.GrouseId,
-                        timestamp: Game1.currentGameTime.TotalGameTime.Ticks
-                    );
-                    SendGrouseFlushMessage(flushInfo);
-                }
                 g.State = GrouseState.Surprised;
                 g.StateTimer = 0f;
                 g.Velocity = Vector2.Zero;
             }
         }
 
-        private void UpdateGrouseSurprised(Grouse g, float deltaSeconds)
+        private void UpdateGrouseSurprised(NetGrouse g, float deltaSeconds)
         {
             g.Velocity = Vector2.Zero;
 
@@ -181,7 +145,7 @@ namespace FogMod
             }
         }
 
-        private void UpdateGrouseFlushing(Grouse g, float deltaSeconds)
+        private void UpdateGrouseFlushing(NetGrouse g, float deltaSeconds)
         {
             float flushProgress = g.StateTimer / GrouseFlushDuration;
 
@@ -206,14 +170,14 @@ namespace FogMod
             }
         }
 
-        private void UpdateGrouseFlying(Grouse g, float deltaSeconds)
+        private void UpdateGrouseFlying(NetGrouse g, float deltaSeconds)
         {
             g.FlightTimer += deltaSeconds;
             float bobAmount = (float)Math.Sin(g.FlightTimer * 4f) * GrouseBobAmplitude;
             g.FlightHeight = bobAmount;
         }
 
-        private void UpdateGrouseKnockedDown(Grouse g, float deltaSeconds)
+        private void UpdateGrouseKnockedDown(NetGrouse g, float deltaSeconds)
         {
             g.StateTimer += deltaSeconds;
             if (g.DamageFlashTimer > 0f)
@@ -246,7 +210,7 @@ namespace FogMod
             }
         }
 
-        private void UpdateGrouseAnimation(ref Grouse g, float deltaSeconds)
+        private void UpdateGrouseAnimation(ref NetGrouse g, float deltaSeconds)
         {
             g.AnimationTimer += deltaSeconds;
             float animationSpeed = g.State switch
@@ -279,7 +243,7 @@ namespace FogMod
                 else if (g.State == GrouseState.Flushing || g.State == GrouseState.Flying)
                 {
                     // Smooth wing cycle: 0→1→2→3→2→1→0→1→2→3...
-                    g.AnimationFrame = (g.AnimationFrame + 1) % Grouse.wingPattern.Length;
+                    g.AnimationFrame = (g.AnimationFrame + 1) % NetGrouse.wingPattern.Length;
                     PlayWingBeatSound(g);
                 }
                 else if (g.State == GrouseState.KnockedDown)
@@ -319,12 +283,12 @@ namespace FogMod
             }
         }
 
-        private bool IsGrouseOffScreen(Grouse g)
+        private bool IsGrouseOffScreen(NetGrouse g)
         {
             return !grid.GetExtendedBounds().Contains(new Point((int)g.Position.X, (int)g.Position.Y));
         }
 
-        private void PlaySurpriseSound(Grouse g)
+        private void PlaySurpriseSound(NetGrouse g)
         {
             if (!g.HasPlayedFlushSound && g.AnimationFrame == 4)
             {
@@ -333,13 +297,13 @@ namespace FogMod
             }
         }
 
-        private void PlayWingBeatSound(Grouse g)
+        private void PlayWingBeatSound(NetGrouse g)
         {
             if (g.AnimationFrame == 3)
                 Game1.playSound("fishSlap");
         }
 
-        private void PlayGrouseKnockdownSound(Grouse g)
+        private void PlayGrouseKnockdownSound(NetGrouse g)
         {
             if (g.State == GrouseState.KnockedDown)
                 Game1.playSound("hitEnemy");
@@ -397,26 +361,6 @@ namespace FogMod
             // Only create the item drop on the main player to avoid duplicates
             if (Context.IsMainPlayer)
                 CreateItemDrop(landingPosition, eggItemId, 1);
-        }
-
-        private void BroadcastExistingGrouse()
-        {
-            // Send all existing grouse in current location to other players
-            // This ensures late-joining players see existing grouse
-            foreach (var g in grouse)
-            {
-                if (Game1.currentLocation?.NameOrUniqueName is string location)
-                {
-                    var spawnInfo = new GrouseSpawnInfo(
-                    locationName: location,
-                    treePosition: g.TreePosition,
-                    spawnPosition: g.SpawnPosition,
-                    grouseId: g.GrouseId,
-                    timestamp: Game1.currentGameTime?.TotalGameTime.Ticks ?? 0
-                );
-                    SendGrouseSpawnMessage(spawnInfo);
-                }
-            }
         }
     }
 }

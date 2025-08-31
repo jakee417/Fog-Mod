@@ -104,7 +104,7 @@ namespace FogMod
             }
         }
 
-        private void DrawSingleGrouse(SpriteBatch spriteBatch, Grouse g)
+        private void DrawSingleGrouse(SpriteBatch spriteBatch, NetGrouse g)
         {
             if (grouseTexture == null || g.Alpha <= 0f)
                 return;
@@ -126,7 +126,7 @@ namespace FogMod
                     break;
                 case GrouseState.Flushing:
                 case GrouseState.Flying:
-                    frameX = Grouse.wingPattern[g.AnimationFrame % Grouse.wingPattern.Length];
+                    frameX = NetGrouse.wingPattern[g.AnimationFrame % NetGrouse.wingPattern.Length];
                     frameY = 1;
                     break;
             }

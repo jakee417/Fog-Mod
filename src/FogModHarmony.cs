@@ -116,7 +116,6 @@ namespace FogMod
                     float distance = Vector2.Distance(projectilePos, grousePos);
                     if (distance < GrouseCollisionRadius)
                     {
-                        FogMod.Instance.SendGrouseKnockdownMessage(grouse.GrouseId, projectilePos, location?.NameOrUniqueName);
                         FogMod.Instance.KnockDownGrouse(grouse.GrouseId);
                         break;
                     }

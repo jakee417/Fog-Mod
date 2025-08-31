@@ -10,6 +10,7 @@ using System.Collections.Generic;
 using HarmonyLib;
 using StardewValley.Objects;
 using System.Linq;
+using Netcode;
 
 namespace FogMod
 {
@@ -43,7 +44,7 @@ namespace FogMod
         private float dailyFogStrength = 0f;
         private float lastWeatherFogIntensityFactor = 1f;
         private GameLocation? lastLocation = null;
-        private List<Grouse> grouse = new List<Grouse>();
+        private NetCollection<NetGrouse> grouse = new NetCollection<NetGrouse>();
         private readonly IEnumerable<GameLocation> outdoorLocations = Game1.locations.Where(loc => loc.IsOutdoors);
 
         public override void Entry(IModHelper helper)
@@ -241,18 +242,6 @@ namespace FogMod
                         var explosionData = e.ReadAs<ExplosionFlashInfo>();
                         if (explosionData.LocationName == currentLocation)
                             HandleExplosionFromMessage(explosionData);
-                        break;
-                    case MessageType.GrouseSpawn:
-                        var spawnData = e.ReadAs<GrouseSpawnInfo>();
-                        HandleGrouseSpawnFromMessage(spawnData);
-                        break;
-                    case MessageType.GrouseFlush:
-                        var flushData = e.ReadAs<GrouseFlushInfo>();
-                        HandleGrouseFlushFromMessage(flushData);
-                        break;
-                    case MessageType.GrouseKnockdown:
-                        var knockdownData = e.ReadAs<GrouseKnockdownInfo>();
-                        HandleGrouseKnockdownFromMessage(knockdownData);
                         break;
                     case MessageType.ItemDrop:
                         var itemDropData = e.ReadAs<ItemDropInfo>();

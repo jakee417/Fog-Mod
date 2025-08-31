@@ -3,6 +3,8 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using StardewModdingAPI;
 using System.Collections.Generic;
+using Netcode;
+using System;
 
 namespace FogMod
 {
@@ -91,7 +93,7 @@ namespace FogMod
             }
         }
 
-        private struct CollisionSmoke
+        public struct CollisionSmoke : IComparable
         {
             public Vector2 Position { get; init; }
 
@@ -99,84 +101,268 @@ namespace FogMod
             {
                 Position = position;
             }
+
+            public int CompareTo(object? obj)
+            {
+                if (obj is CollisionSmoke other)
+                {
+                    return Position.GetHashCode().CompareTo(other.Position.GetHashCode());
+                }
+                return 0;
+            }
         }
 
-        private class Grouse
+        public class NetGrouse : INetObject<NetFields>
         {
+            // Static variables
             public static readonly int[] wingPattern = { 0, 1, 2, 3, 4, 3, 2, 1 };
-            public int GrouseId { get; init; }
-            public string Location { get; init; }
-            public Vector2 TreePosition { get; init; }
-            public Vector2 SpawnPosition { get; init; }
-            public Vector2 Position;
-            public Vector2 Velocity;
-            public GrouseState State;
-            public float StateTimer;
-            public float Scale;
-            public float Rotation;
-            public float FlightHeight;
-            public bool FacingLeft;
-            public float FlightTimer;
-            public bool HasPlayedFlushSound;
-            public bool HasBeenSpotted;
-            public int AnimationFrame;
-            public float AnimationTimer;
-            public float Alpha;
-            public float OriginalY;
-            public float? DamageFlashTimer;
-            public Vector2 GetExitDirection => FacingLeft ? new Vector2(-1, 0) : new Vector2(1, 0);
-            public CollisionSmoke? Smoke;
-            public bool HasDroppedEgg;
 
-            public Grouse(
-                string location,
-                Vector2 position,
-                Vector2 velocity,
-                Vector2 treePosition,
-                Vector2 spawnPosition,
-                GrouseState state,
-                float stateTimer,
-                int grouseId,
-                float scale,
-                float rotation,
-                float flightHeight,
-                bool facingLeft,
-                float flightTimer,
-                bool hasPlayedFlushSound,
-                bool hasBeenSpotted,
-                int animationFrame,
-                float animationTimer,
-                float alpha,
-                float originalY,
-                float? damageFlashTimer,
-                CollisionSmoke? smoke,
-                bool hasDroppedEgg
-            )
+            public NetFields NetFields { get; } = new NetFields("Grouse");
+
+            // Core identity and location
+            public NetInt grouseId = new NetInt();
+            public NetString location = new NetString();
+            public NetVector2 treePosition = new NetVector2();
+            public NetVector2 spawnPosition = new NetVector2();
+
+            // Dynamic state
+            public NetVector2 position = new NetVector2();
+            public NetVector2 velocity = new NetVector2();
+            public NetEnum<GrouseState> state = new NetEnum<GrouseState>();
+            public NetFloat stateTimer = new NetFloat();
+
+            // Visual properties
+            public NetFloat scale = new NetFloat();
+            public NetFloat rotation = new NetFloat();
+            public NetFloat flightHeight = new NetFloat();
+            public NetBool facingLeft = new NetBool();
+
+            // Animation and timers
+            public NetFloat flightTimer = new NetFloat();
+            public NetBool hasPlayedFlushSound = new NetBool();
+            public NetBool hasBeenSpotted = new NetBool();
+            public NetInt animationFrame = new NetInt();
+            public NetFloat animationTimer = new NetFloat();
+            public NetFloat alpha = new NetFloat();
+            public NetFloat originalY = new NetFloat();
+
+            // Optional properties (using nullable pattern)
+            public NetBool hasDamageFlashTimer = new NetBool();
+            public NetFloat damageFlashTimer = new NetFloat();
+
+            // Smoke collision
+            public NetBool hasSmoke = new NetBool();
+            public NetVector2 smokePosition = new NetVector2();
+
+            // State flags
+            public NetBool hasDroppedEgg = new NetBool();
+
+            // Property wrappers for clean access (following SDV pattern)
+            // Immutable properties - can only be set during construction
+            public int GrouseId
             {
-                Location = location;
-                Position = position;
-                Velocity = velocity;
-                TreePosition = treePosition;
-                SpawnPosition = spawnPosition;
-                State = state;
-                StateTimer = stateTimer;
-                GrouseId = grouseId;
-                Scale = scale;
-                Rotation = rotation;
-                FlightHeight = flightHeight;
-                FacingLeft = facingLeft;
-                FlightTimer = flightTimer;
-                HasPlayedFlushSound = hasPlayedFlushSound;
-                HasBeenSpotted = hasBeenSpotted;
-                AnimationFrame = animationFrame;
-                AnimationTimer = animationTimer;
-                Alpha = alpha;
-                OriginalY = originalY;
-                DamageFlashTimer = damageFlashTimer;
-                Smoke = smoke;
-                HasDroppedEgg = hasDroppedEgg;
+                get => grouseId.Value;
+                private set => grouseId.Value = value;
             }
 
+            public string Location
+            {
+                get => location.Value;
+                private set => location.Value = value;
+            }
+
+            public Vector2 TreePosition
+            {
+                get => treePosition.Value;
+                private set => treePosition.Value = value;
+            }
+
+            public Vector2 SpawnPosition
+            {
+                get => spawnPosition.Value;
+                private set => spawnPosition.Value = value;
+            }
+
+            // Mutable properties - can be changed during gameplay
+            public Vector2 Position
+            {
+                get => position.Value;
+                set => position.Value = value;
+            }
+
+            public Vector2 Velocity
+            {
+                get => velocity.Value;
+                set => velocity.Value = value;
+            }
+
+            public GrouseState State
+            {
+                get => state.Value;
+                set => state.Value = value;
+            }
+
+            public float StateTimer
+            {
+                get => stateTimer.Value;
+                set => stateTimer.Value = value;
+            }
+
+            public float Scale
+            {
+                get => scale.Value;
+                set => scale.Value = value;
+            }
+
+            public float Rotation
+            {
+                get => rotation.Value;
+                set => rotation.Value = value;
+            }
+
+            public float FlightHeight
+            {
+                get => flightHeight.Value;
+                set => flightHeight.Value = value;
+            }
+
+            public bool FacingLeft
+            {
+                get => facingLeft.Value;
+                set => facingLeft.Value = value;
+            }
+
+            public float FlightTimer
+            {
+                get => flightTimer.Value;
+                set => flightTimer.Value = value;
+            }
+
+            public bool HasPlayedFlushSound
+            {
+                get => hasPlayedFlushSound.Value;
+                set => hasPlayedFlushSound.Value = value;
+            }
+
+            public bool HasBeenSpotted
+            {
+                get => hasBeenSpotted.Value;
+                set => hasBeenSpotted.Value = value;
+            }
+
+            public int AnimationFrame
+            {
+                get => animationFrame.Value;
+                set => animationFrame.Value = value;
+            }
+
+            public float AnimationTimer
+            {
+                get => animationTimer.Value;
+                set => animationTimer.Value = value;
+            }
+
+            public float Alpha
+            {
+                get => alpha.Value;
+                set => alpha.Value = value;
+            }
+
+            public float OriginalY
+            {
+                get => originalY.Value;
+                set => originalY.Value = value;
+            }
+
+            public float? DamageFlashTimer
+            {
+                get => hasDamageFlashTimer.Value ? damageFlashTimer.Value : null;
+                set
+                {
+                    hasDamageFlashTimer.Value = value.HasValue;
+                    if (value.HasValue)
+                        damageFlashTimer.Value = value.Value;
+                }
+            }
+
+            public CollisionSmoke? Smoke
+            {
+                get => hasSmoke.Value ? new CollisionSmoke(smokePosition.Value) : null;
+                set
+                {
+                    hasSmoke.Value = value.HasValue;
+                    if (value.HasValue)
+                        smokePosition.Value = value.Value.Position;
+                }
+            }
+
+            public bool HasDroppedEgg
+            {
+                get => hasDroppedEgg.Value;
+                set => hasDroppedEgg.Value = value;
+            }
+
+            // Computed properties
+            public Vector2 GetExitDirection => FacingLeft ? new Vector2(-1, 0) : new Vector2(1, 0);
+
+            public NetGrouse()
+            {
+                // Set owner before adding fields to avoid warnings
+                NetFields.SetOwner(this);
+
+                NetFields
+                    .AddField(grouseId)
+                    .AddField(location)
+                    .AddField(treePosition)
+                    .AddField(spawnPosition)
+                    .AddField(position)
+                    .AddField(velocity)
+                    .AddField(state)
+                    .AddField(stateTimer)
+                    .AddField(scale)
+                    .AddField(rotation)
+                    .AddField(flightHeight)
+                    .AddField(facingLeft)
+                    .AddField(flightTimer)
+                    .AddField(hasPlayedFlushSound)
+                    .AddField(hasBeenSpotted)
+                    .AddField(animationFrame)
+                    .AddField(animationTimer)
+                    .AddField(alpha)
+                    .AddField(originalY)
+                    .AddField(hasDamageFlashTimer)
+                    .AddField(damageFlashTimer)
+                    .AddField(hasSmoke)
+                    .AddField(smokePosition)
+                    .AddField(hasDroppedEgg);
+            }
+
+            public NetGrouse(int grouseId, string locationName, Vector2 treePosition, Vector2 spawnPosition, bool facingLeft) : this()
+            {
+                GrouseId = grouseId;
+                Location = locationName;
+                TreePosition = treePosition;
+                SpawnPosition = spawnPosition;
+                Position = spawnPosition;
+                Velocity = Vector2.Zero;
+                State = GrouseState.Perched;
+                StateTimer = 0f;
+                Scale = GrouseScale;
+                Rotation = 0f;
+                FlightHeight = 0f;
+                FlightTimer = 0f;
+                HasPlayedFlushSound = false;
+                HasBeenSpotted = false;
+                AnimationFrame = 0;
+                AnimationTimer = 0f;
+                Alpha = 1.0f;
+                OriginalY = spawnPosition.Y;
+                DamageFlashTimer = null;
+                Smoke = null;
+                HasDroppedEgg = false;
+            }
+
+            // Public functions
             public static int GetDeterministicId(int locationSeed, int daySeed, Vector2 treePosition)
             {
                 return (locationSeed.GetHashCode() ^ daySeed ^ (int)(treePosition.X * 1000 + treePosition.Y * 1000)) & 0x7FFFFFFF;
