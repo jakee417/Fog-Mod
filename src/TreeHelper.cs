@@ -2,12 +2,21 @@
 using Microsoft.Xna.Framework;
 using StardewValley;
 using StardewValley.TerrainFeatures;
+using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace FogMod
 {
     public static class TreeHelper
     {
+        private static Dictionary<string, Dictionary<Tuple<float, float>, Tree>> cache = new();
+
+        public static void ClearCache()
+        {
+            cache.Clear();
+        }
+
         public static Vector2 GetGrouseSpawnPosition(Tree tree)
         {
             Rectangle renderBounds = tree.getRenderBounds();
@@ -35,7 +44,10 @@ namespace FogMod
 
         public static List<Tree> GetAvailableTreePositions(GameLocation location)
         {
+            string locationKey = location.NameOrUniqueName;
+
             var availableTrees = new List<Tree>();
+            cache[locationKey] = new Dictionary<Tuple<float, float>, Tree>();
 
             if (location.terrainFeatures == null)
                 return availableTrees;
@@ -43,9 +55,27 @@ namespace FogMod
             foreach (var pair in location.terrainFeatures.Pairs)
             {
                 if (pair.Value is Tree tree && GetLegalTree(tree))
+                {
                     availableTrees.Add(tree);
+                    cache[locationKey].Add(Tuple.Create(tree.Tile.X, tree.Tile.Y), tree);
+                }
             }
             return availableTrees;
+        }
+
+        public static Tree GetTreeFromId(GameLocation location, Vector2 tile)
+        {
+            if (cache.TryGetValue(location.NameOrUniqueName, out var locationCache))
+            {
+                if (locationCache.TryGetValue(Tuple.Create(tile.X, tile.Y), out var tree))
+                    return tree;
+            }
+
+            // fall back in case location has not been cached
+            List<Tree> trees = GetAvailableTreePositions(location);
+            Tree result = trees.First(t => t.Tile == tile);
+            FogMod.Instance?.Monitor.Log($"Warning: Tree at {tile} in {location.NameOrUniqueName} was not found in cache.", StardewModdingAPI.LogLevel.Warn);
+            return result;
         }
     }
 }

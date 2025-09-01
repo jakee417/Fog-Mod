@@ -170,6 +170,7 @@ namespace FogMod
         {
             InitializeDailyFogStrength();
             InitializeGrouse();
+            TreeHelper.ClearCache();
         }
 
         private void OnUpdateTicked(object? sender, UpdateTickedEventArgs e)

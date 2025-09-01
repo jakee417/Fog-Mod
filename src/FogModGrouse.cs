@@ -244,6 +244,7 @@ namespace FogMod
         {
             g.State = GrouseState.Surprised;
             g.Velocity = Vector2.Zero;
+            PlayGrouseSurpriseSound(g);
         }
 
         private void KnockDownGrouse(NetGrouse g)
@@ -287,6 +288,11 @@ namespace FogMod
         {
             if (g.State == GrouseState.KnockedDown)
                 Game1.playSound("hitEnemy");
+        }
+
+        private void PlayGrouseSurpriseSound(NetGrouse g)
+        {
+            Game1.playSound("leafrustle");
         }
 
         private void DropFeatherAtImpact(Vector2 impactPosition, int grouseId)

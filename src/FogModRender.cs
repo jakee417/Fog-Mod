@@ -100,11 +100,43 @@ namespace FogMod
                 if (g.Location != Game1.currentLocation?.NameOrUniqueName)
                     continue;
 
-                DrawSingleGrouse(spriteBatch, g);
+                if (g.State == GrouseState.Perched)
+                    DrawPerchedGrouse(spriteBatch, g);
+                else
+                    DrawMovingGrouse(spriteBatch, g);
             }
         }
 
-        private void DrawSingleGrouse(SpriteBatch spriteBatch, NetGrouse g)
+        private void DrawPerchedGrouse(SpriteBatch spriteBatch, NetGrouse g)
+        {
+            if (grouseTexture == null || g.Alpha <= 0f)
+                return;
+
+            Vector2 screenPos = Game1.GlobalToLocal(Game1.viewport, g.Position);
+            screenPos.Y += g.FlightHeight;
+            SpriteEffects effects = g.FacingLeft ? SpriteEffects.None : SpriteEffects.FlipHorizontally;
+            int frameX = g.AnimationFrame;
+            Rectangle sourceRect = new Rectangle(
+                frameX * GrouseSpriteWidth,
+                0,
+                GrouseSpriteWidth,
+                7
+            );
+            Vector2 origin = new Vector2(GrouseSpriteWidth / 2f, GrouseSpriteHeight);
+            spriteBatch.Draw(
+                grouseTexture,
+                position: screenPos,
+                sourceRectangle: sourceRect,
+                color: Color.White * g.Alpha,
+                rotation: 0f,
+                origin: origin,
+                scale: g.Scale,
+                effects: effects,
+                layerDepth: 0.85f
+            );
+        }
+
+        private void DrawMovingGrouse(SpriteBatch spriteBatch, NetGrouse g)
         {
             if (grouseTexture == null || g.Alpha <= 0f)
                 return;
@@ -118,7 +150,6 @@ namespace FogMod
 
             switch (g.State)
             {
-                case GrouseState.Perched:
                 case GrouseState.Surprised:
                     frameX = g.AnimationFrame;
                     frameY = 0;

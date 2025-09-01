@@ -5,6 +5,8 @@ using StardewModdingAPI;
 using System.Collections.Generic;
 using Netcode;
 using System;
+using StardewValley.TerrainFeatures;
+using StardewValley;
 
 namespace FogMod
 {
@@ -268,7 +270,15 @@ namespace FogMod
 
             public float Alpha
             {
-                get => alpha.Value;
+                get
+                {
+                    if (State == GrouseState.Perched && Game1.currentLocation is GameLocation location)
+                    {
+                        Tree tree = TreeHelper.GetTreeFromId(location, TreePosition);
+                        return tree.alpha;
+                    }
+                    return alpha.Value;
+                }
                 set => alpha.Value = value;
             }
 
