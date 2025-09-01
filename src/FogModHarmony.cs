@@ -4,6 +4,7 @@ using StardewModdingAPI;
 using StardewValley;
 using StardewValley.Objects;
 using StardewValley.Projectiles;
+using StardewValley.TerrainFeatures;
 using System;
 
 namespace FogMod
@@ -89,7 +90,7 @@ namespace FogMod
         }
 
         // Projectile Update
-        private static void OnProjectileUpdatePostfix(Projectile __instance, GameLocation location)
+        private static void OnProjectileUpdatePostfix(Projectile __instance, GameTime time, GameLocation location)
         {
             try
             {
@@ -105,7 +106,7 @@ namespace FogMod
                 // Adjust for projectile scale.
                 projectilePos.X += 8f * 4f;
                 projectilePos.Y += 8f * 4f;
-                foreach (var grouse in FogMod.Instance.grouse)
+                foreach (NetGrouse grouse in FogMod.Instance.grouse)
                 {
                     if (grouse.State != GrouseState.Flushing && grouse.State != GrouseState.Flying)
                         continue;
@@ -124,6 +125,33 @@ namespace FogMod
             catch (Exception ex)
             {
                 FogMod.Instance?.Monitor.Log($"OnProjectileUpdatePostfix failed: {ex.Message}", LogLevel.Error);
+            }
+        }
+
+        // Tree Tool Action
+        private static void OnTreePerformToolActionPostfix(Tree __instance, Tool t, int explosion, Vector2 tileLocation)
+        {
+            try
+            {
+                if (FogMod.Instance == null || !FogMod.Instance.Config.EnableGrouseCritters)
+                    return;
+                Vector2 position = TreeHelper.GetTreePosition(__instance);
+                foreach (NetGrouse grouse in FogMod.Instance.grouse)
+                {
+                    if (grouse.State != GrouseState.Perched)
+                        continue;
+
+                    // TODO: Find a better way to find tree identity other than the tile.
+                    if (grouse.TreePosition == position)
+                    {
+                        FogMod.Instance.SurpriseGrouse(grouse);
+                        break;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                FogMod.Instance?.Monitor.Log($"OnTreePerformToolActionPostfix failed: {ex.Message}", LogLevel.Error);
             }
         }
     }

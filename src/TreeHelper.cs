@@ -25,11 +25,12 @@ namespace FogMod
 
         public static Vector2 GetTreePosition(Tree tree)
         {
-            Rectangle renderBounds = tree.getRenderBounds();
-            return new Vector2(
-                renderBounds.X + renderBounds.Width / 2f,
-                renderBounds.Y + renderBounds.Height
-            );
+            return tree.Tile;
+        }
+
+        private static bool GetLegalTree(Tree tree)
+        {
+            return tree.growthStage.Value >= Tree.treeStage && tree.stump.Value == false && tree.IsLeafy();
         }
 
         public static List<Tree> GetAvailableTreePositions(GameLocation location)
@@ -41,7 +42,7 @@ namespace FogMod
 
             foreach (var pair in location.terrainFeatures.Pairs)
             {
-                if (pair.Value is Tree tree && tree.growthStage.Value >= Tree.treeStage && tree.stump.Value == false)
+                if (pair.Value is Tree tree && GetLegalTree(tree))
                     availableTrees.Add(tree);
             }
             return availableTrees;

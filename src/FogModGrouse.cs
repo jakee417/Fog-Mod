@@ -87,7 +87,7 @@ namespace FogMod
                 switch (g.State)
                 {
                     case GrouseState.Perched:
-                        UpdateGrousePerched(g);
+                        // UpdateGrousePerched(g);
                         break;
 
                     case GrouseState.Surprised:
@@ -120,10 +120,7 @@ namespace FogMod
                 return;
 
             if (Vector2.Distance(g.Position, playerPos) < GrouseDetectionRadius)
-            {
-                g.State = GrouseState.Surprised;
-                g.Velocity = Vector2.Zero;
-            }
+                SurpriseGrouse(g);
         }
 
         private void UpdateGrouseSurprised(NetGrouse g, float deltaSeconds)
@@ -241,6 +238,12 @@ namespace FogMod
         {
             bool offscreen = (g.State == GrouseState.Flushing || g.State == GrouseState.Flying) && IsGrouseOffScreen(g);
             return offscreen || g.ReadyToBeRemoved;
+        }
+
+        private void SurpriseGrouse(NetGrouse g)
+        {
+            g.State = GrouseState.Surprised;
+            g.Velocity = Vector2.Zero;
         }
 
         private void KnockDownGrouse(NetGrouse g)

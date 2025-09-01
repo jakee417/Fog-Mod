@@ -11,6 +11,7 @@ using HarmonyLib;
 using StardewValley.Objects;
 using System.Linq;
 using Netcode;
+using StardewValley.TerrainFeatures;
 
 namespace FogMod
 {
@@ -75,8 +76,12 @@ namespace FogMod
                 postfix: new HarmonyMethod(typeof(FogMod), nameof(ProceedToNextScenePostfix))
             );
             harmony.Patch(
-                original: AccessTools.Method(typeof(Projectile), nameof(Projectile.update)),
+                original: AccessTools.Method(typeof(Projectile), nameof(Projectile.update), new Type[] { typeof(GameTime), typeof(GameLocation) }),
                 postfix: new HarmonyMethod(typeof(FogMod), nameof(OnProjectileUpdatePostfix))
+            );
+            harmony.Patch(
+                original: AccessTools.Method(typeof(Tree), nameof(Tree.performToolAction), new Type[] { typeof(Tool), typeof(int), typeof(Vector2) }),
+                postfix: new HarmonyMethod(typeof(FogMod), nameof(OnTreePerformToolActionPostfix))
             );
         }
 
