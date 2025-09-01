@@ -22,7 +22,6 @@ namespace FogMod
         public Random Random = new Random();
         private static readonly Vector2 globalWindDirection = new Vector2(WeatherDebris.globalWind, 0f);
         private static readonly Color DefaultFogColor = Color.LightGray;
-        public GenericModConfigMenu.IGenericModConfigMenuApi? gmcmApi { get; set; }
         internal static FogMod? Instance;
         private bool isFogDay = false;
         private float probabilityOfFogForADay = 0.05f;
