@@ -199,7 +199,11 @@ namespace FogMod
             public GrouseState State
             {
                 get => state.Value;
-                set => state.Value = value;
+                set
+                {
+                    state.Value = value;
+                    ResetStateAnimations();
+                }
             }
 
             public float StateTimer
@@ -266,6 +270,11 @@ namespace FogMod
             {
                 get => alpha.Value;
                 set => alpha.Value = value;
+            }
+
+            public bool ReadyToBeRemoved
+            {
+                get => alpha.Value <= 0f;
             }
 
             public float OriginalY
@@ -363,9 +372,30 @@ namespace FogMod
             }
 
             // Public functions
-            public static int GetDeterministicId(int locationSeed, int daySeed, Vector2 treePosition)
+            public static int GetDeterministicId(int locationSeed, int daySeed, Vector2 treePosition, int? salt)
             {
-                return (locationSeed.GetHashCode() ^ daySeed ^ (int)(treePosition.X * 1000 + treePosition.Y * 1000)) & 0x7FFFFFFF;
+                int baseId = (locationSeed.GetHashCode() ^ daySeed ^ (int)(treePosition.X * 1000 + treePosition.Y * 1000)) & 0x7FFFFFFF;
+                return salt.HasValue ? baseId ^ salt.Value : baseId;
+            }
+
+            public void ResetStateAnimations()
+            {
+                StateTimer = 0f;
+                AnimationTimer = 0f;
+            }
+
+            public float ComputeAnimationSpeed()
+            {
+                float animationSpeed = State switch
+                {
+                    GrouseState.Perched => 0.5f,
+                    GrouseState.Surprised => 3f,
+                    GrouseState.Flushing => 36f,
+                    GrouseState.Flying => 12f,
+                    GrouseState.KnockedDown => 0f, // No animation when knocked down
+                    _ => 1f
+                };
+                return animationSpeed;
             }
         }
 

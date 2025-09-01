@@ -120,13 +120,16 @@ namespace FogMod
             {
                 case GrouseState.Perched:
                 case GrouseState.Surprised:
-                case GrouseState.KnockedDown:
                     frameX = g.AnimationFrame;
                     frameY = 0;
                     break;
                 case GrouseState.Flushing:
                 case GrouseState.Flying:
                     frameX = NetGrouse.wingPattern[g.AnimationFrame % NetGrouse.wingPattern.Length];
+                    frameY = 1;
+                    break;
+                case GrouseState.KnockedDown:
+                    frameX = g.AnimationFrame;
                     frameY = 1;
                     break;
             }

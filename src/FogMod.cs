@@ -264,7 +264,13 @@ namespace FogMod
                 Vector2 playerPosition = Game1.player.getStandingPosition();
                 FarmerHelper.raiseHands(Game1.player);
                 Vector2 spawnPosition = playerPosition + new Vector2(0, -Game1.player.FarmerSprite.SpriteHeight * 2.5f);
-                SpawnGrouse(spawnPosition, spawnPosition, Game1.currentLocation.NameOrUniqueName);
+                int salt = (int)Random.NextInt64();
+                SpawnGrouse(
+                    treePosition: spawnPosition,
+                    spawnPosition: spawnPosition,
+                    locationName: Game1.currentLocation.NameOrUniqueName,
+                    salt: salt
+                );
                 Game1.addHUDMessage(new HUDMessage("Grouse Released!", 2));
             }
         }

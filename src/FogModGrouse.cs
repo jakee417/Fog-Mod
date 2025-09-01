@@ -51,19 +51,20 @@ namespace FogMod
                 {
                     Vector2 treePosition = TreeHelper.GetTreePosition(tree);
                     Vector2 spawnPosition = TreeHelper.GetGrouseSpawnPosition(tree);
-                    SpawnGrouse(treePosition, spawnPosition, locationName);
+                    SpawnGrouse(treePosition, spawnPosition, locationName, null);
                     grouseCount++;
                 }
             }
             return grouseCount;
         }
 
-        private void SpawnGrouse(Vector2 treePosition, Vector2 spawnPosition, string locationName)
+        private void SpawnGrouse(Vector2 treePosition, Vector2 spawnPosition, string locationName, int? salt)
         {
             int grouseId = NetGrouse.GetDeterministicId(
                 locationSeed: locationName.GetHashCode(),
                 daySeed: (int)Game1.stats.DaysPlayed,
-                treePosition: treePosition
+                treePosition: treePosition,
+                salt: salt
             );
             if (grouse.Any(g => g.GrouseId == grouseId))
                 return;
@@ -108,18 +109,19 @@ namespace FogMod
                 g.Position += g.Velocity * deltaSeconds;
                 UpdateGrouseAnimation(g, deltaSeconds);
             }
-
-            // Cleanup grouse
             grouse.RemoveWhere(RemoveGrouse);
         }
 
         private void UpdateGrousePerched(NetGrouse g)
         {
             Vector2 playerPos = Game1.player.getStandingPosition();
+
+            if (Game1.isWarping || Game1.fadeToBlack || Game1.globalFade)
+                return;
+
             if (Vector2.Distance(g.Position, playerPos) < GrouseDetectionRadius)
             {
                 g.State = GrouseState.Surprised;
-                g.StateTimer = 0f;
                 g.Velocity = Vector2.Zero;
             }
         }
@@ -132,7 +134,6 @@ namespace FogMod
             {
                 // Transition to flushing after being surprised
                 g.State = GrouseState.Flushing;
-                g.StateTimer = 0f;
                 // The flying sprite is slightly smaller.
                 g.Scale *= 1.2f;
             }
@@ -145,7 +146,6 @@ namespace FogMod
             if (flushProgress >= 1f)
             {
                 g.State = GrouseState.Flying;
-                g.StateTimer = 0f;
                 g.FlightTimer = 0f;
                 g.Velocity = g.GetExitDirection * GrouseExitSpeed;
             }
@@ -206,42 +206,33 @@ namespace FogMod
         private void UpdateGrouseAnimation(NetGrouse g, float deltaSeconds)
         {
             g.AnimationTimer += deltaSeconds;
-            float animationSpeed = g.State switch
-            {
-                GrouseState.Perched => 0.5f,
-                GrouseState.Surprised => 4f,
-                GrouseState.Flushing => 36f,
-                GrouseState.Flying => 12f,
-                GrouseState.KnockedDown => 0f, // No animation when knocked down
-                _ => 1f
-            };
-
+            float animationSpeed = g.ComputeAnimationSpeed();
             if (animationSpeed > 0f && g.AnimationTimer >= 1f / animationSpeed)
             {
                 g.AnimationTimer = 0f;
-                if (g.State == GrouseState.Perched)
+                switch (g.State)
                 {
-                    // Cycle through top sitting: sitting left (0) → sitting left (1)
-                    g.AnimationFrame = (g.AnimationFrame + 1) % 2;
-                }
-                else if (g.State == GrouseState.Surprised)
-                {
-                    // Cycle through top row once: 0→1→2→3→4, then stay at 4
-                    if (g.HasBeenSpotted && g.AnimationFrame < 4)
-                    {
-                        g.AnimationFrame++;
-                        PlaySurpriseSound(g);
-                    }
-                }
-                else if (g.State == GrouseState.Flushing || g.State == GrouseState.Flying)
-                {
-                    // Smooth wing cycle: 0→1→2→3→2→1→0→1→2→3...
-                    g.AnimationFrame = (g.AnimationFrame + 1) % NetGrouse.wingPattern.Length;
-                    PlayWingBeatSound(g);
-                }
-                else if (g.State == GrouseState.KnockedDown)
-                {
-                    g.AnimationFrame = 2;
+                    case GrouseState.Perched:
+                        // Cycle through top sitting: sitting left (0) → sitting left (1)
+                        g.AnimationFrame = (g.AnimationFrame + 1) % 2;
+                        break;
+                    case GrouseState.Surprised:
+                        // Cycle through top row once: 0→1→2→3→4, then stay at 4
+                        if (g.HasBeenSpotted && g.AnimationFrame < 4)
+                        {
+                            g.AnimationFrame++;
+                            PlaySurpriseSound(g);
+                        }
+                        break;
+                    case GrouseState.Flushing:
+                    case GrouseState.Flying:
+                        // Smooth wing cycle: 0→1→2→3→2→1→0→1→2→3...
+                        g.AnimationFrame = (g.AnimationFrame + 1) % NetGrouse.wingPattern.Length;
+                        PlayWingBeatSound(g);
+                        break;
+                    case GrouseState.KnockedDown:
+                        g.AnimationFrame = 2;
+                        break;
                 }
             }
         }
@@ -249,14 +240,13 @@ namespace FogMod
         private bool RemoveGrouse(NetGrouse g)
         {
             bool offscreen = (g.State == GrouseState.Flushing || g.State == GrouseState.Flying) && IsGrouseOffScreen(g);
-            return offscreen || g.Alpha <= 0f;
+            return offscreen || g.ReadyToBeRemoved;
         }
 
         private void KnockDownGrouse(NetGrouse g)
         {
             g.State = GrouseState.KnockedDown;
-            g.StateTimer = 0f;
-            // Preserve the grouse's current momentum but add some downward force
+            g.AnimationFrame = 2;
             g.Velocity = new Vector2(g.Velocity.X * 0.8f, Math.Max(g.Velocity.Y + 100f, 150f));
             g.FlightHeight = 0f;
             g.Alpha = 1.0f;
@@ -266,8 +256,6 @@ namespace FogMod
             screenPosition.Y -= GrouseSpriteHeight * g.Scale / 2f;
             g.DamageFlashTimer = GrouseDamageFlashDuration;
             g.Smoke = new CollisionSmoke(position: screenPosition);
-
-            // Drop feather at impact point with random chance
             DropFeatherAtImpact(impactPosition, g.GrouseId);
             PlayGrouseKnockdownSound(g);
         }
