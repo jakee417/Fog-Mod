@@ -108,21 +108,21 @@ namespace FogMod
                 projectilePos.X += 8f * 4f;
                 projectilePos.Y += 8f * 4f;
 
-                if (FogMod.Instance.GetGrouseAtCurrentLocation() is NetCollection<NetGrouse> localGrouse)
+                if (FogMod.Instance.GetProjectilesAtCurrentLocation() is NetCollection<Projectile> projectiles)
                 {
-                    foreach (NetGrouse g in localGrouse)
+                    foreach (Projectile p in projectiles)
                     {
-                        if (g.State != GrouseState.Flushing && g.State != GrouseState.Flying)
-                            continue;
-
-                        Vector2 grousePos = g.Position;
-                        grousePos.Y += g.FlightHeight;
-                        grousePos.Y -= GrouseSpriteHeight * g.Scale / 2f;
-                        float distance = Vector2.Distance(projectilePos, grousePos);
-                        if (distance < GrouseCollisionRadius)
+                        if (p is NetGrouse g && (g.State == GrouseState.Flushing || g.State == GrouseState.Flying))
                         {
-                            FogMod.Instance.KnockDownGrouse(g);
-                            break;
+                            Vector2 grousePos = g.Position;
+                            grousePos.Y += g.FlightHeight;
+                            grousePos.Y -= GrouseSpriteHeight * g.Scale / 2f;
+                            float distance = Vector2.Distance(projectilePos, grousePos);
+                            if (distance < GrouseCollisionRadius)
+                            {
+                                FogMod.Instance.KnockDownGrouse(g);
+                                break;
+                            }
                         }
                     }
                 }
@@ -141,17 +141,17 @@ namespace FogMod
                 if (FogMod.Instance == null || !FogMod.Instance.Config.EnableGrouseCritters)
                     return;
                 Vector2 position = TreeHelper.GetTreePosition(__instance);
-                if (FogMod.Instance.GetGrouseAtCurrentLocation() is NetCollection<NetGrouse> localGrouse)
-                    foreach (NetGrouse g in localGrouse)
+                if (FogMod.Instance.GetProjectilesAtCurrentLocation() is NetCollection<Projectile> projectiles)
+                    foreach (NetGrouse p in projectiles)
                     {
-                        if (g.State != GrouseState.Perched)
-                            continue;
-
-                        // TODO: Find a better way to find tree identity other than the tile.
-                        if (g.TreePosition == position)
+                        if (p is NetGrouse g && g.State == GrouseState.Perched)
                         {
-                            FogMod.Instance.SurpriseGrouse(g);
-                            break;
+                            // TODO: Find a better way to find tree identity other than the tile.
+                            if (g.TreePosition == position)
+                            {
+                                FogMod.Instance.SurpriseGrouse(g);
+                                break;
+                            }
                         }
                     }
             }

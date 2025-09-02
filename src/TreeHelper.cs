@@ -63,7 +63,7 @@ namespace FogMod
             return availableTrees;
         }
 
-        public static Tree GetTreeFromId(GameLocation location, Vector2 tile)
+        public static Tree? GetTreeFromId(GameLocation location, Vector2 tile)
         {
             if (cache.TryGetValue(location.NameOrUniqueName, out var locationCache))
             {
@@ -73,8 +73,7 @@ namespace FogMod
 
             // fall back in case location has not been cached
             List<Tree> trees = GetAvailableTreePositions(location);
-            Tree result = trees.First(t => t.Tile == tile);
-            FogMod.Instance?.Monitor.Log($"Warning: Tree at {tile} in {location.NameOrUniqueName} was not found in cache.", StardewModdingAPI.LogLevel.Warn);
+            Tree? result = trees.FirstOrDefault(t => t.Tile == tile);
             return result;
         }
     }

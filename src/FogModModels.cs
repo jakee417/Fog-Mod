@@ -6,9 +6,8 @@ using System.Collections.Generic;
 using Netcode;
 using System;
 using StardewValley.TerrainFeatures;
-using StardewValley.Mods;
 using StardewValley;
-using StardewValley.Network;
+using StardewValley.Projectiles;
 
 namespace FogMod
 {
@@ -116,45 +115,31 @@ namespace FogMod
             }
         }
 
-        public class NetGrouse : INetObject<NetFields>, IHaveModData
+        public class NetGrouse : Projectile
         {
             // Static variables
             public static readonly int[] wingPattern = { 0, 1, 2, 3, 4, 3, 2, 1 };
 
-            public ModDataDictionary modData { get; } = new ModDataDictionary();
-
-            public ModDataDictionary modDataForSerialization
-            {
-                get
-                {
-                    return modData.GetForSerialization();
-                }
-                set
-                {
-                    modData.SetFromSerialization(value);
-                }
-            }
-
-            public NetFields NetFields { get; } = new NetFields("grouse");
+            // public NetFields NetFields { get; } = new NetFields("grouse");
 
             public readonly NetInt grouseId = new NetInt();
             public readonly NetString location = new NetString();
             public readonly NetVector2 treePosition = new NetVector2();
             public readonly NetVector2 spawnPosition = new NetVector2();
-            public readonly NetPosition position = new NetPosition();
+            public readonly NetBool launchedByFarmer = new NetBool();
             public readonly NetVector2 velocity = new NetVector2();
             public readonly NetEnum<GrouseState> state = new NetEnum<GrouseState>();
             public readonly NetFloat stateTimer = new NetFloat();
             public readonly NetFloat scale = new NetFloat();
-            public readonly NetFloat rotation = new NetFloat();
             public readonly NetFloat flightHeight = new NetFloat();
             public readonly NetBool facingLeft = new NetBool();
             public readonly NetFloat flightTimer = new NetFloat();
             public readonly NetBool hasPlayedFlushSound = new NetBool();
             public readonly NetBool hasBeenSpotted = new NetBool();
+            public readonly NetInt totalCycles = new NetInt();
             public readonly NetInt animationFrame = new NetInt();
             public readonly NetFloat animationTimer = new NetFloat();
-            public readonly NetFloat alpha = new NetFloat();
+            public readonly NetBool isHiding = new NetBool();
             public readonly NetFloat originalY = new NetFloat();
             public readonly NetBool hasDamageFlashTimer = new NetBool();
             public readonly NetFloat damageFlashTimer = new NetFloat();
@@ -186,6 +171,12 @@ namespace FogMod
             {
                 get => spawnPosition.Value;
                 private set => spawnPosition.Value = value;
+            }
+
+            public bool LaunchedByFarmer
+            {
+                get => launchedByFarmer.Value;
+                private set => launchedByFarmer.Value = value;
             }
 
             // Mutable properties - can be changed during gameplay
@@ -225,8 +216,8 @@ namespace FogMod
 
             public float Rotation
             {
-                get => rotation.Value;
-                set => rotation.Value = value;
+                get => rotation;
+                set => rotation = value;
             }
 
             public float FlightHeight
@@ -259,6 +250,12 @@ namespace FogMod
                 set => hasBeenSpotted.Value = value;
             }
 
+            public int TotalCycles
+            {
+                get => totalCycles.Value;
+                set => totalCycles.Value = value;
+            }
+
             public int AnimationFrame
             {
                 get => animationFrame.Value;
@@ -271,14 +268,20 @@ namespace FogMod
                 set => animationTimer.Value = value;
             }
 
+            public bool IsHiding
+            {
+                get => isHiding.Value;
+                set => isHiding.Value = value;
+            }
+
             public float Alpha
             {
                 get
                 {
                     if (State == GrouseState.Perched && Game1.currentLocation is GameLocation location)
                     {
-                        Tree tree = TreeHelper.GetTreeFromId(location, TreePosition);
-                        return tree.alpha;
+                        Tree? tree = TreeHelper.GetTreeFromId(location, TreePosition);
+                        return tree?.alpha ?? alpha.Value;
                     }
                     return alpha.Value;
                 }
@@ -328,27 +331,29 @@ namespace FogMod
             public Vector2 GetExitDirection => FacingLeft ? new Vector2(-1, 0) : new Vector2(1, 0);
 
             // Constructors
-            protected void initNetFields()
+            protected override void InitNetFields()
             {
+                base.InitNetFields();
                 NetFields
                     .SetOwner(this)
                     .AddField(grouseId, "grouseId")
                     .AddField(location, "location")
                     .AddField(treePosition, "treePosition")
                     .AddField(spawnPosition, "spawnPosition")
-                    .AddField(position.NetFields, "position")
+                    .AddField(launchedByFarmer, "launchedByFarmer")
                     .AddField(velocity, "velocity")
                     .AddField(state, "state")
                     .AddField(stateTimer, "stateTimer")
                     .AddField(scale, "scale")
-                    .AddField(rotation, "rotation")
                     .AddField(flightHeight, "flightHeight")
                     .AddField(facingLeft, "facingLeft")
                     .AddField(flightTimer, "flightTimer")
                     .AddField(hasPlayedFlushSound, "hasPlayedFlushSound")
                     .AddField(hasBeenSpotted, "hasBeenSpotted")
+                    .AddField(totalCycles, "totalCycles")
                     .AddField(animationFrame, "animationFrame")
                     .AddField(animationTimer, "animationTimer")
+                    .AddField(isHiding, "isHiding")
                     .AddField(alpha, "alpha")
                     .AddField(originalY, "originalY")
                     .AddField(hasDamageFlashTimer, "hasDamageFlashTimer")
@@ -361,30 +366,32 @@ namespace FogMod
 
             public NetGrouse()
             {
-                initNetFields();
+                InitNetFields();
                 Velocity = Vector2.Zero;
                 State = GrouseState.Perched;
                 StateTimer = 0f;
                 Scale = GrouseScale;
-                Rotation = 0f;
                 FlightHeight = 0f;
                 FlightTimer = 0f;
                 HasPlayedFlushSound = false;
                 HasBeenSpotted = false;
                 AnimationFrame = 0;
                 AnimationTimer = 0f;
+                IsHiding = false;
                 Alpha = 1.0f;
                 DamageFlashTimer = null;
                 Smoke = null;
                 HasDroppedEgg = false;
+                TotalCycles = 0;
             }
 
-            public NetGrouse(int grouseId, string locationName, Vector2 treePosition, Vector2 spawnPosition, bool facingLeft) : this()
+            public NetGrouse(int grouseId, string locationName, Vector2 treePosition, Vector2 spawnPosition, bool facingLeft, bool launchedByFarmer) : this()
             {
                 GrouseId = grouseId;
                 Location = locationName;
                 TreePosition = treePosition;
                 SpawnPosition = spawnPosition;
+                LaunchedByFarmer = launchedByFarmer;
                 Position = spawnPosition;
                 FacingLeft = facingLeft;
                 OriginalY = spawnPosition.Y;
@@ -415,6 +422,59 @@ namespace FogMod
                     _ => 1f
                 };
                 return animationSpeed;
+            }
+
+            // Nerf the projectile built-in functions to make sure we have no side effects.
+            public override void behaviorOnCollisionWithPlayer(GameLocation location, Farmer player)
+            { }
+
+            public override void behaviorOnCollisionWithTerrainFeature(TerrainFeature t, Vector2 tileLocation, GameLocation location)
+            { }
+
+            public override void behaviorOnCollisionWithOther(GameLocation location)
+            { }
+
+            public override void behaviorOnCollisionWithMonster(NPC n, GameLocation location)
+            { }
+
+            public override void updatePosition(GameTime time)
+            { }
+
+            public override bool update(GameTime time, GameLocation location)
+            {
+                return false;
+            }
+
+            protected override bool ShouldApplyCollisionLocally(GameLocation location)
+            {
+                return false;
+            }
+
+            protected override void updateTail(GameTime time)
+            { }
+
+            public override bool isColliding(GameLocation location, out Character target, out TerrainFeature terrainFeature)
+            {
+                target = null!;
+                terrainFeature = null!;
+                return false;
+            }
+
+            public override Rectangle getBoundingBox()
+            {
+                int width = (int)(GrouseSpriteWidth * Scale);
+                int height = (int)(GrouseSpriteHeight * Scale);
+                return new Rectangle(
+                    (int)(Position.X - width / 2),
+                    (int)(Position.Y - height / 2),
+                    width,
+                    height
+                );
+            }
+
+            public override void draw(SpriteBatch b)
+            {
+                FogMod.Instance?.DrawSingleGrouse(spriteBatch: b, g: this);
             }
         }
 

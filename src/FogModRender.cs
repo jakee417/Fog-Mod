@@ -92,24 +92,17 @@ namespace FogMod
             spriteBatch.Draw(whitePixel, full, flashColor * 0.25f * flashInfo.TimeLeft);
         }
 
-        private void DrawGrouse(SpriteBatch spriteBatch)
+        private void DrawSingleGrouse(SpriteBatch spriteBatch, NetGrouse g)
         {
-            if (GetGrouseAtCurrentLocation() is NetCollection<NetGrouse> localGrouse)
-            {
-                foreach (var g in localGrouse)
-                {
-                    if (g.State == GrouseState.Perched)
-                        DrawPerchedGrouse(spriteBatch, g);
-                    else
-                        DrawMovingGrouse(spriteBatch, g);
-                }
-
-            }
+            if (g.State == GrouseState.Perched)
+                DrawPerchedGrouse(spriteBatch, g);
+            else
+                DrawMovingGrouse(spriteBatch, g);
         }
 
         private void DrawPerchedGrouse(SpriteBatch spriteBatch, NetGrouse g)
         {
-            if (grouseTexture == null || g.Alpha <= 0f)
+            if (grouseTexture == null || g.Alpha <= 0f || g.IsHiding)
                 return;
 
             Vector2 screenPos = Game1.GlobalToLocal(Game1.viewport, g.Position);

@@ -12,6 +12,7 @@ using StardewValley.Objects;
 using System.Linq;
 using Netcode;
 using StardewValley.TerrainFeatures;
+using xTile.Dimensions;
 
 namespace FogMod
 {
@@ -44,7 +45,6 @@ namespace FogMod
         private float dailyFogStrength = 0f;
         private float lastWeatherFogIntensityFactor = 1f;
         private GameLocation? lastLocation = null;
-        private Dictionary<string, FoggyLocation> grouse = new Dictionary<string, FoggyLocation>();
         private readonly IEnumerable<GameLocation> outdoorLocations = Game1.locations.Where(loc => loc.IsOutdoors);
 
         public override void Entry(IModHelper helper)
@@ -222,8 +222,6 @@ namespace FogMod
 
             Color fogColor = GetEffectiveFogColor();
 
-            if (Config.EnableGrouseCritters && Game1.currentLocation.IsOutdoors)
-                DrawGrouse(e.SpriteBatch);
 
             DrawExplosionFlashes(e.SpriteBatch);
             DrawExplosionSmokeParticles(e.SpriteBatch, fogColor);
@@ -266,19 +264,21 @@ namespace FogMod
             // Debug hotkey: G to spawn grouse at main player's location.
             if (e.Button == SButton.G && Config.EnableGrouseCritters && Game1.currentLocation.IsOutdoors && Context.IsMainPlayer)
             {
-                if (GetGrouseAtCurrentLocation() is NetCollection<NetGrouse> localGrouse)
+                if (GetProjectilesAtCurrentLocation() is NetCollection<Projectile> projectiles)
                 {
                     Vector2 playerPosition = Game1.player.getStandingPosition();
                     FarmerHelper.raiseHands(Game1.player);
                     Vector2 spawnPosition = playerPosition + new Vector2(0, -Game1.player.FarmerSprite.SpriteHeight * 2.5f);
                     int salt = (int)Random.NextInt64();
-                    SpawnGrouse(
-                        localGrouse: localGrouse,
+                    NetGrouse g = SpawnGrouse(
+                        projectiles: projectiles,
                         treePosition: spawnPosition,
                         spawnPosition: spawnPosition,
                         locationName: Game1.currentLocation.NameOrUniqueName,
-                        salt: salt
+                        salt: salt,
+                        launchedByFarmer: true
                     );
+                    SurpriseGrouse(g);
                     Game1.addHUDMessage(new HUDMessage("Grouse Released!", 2));
                 }
 
