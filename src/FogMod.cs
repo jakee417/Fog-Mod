@@ -44,7 +44,7 @@ namespace FogMod
         private float dailyFogStrength = 0f;
         private float lastWeatherFogIntensityFactor = 1f;
         private GameLocation? lastLocation = null;
-        private Dictionary<string, NetCollection<NetGrouse>> grouse = new Dictionary<string, NetCollection<NetGrouse>>();
+        private Dictionary<string, FoggyLocation> grouse = new Dictionary<string, FoggyLocation>();
         private readonly IEnumerable<GameLocation> outdoorLocations = Game1.locations.Where(loc => loc.IsOutdoors);
 
         public override void Entry(IModHelper helper)
@@ -169,8 +169,8 @@ namespace FogMod
         private void OnDayStarted(object? sender, DayStartedEventArgs e)
         {
             InitializeDailyFogStrength();
-            InitializeGrouse();
             TreeHelper.ClearCache();
+            InitializeGrouse();
         }
 
         private void OnUpdateTicked(object? sender, UpdateTickedEventArgs e)
@@ -266,17 +266,22 @@ namespace FogMod
             // Debug hotkey: G to spawn grouse at main player's location.
             if (e.Button == SButton.G && Config.EnableGrouseCritters && Game1.currentLocation.IsOutdoors && Context.IsMainPlayer)
             {
-                Vector2 playerPosition = Game1.player.getStandingPosition();
-                FarmerHelper.raiseHands(Game1.player);
-                Vector2 spawnPosition = playerPosition + new Vector2(0, -Game1.player.FarmerSprite.SpriteHeight * 2.5f);
-                int salt = (int)Random.NextInt64();
-                SpawnGrouse(
-                    treePosition: spawnPosition,
-                    spawnPosition: spawnPosition,
-                    locationName: Game1.currentLocation.NameOrUniqueName,
-                    salt: salt
-                );
-                Game1.addHUDMessage(new HUDMessage("Grouse Released!", 2));
+                if (GetGrouseAtCurrentLocation() is NetCollection<NetGrouse> localGrouse)
+                {
+                    Vector2 playerPosition = Game1.player.getStandingPosition();
+                    FarmerHelper.raiseHands(Game1.player);
+                    Vector2 spawnPosition = playerPosition + new Vector2(0, -Game1.player.FarmerSprite.SpriteHeight * 2.5f);
+                    int salt = (int)Random.NextInt64();
+                    SpawnGrouse(
+                        localGrouse: localGrouse,
+                        treePosition: spawnPosition,
+                        spawnPosition: spawnPosition,
+                        locationName: Game1.currentLocation.NameOrUniqueName,
+                        salt: salt
+                    );
+                    Game1.addHUDMessage(new HUDMessage("Grouse Released!", 2));
+                }
+
             }
         }
     }

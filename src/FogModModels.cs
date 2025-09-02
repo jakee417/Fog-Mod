@@ -137,30 +137,30 @@ namespace FogMod
 
             public NetFields NetFields { get; } = new NetFields("grouse");
 
-            private readonly NetInt grouseId = new NetInt();
-            private readonly NetString location = new NetString();
-            private readonly NetVector2 treePosition = new NetVector2();
-            private readonly NetVector2 spawnPosition = new NetVector2();
-            private readonly NetPosition position = new NetPosition();
-            private readonly NetVector2 velocity = new NetVector2();
-            private readonly NetEnum<GrouseState> state = new NetEnum<GrouseState>();
-            private readonly NetFloat stateTimer = new NetFloat();
-            private readonly NetFloat scale = new NetFloat();
-            private readonly NetFloat rotation = new NetFloat();
-            private readonly NetFloat flightHeight = new NetFloat();
-            private readonly NetBool facingLeft = new NetBool();
-            private readonly NetFloat flightTimer = new NetFloat();
-            private readonly NetBool hasPlayedFlushSound = new NetBool();
-            private readonly NetBool hasBeenSpotted = new NetBool();
-            private readonly NetInt animationFrame = new NetInt();
-            private readonly NetFloat animationTimer = new NetFloat();
-            private readonly NetFloat alpha = new NetFloat();
-            private readonly NetFloat originalY = new NetFloat();
-            private readonly NetBool hasDamageFlashTimer = new NetBool();
-            private readonly NetFloat damageFlashTimer = new NetFloat();
-            private readonly NetBool hasSmoke = new NetBool();
-            private readonly NetVector2 smokePosition = new NetVector2();
-            private readonly NetBool hasDroppedEgg = new NetBool();
+            public readonly NetInt grouseId = new NetInt();
+            public readonly NetString location = new NetString();
+            public readonly NetVector2 treePosition = new NetVector2();
+            public readonly NetVector2 spawnPosition = new NetVector2();
+            public readonly NetPosition position = new NetPosition();
+            public readonly NetVector2 velocity = new NetVector2();
+            public readonly NetEnum<GrouseState> state = new NetEnum<GrouseState>();
+            public readonly NetFloat stateTimer = new NetFloat();
+            public readonly NetFloat scale = new NetFloat();
+            public readonly NetFloat rotation = new NetFloat();
+            public readonly NetFloat flightHeight = new NetFloat();
+            public readonly NetBool facingLeft = new NetBool();
+            public readonly NetFloat flightTimer = new NetFloat();
+            public readonly NetBool hasPlayedFlushSound = new NetBool();
+            public readonly NetBool hasBeenSpotted = new NetBool();
+            public readonly NetInt animationFrame = new NetInt();
+            public readonly NetFloat animationTimer = new NetFloat();
+            public readonly NetFloat alpha = new NetFloat();
+            public readonly NetFloat originalY = new NetFloat();
+            public readonly NetBool hasDamageFlashTimer = new NetBool();
+            public readonly NetFloat damageFlashTimer = new NetFloat();
+            public readonly NetBool hasSmoke = new NetBool();
+            public readonly NetVector2 smokePosition = new NetVector2();
+            public readonly NetBool hasDroppedEgg = new NetBool();
 
             // Property wrappers for clean access (following SDV pattern)
             // Immutable properties - can only be set during construction
@@ -374,7 +374,6 @@ namespace FogMod
                 AnimationFrame = 0;
                 AnimationTimer = 0f;
                 Alpha = 1.0f;
-                OriginalY = spawnPosition.Y;
                 DamageFlashTimer = null;
                 Smoke = null;
                 HasDroppedEgg = false;
@@ -388,6 +387,7 @@ namespace FogMod
                 SpawnPosition = spawnPosition;
                 Position = spawnPosition;
                 FacingLeft = facingLeft;
+                OriginalY = spawnPosition.Y;
             }
 
             // Public functions
