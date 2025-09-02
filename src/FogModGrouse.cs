@@ -254,9 +254,18 @@ namespace FogMod
                         // Determine hiding state - vary per bird
                         int hideCycle = (g.TotalCycles + g.GrouseId) % 10;
                         bool wasHiding = g.IsHiding;
-                        g.IsHiding = hideCycle >= 4;
-                        if (wasHiding != g.IsHiding && !IsGrouseOffScreen(g))
-                            PlayHideNoise(g);
+                        bool shouldHide = hideCycle >= 4;
+
+                        // Start transition if hiding state changed
+                        if (wasHiding != shouldHide)
+                        {
+                            g.IsTransitioning = true;
+                            g.HideTransitionProgress = 0f;
+                            if (!IsGrouseOffScreen(g))
+                                PlayHideNoise(g);
+                        }
+
+                        g.IsHiding = shouldHide;
                         break;
                     case GrouseState.Surprised:
                         // Cycle through top row once: 0→1→2→3→4, then stay at 4
@@ -277,6 +286,22 @@ namespace FogMod
                         break;
                 }
                 g.TotalCycles++;
+            }
+
+            // Update hide/show transition if needed
+            if (g.IsTransitioning)
+            {
+                switch (g.State)
+                {
+                    case GrouseState.Perched:
+                        g.HideTransitionProgress += deltaSeconds / GrouseTransitionDuration;
+                        if (g.HideTransitionProgress >= 1f)
+                        {
+                            g.HideTransitionProgress = 1f;
+                            g.IsTransitioning = false;
+                        }
+                        break;
+                }
             }
         }
 

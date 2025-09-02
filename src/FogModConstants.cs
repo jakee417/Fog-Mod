@@ -45,6 +45,7 @@ namespace FogMod
         private const int GrouseMaxPerLocation = 3;
         private const int GrouseSpriteWidth = 16;
         private const int GrouseSpriteHeight = 16;
+        private const float GrouseTransitionDuration = 0.3f;
         private const float SurprisedSpriteScale = 4f;
         private const float GrouseCollisionRadius = 32f;
         private const float GrouseFallDistance = 128f;

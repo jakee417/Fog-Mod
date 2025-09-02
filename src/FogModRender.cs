@@ -102,18 +102,41 @@ namespace FogMod
 
         private void DrawPerchedGrouse(SpriteBatch spriteBatch, NetGrouse g)
         {
-            if (grouseTexture == null || g.Alpha <= 0f || g.IsHiding)
+            if (grouseTexture == null || g.Alpha <= 0f)
+                return;
+
+            // Calculate hide/show animation
+            float hideProgress = g.IsHiding ? 1f : 0f;
+            if (g.IsTransitioning)
+            {
+                hideProgress = g.IsHiding ? g.HideTransitionProgress : (1f - g.HideTransitionProgress);
+            }
+
+            // If completely hidden, don't draw
+            if (hideProgress >= 1f)
                 return;
 
             Vector2 screenPos = Game1.GlobalToLocal(Game1.viewport, g.Position);
             screenPos.Y += g.FlightHeight;
+
+            // Calculate vertical offset and sprite height based on hide progress
+            const int maxSpriteHeight = 7;  // Full grouse sprite height
+            const float popUpDistance = 8f;  // How far up the grouse pops when appearing
+
+            // Interpolate sprite height and position
+            float currentSpriteHeight = MathHelper.Lerp(maxSpriteHeight, 0f, hideProgress);
+            float verticalOffset = MathHelper.Lerp(-popUpDistance, 0f, hideProgress);
+
+            // Apply vertical offset to screen position
+            screenPos.Y += verticalOffset;
+
             SpriteEffects effects = g.FacingLeft ? SpriteEffects.None : SpriteEffects.FlipHorizontally;
-            int frameX = g.AnimationFrame;
+            int frameX = g.AnimationFrame % 2;
             Rectangle sourceRect = new Rectangle(
                 frameX * GrouseSpriteWidth,
                 0,
                 GrouseSpriteWidth,
-                7
+                (int)Math.Max(1, currentSpriteHeight)
             );
             Vector2 origin = new Vector2(GrouseSpriteWidth / 2f, GrouseSpriteHeight);
             spriteBatch.Draw(

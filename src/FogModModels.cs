@@ -146,6 +146,8 @@ namespace FogMod
             public readonly NetBool hasSmoke = new NetBool();
             public readonly NetVector2 smokePosition = new NetVector2();
             public readonly NetBool hasDroppedEgg = new NetBool();
+            public readonly NetFloat hideTransitionProgress = new NetFloat();
+            public readonly NetBool isTransitioning = new NetBool();
 
             // Property wrappers for clean access (following SDV pattern)
             // Immutable properties - can only be set during construction
@@ -327,6 +329,18 @@ namespace FogMod
                 set => hasDroppedEgg.Value = value;
             }
 
+            public float HideTransitionProgress
+            {
+                get => hideTransitionProgress.Value;
+                set => hideTransitionProgress.Value = value;
+            }
+
+            public bool IsTransitioning
+            {
+                get => isTransitioning.Value;
+                set => isTransitioning.Value = value;
+            }
+
             // Computed properties
             public Vector2 GetExitDirection => FacingLeft ? new Vector2(-1, 0) : new Vector2(1, 0);
 
@@ -361,6 +375,8 @@ namespace FogMod
                     .AddField(hasSmoke, "hasSmoke")
                     .AddField(smokePosition, "smokePosition")
                     .AddField(hasDroppedEgg, "hasDroppedEgg")
+                    .AddField(hideTransitionProgress, "hideTransitionProgress")
+                    .AddField(isTransitioning, "isTransitioning")
                     .AddField(modData, "modData");
             }
 
@@ -382,6 +398,8 @@ namespace FogMod
                 DamageFlashTimer = null;
                 Smoke = null;
                 HasDroppedEgg = false;
+                HideTransitionProgress = 0f;
+                IsTransitioning = false;
                 TotalCycles = 0;
             }
 
