@@ -44,7 +44,7 @@ namespace FogMod
         private float dailyFogStrength = 0f;
         private float lastWeatherFogIntensityFactor = 1f;
         private GameLocation? lastLocation = null;
-        private NetCollection<NetGrouse> grouse = new NetCollection<NetGrouse>();
+        private Dictionary<string, NetCollection<NetGrouse>> grouse = new Dictionary<string, NetCollection<NetGrouse>>();
         private readonly IEnumerable<GameLocation> outdoorLocations = Game1.locations.Where(loc => loc.IsOutdoors);
 
         public override void Entry(IModHelper helper)

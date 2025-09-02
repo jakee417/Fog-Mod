@@ -4,7 +4,9 @@ using Microsoft.Xna.Framework.Graphics;
 using StardewModdingAPI;
 using StardewValley;
 using System;
+using Netcode;
 using System.Linq;
+using System.Collections.Generic;
 
 namespace FogMod
 {
@@ -92,18 +94,16 @@ namespace FogMod
 
         private void DrawGrouse(SpriteBatch spriteBatch)
         {
-            if (grouse.Count == 0)
-                return;
-
-            foreach (var g in grouse)
+            if (GetGrouseAtCurrentLocation() is NetCollection<NetGrouse> localGrouse)
             {
-                if (g.Location != Game1.currentLocation?.NameOrUniqueName)
-                    continue;
+                foreach (var g in localGrouse)
+                {
+                    if (g.State == GrouseState.Perched)
+                        DrawPerchedGrouse(spriteBatch, g);
+                    else
+                        DrawMovingGrouse(spriteBatch, g);
+                }
 
-                if (g.State == GrouseState.Perched)
-                    DrawPerchedGrouse(spriteBatch, g);
-                else
-                    DrawMovingGrouse(spriteBatch, g);
             }
         }
 
@@ -239,11 +239,12 @@ namespace FogMod
             string grouseInfo = "";
             if (Config.EnableGrouseCritters)
             {
-                string grouseCountText = $"Grouse: {grouse?.Count ?? 0} in {outdoorLocations.Count()} locations";
-                string grouseInLocation = $"Grouse In {Game1.currentLocation?.NameOrUniqueName ?? "Unknown"}: {grouse?.Count(g => g.Location == Game1.currentLocation?.NameOrUniqueName) ?? 0}";
-                int surprisedGrouse = grouse?.Where(g => g.State == GrouseState.Surprised).Count() ?? 0;
-                int flyingGrouse = grouse?.Where(g => g.State == GrouseState.Flushing || g.State == GrouseState.Flying).Count() ?? 0;
-                int knockedDownGrouse = grouse?.Where(g => g.State == GrouseState.KnockedDown).Count() ?? 0;
+                List<NetGrouse>? allGrouse = GetAllGrouse();
+                string grouseCountText = $"Grouse: {allGrouse?.Count ?? 0} in {outdoorLocations.Count()} locations";
+                string grouseInLocation = $"Grouse In {Game1.currentLocation?.NameOrUniqueName ?? "Unknown"}: {allGrouse?.Count(g => g.Location == Game1.currentLocation?.NameOrUniqueName) ?? 0}";
+                int surprisedGrouse = allGrouse?.Count(g => g.State == GrouseState.Surprised) ?? 0;
+                int flyingGrouse = allGrouse?.Count(g => g.State == GrouseState.Flushing || g.State == GrouseState.Flying) ?? 0;
+                int knockedDownGrouse = allGrouse?.Count(g => g.State == GrouseState.KnockedDown) ?? 0;
                 string stateText = $"Surprised: {surprisedGrouse}, Flying: {flyingGrouse}, Knocked Down: {knockedDownGrouse}";
                 grouseInfo = $"\n{grouseCountText}\n{grouseInLocation}\n{stateText}";
             }

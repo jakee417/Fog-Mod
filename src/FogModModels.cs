@@ -6,7 +6,9 @@ using System.Collections.Generic;
 using Netcode;
 using System;
 using StardewValley.TerrainFeatures;
+using StardewValley.Mods;
 using StardewValley;
+using StardewValley.Network;
 
 namespace FogMod
 {
@@ -114,50 +116,51 @@ namespace FogMod
             }
         }
 
-        public class NetGrouse : INetObject<NetFields>
+        public class NetGrouse : INetObject<NetFields>, IHaveModData
         {
             // Static variables
             public static readonly int[] wingPattern = { 0, 1, 2, 3, 4, 3, 2, 1 };
 
-            public NetFields NetFields { get; } = new NetFields("Grouse");
+            public ModDataDictionary modData { get; } = new ModDataDictionary();
 
-            // Core identity and location
-            public NetInt grouseId = new NetInt();
-            public NetString location = new NetString();
-            public NetVector2 treePosition = new NetVector2();
-            public NetVector2 spawnPosition = new NetVector2();
+            public ModDataDictionary modDataForSerialization
+            {
+                get
+                {
+                    return modData.GetForSerialization();
+                }
+                set
+                {
+                    modData.SetFromSerialization(value);
+                }
+            }
 
-            // Dynamic state
-            public NetVector2 position = new NetVector2();
-            public NetVector2 velocity = new NetVector2();
-            public NetEnum<GrouseState> state = new NetEnum<GrouseState>();
-            public NetFloat stateTimer = new NetFloat();
+            public NetFields NetFields { get; } = new NetFields("grouse");
 
-            // Visual properties
-            public NetFloat scale = new NetFloat();
-            public NetFloat rotation = new NetFloat();
-            public NetFloat flightHeight = new NetFloat();
-            public NetBool facingLeft = new NetBool();
-
-            // Animation and timers
-            public NetFloat flightTimer = new NetFloat();
-            public NetBool hasPlayedFlushSound = new NetBool();
-            public NetBool hasBeenSpotted = new NetBool();
-            public NetInt animationFrame = new NetInt();
-            public NetFloat animationTimer = new NetFloat();
-            public NetFloat alpha = new NetFloat();
-            public NetFloat originalY = new NetFloat();
-
-            // Optional properties (using nullable pattern)
-            public NetBool hasDamageFlashTimer = new NetBool();
-            public NetFloat damageFlashTimer = new NetFloat();
-
-            // Smoke collision
-            public NetBool hasSmoke = new NetBool();
-            public NetVector2 smokePosition = new NetVector2();
-
-            // State flags
-            public NetBool hasDroppedEgg = new NetBool();
+            private readonly NetInt grouseId = new NetInt();
+            private readonly NetString location = new NetString();
+            private readonly NetVector2 treePosition = new NetVector2();
+            private readonly NetVector2 spawnPosition = new NetVector2();
+            private readonly NetPosition position = new NetPosition();
+            private readonly NetVector2 velocity = new NetVector2();
+            private readonly NetEnum<GrouseState> state = new NetEnum<GrouseState>();
+            private readonly NetFloat stateTimer = new NetFloat();
+            private readonly NetFloat scale = new NetFloat();
+            private readonly NetFloat rotation = new NetFloat();
+            private readonly NetFloat flightHeight = new NetFloat();
+            private readonly NetBool facingLeft = new NetBool();
+            private readonly NetFloat flightTimer = new NetFloat();
+            private readonly NetBool hasPlayedFlushSound = new NetBool();
+            private readonly NetBool hasBeenSpotted = new NetBool();
+            private readonly NetInt animationFrame = new NetInt();
+            private readonly NetFloat animationTimer = new NetFloat();
+            private readonly NetFloat alpha = new NetFloat();
+            private readonly NetFloat originalY = new NetFloat();
+            private readonly NetBool hasDamageFlashTimer = new NetBool();
+            private readonly NetFloat damageFlashTimer = new NetFloat();
+            private readonly NetBool hasSmoke = new NetBool();
+            private readonly NetVector2 smokePosition = new NetVector2();
+            private readonly NetBool hasDroppedEgg = new NetBool();
 
             // Property wrappers for clean access (following SDV pattern)
             // Immutable properties - can only be set during construction
@@ -324,45 +327,41 @@ namespace FogMod
             // Computed properties
             public Vector2 GetExitDirection => FacingLeft ? new Vector2(-1, 0) : new Vector2(1, 0);
 
-            public NetGrouse()
+            // Constructors
+            protected void initNetFields()
             {
-                // Set owner before adding fields to avoid warnings
-                NetFields.SetOwner(this);
-
                 NetFields
-                    .AddField(grouseId)
-                    .AddField(location)
-                    .AddField(treePosition)
-                    .AddField(spawnPosition)
-                    .AddField(position)
-                    .AddField(velocity)
-                    .AddField(state)
-                    .AddField(stateTimer)
-                    .AddField(scale)
-                    .AddField(rotation)
-                    .AddField(flightHeight)
-                    .AddField(facingLeft)
-                    .AddField(flightTimer)
-                    .AddField(hasPlayedFlushSound)
-                    .AddField(hasBeenSpotted)
-                    .AddField(animationFrame)
-                    .AddField(animationTimer)
-                    .AddField(alpha)
-                    .AddField(originalY)
-                    .AddField(hasDamageFlashTimer)
-                    .AddField(damageFlashTimer)
-                    .AddField(hasSmoke)
-                    .AddField(smokePosition)
-                    .AddField(hasDroppedEgg);
+                    .SetOwner(this)
+                    .AddField(grouseId, "grouseId")
+                    .AddField(location, "location")
+                    .AddField(treePosition, "treePosition")
+                    .AddField(spawnPosition, "spawnPosition")
+                    .AddField(position.NetFields, "position")
+                    .AddField(velocity, "velocity")
+                    .AddField(state, "state")
+                    .AddField(stateTimer, "stateTimer")
+                    .AddField(scale, "scale")
+                    .AddField(rotation, "rotation")
+                    .AddField(flightHeight, "flightHeight")
+                    .AddField(facingLeft, "facingLeft")
+                    .AddField(flightTimer, "flightTimer")
+                    .AddField(hasPlayedFlushSound, "hasPlayedFlushSound")
+                    .AddField(hasBeenSpotted, "hasBeenSpotted")
+                    .AddField(animationFrame, "animationFrame")
+                    .AddField(animationTimer, "animationTimer")
+                    .AddField(alpha, "alpha")
+                    .AddField(originalY, "originalY")
+                    .AddField(hasDamageFlashTimer, "hasDamageFlashTimer")
+                    .AddField(damageFlashTimer, "damageFlashTimer")
+                    .AddField(hasSmoke, "hasSmoke")
+                    .AddField(smokePosition, "smokePosition")
+                    .AddField(hasDroppedEgg, "hasDroppedEgg")
+                    .AddField(modData, "modData");
             }
 
-            public NetGrouse(int grouseId, string locationName, Vector2 treePosition, Vector2 spawnPosition, bool facingLeft) : this()
+            public NetGrouse()
             {
-                GrouseId = grouseId;
-                Location = locationName;
-                TreePosition = treePosition;
-                SpawnPosition = spawnPosition;
-                Position = spawnPosition;
+                initNetFields();
                 Velocity = Vector2.Zero;
                 State = GrouseState.Perched;
                 StateTimer = 0f;
@@ -379,6 +378,16 @@ namespace FogMod
                 DamageFlashTimer = null;
                 Smoke = null;
                 HasDroppedEgg = false;
+            }
+
+            public NetGrouse(int grouseId, string locationName, Vector2 treePosition, Vector2 spawnPosition, bool facingLeft) : this()
+            {
+                GrouseId = grouseId;
+                Location = locationName;
+                TreePosition = treePosition;
+                SpawnPosition = spawnPosition;
+                Position = spawnPosition;
+                FacingLeft = facingLeft;
             }
 
             // Public functions

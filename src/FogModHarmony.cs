@@ -1,5 +1,6 @@
 #nullable enable
 using Microsoft.Xna.Framework;
+using Netcode;
 using StardewModdingAPI;
 using StardewValley;
 using StardewValley.Objects;
@@ -106,19 +107,23 @@ namespace FogMod
                 // Adjust for projectile scale.
                 projectilePos.X += 8f * 4f;
                 projectilePos.Y += 8f * 4f;
-                foreach (NetGrouse grouse in FogMod.Instance.grouse)
-                {
-                    if (grouse.State != GrouseState.Flushing && grouse.State != GrouseState.Flying)
-                        continue;
 
-                    Vector2 grousePos = grouse.Position;
-                    grousePos.Y += grouse.FlightHeight;
-                    grousePos.Y -= GrouseSpriteHeight * grouse.Scale / 2f;
-                    float distance = Vector2.Distance(projectilePos, grousePos);
-                    if (distance < GrouseCollisionRadius)
+                if (FogMod.Instance.GetGrouseAtCurrentLocation() is NetCollection<NetGrouse> localGrouse)
+                {
+                    foreach (NetGrouse g in localGrouse)
                     {
-                        FogMod.Instance.KnockDownGrouse(grouse);
-                        break;
+                        if (g.State != GrouseState.Flushing && g.State != GrouseState.Flying)
+                            continue;
+
+                        Vector2 grousePos = g.Position;
+                        grousePos.Y += g.FlightHeight;
+                        grousePos.Y -= GrouseSpriteHeight * g.Scale / 2f;
+                        float distance = Vector2.Distance(projectilePos, grousePos);
+                        if (distance < GrouseCollisionRadius)
+                        {
+                            FogMod.Instance.KnockDownGrouse(g);
+                            break;
+                        }
                     }
                 }
             }
@@ -136,18 +141,19 @@ namespace FogMod
                 if (FogMod.Instance == null || !FogMod.Instance.Config.EnableGrouseCritters)
                     return;
                 Vector2 position = TreeHelper.GetTreePosition(__instance);
-                foreach (NetGrouse grouse in FogMod.Instance.grouse)
-                {
-                    if (grouse.State != GrouseState.Perched)
-                        continue;
-
-                    // TODO: Find a better way to find tree identity other than the tile.
-                    if (grouse.TreePosition == position)
+                if (FogMod.Instance.GetGrouseAtCurrentLocation() is NetCollection<NetGrouse> localGrouse)
+                    foreach (NetGrouse g in localGrouse)
                     {
-                        FogMod.Instance.SurpriseGrouse(grouse);
-                        break;
+                        if (g.State != GrouseState.Perched)
+                            continue;
+
+                        // TODO: Find a better way to find tree identity other than the tile.
+                        if (g.TreePosition == position)
+                        {
+                            FogMod.Instance.SurpriseGrouse(g);
+                            break;
+                        }
                     }
-                }
             }
             catch (Exception ex)
             {

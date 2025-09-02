@@ -5,7 +5,7 @@ using StardewValley.TerrainFeatures;
 using StardewValley;
 using System;
 using System.Collections.Generic;
-using System.Linq;
+using Netcode;
 
 namespace FogMod
 {
@@ -18,30 +18,61 @@ namespace FogMod
             SpawnGrouseInTrees(outdoorLocations);
         }
 
+        public NetCollection<NetGrouse>? GetGrouseAtCurrentLocation()
+        {
+            if (GetGrouseForLocation(Game1.currentLocation) is NetCollection<NetGrouse> localGrouse)
+            {
+                return localGrouse;
+            }
+            return null;
+        }
+
+        private NetCollection<NetGrouse>? GetGrouseForLocation(GameLocation? location)
+        {
+            if (location is GameLocation loc && loc.NameOrUniqueName is string locationName && grouse.ContainsKey(locationName))
+            {
+                return grouse[locationName];
+            }
+            return null;
+        }
+
+        private List<NetGrouse> GetAllGrouse()
+        {
+            List<NetGrouse> allGrouse = new List<NetGrouse>();
+            foreach (var locGrouse in grouse.Values)
+            {
+                allGrouse.AddRange(locGrouse);
+            }
+            return allGrouse;
+        }
+
         private void SpawnGrouseInTrees(IEnumerable<GameLocation> locations)
         {
             if (!Context.IsMainPlayer)
                 return;
 
-            int spawnedGrouse = 0;
+
             int numLocations = 0;
             foreach (GameLocation loc in locations)
             {
                 if (loc.IsOutdoors)
                 {
                     List<Tree> availableTrees = TreeHelper.GetAvailableTreePositions(loc);
-                    spawnedGrouse += SpawnGrouseForTrees(availableTrees, loc.NameOrUniqueName);
+                    NetCollection<NetGrouse> localGrouse = SpawnGrouseForTrees(availableTrees, loc.NameOrUniqueName);
+                    grouse[loc.NameOrUniqueName] = localGrouse;
+                    loc.NetFields.AddField(localGrouse, "grouse");
                     numLocations++;
                 }
             }
         }
 
-        private int SpawnGrouseForTrees(List<Tree> availableTrees, string locationName)
+        private NetCollection<NetGrouse> SpawnGrouseForTrees(List<Tree> availableTrees, string locationName)
         {
             int locationSeed = locationName.GetHashCode();
             int daySeed = (int)Game1.stats.DaysPlayed;
             var locationRng = new Random(locationSeed ^ daySeed);
-            int grouseCount = grouse.Where(g => g.Location == locationName).Count();
+            int grouseCount = 0;
+            NetCollection<NetGrouse> spawnedGrouse = new NetCollection<NetGrouse>();
             foreach (var tree in availableTrees)
             {
                 if (grouseCount >= GrouseMaxPerLocation)
@@ -51,14 +82,14 @@ namespace FogMod
                 {
                     Vector2 treePosition = TreeHelper.GetTreePosition(tree);
                     Vector2 spawnPosition = TreeHelper.GetGrouseSpawnPosition(tree);
-                    SpawnGrouse(treePosition, spawnPosition, locationName, null);
+                    spawnedGrouse.Add(SpawnGrouse(treePosition, spawnPosition, locationName, null));
                     grouseCount++;
                 }
             }
-            return grouseCount;
+            return spawnedGrouse;
         }
 
-        private void SpawnGrouse(Vector2 treePosition, Vector2 spawnPosition, string locationName, int? salt)
+        private NetGrouse SpawnGrouse(Vector2 treePosition, Vector2 spawnPosition, string locationName, int? salt)
         {
             int grouseId = NetGrouse.GetDeterministicId(
                 locationSeed: locationName.GetHashCode(),
@@ -66,8 +97,6 @@ namespace FogMod
                 treePosition: treePosition,
                 salt: salt
             );
-            if (grouse.Any(g => g.GrouseId == grouseId))
-                return;
             NetGrouse newGrouse = new NetGrouse(
                 grouseId: grouseId,
                 locationName: locationName,
@@ -75,41 +104,44 @@ namespace FogMod
                 spawnPosition: spawnPosition,
                 facingLeft: DeterministicBool(spawnPosition, 1)
             );
-            grouse.Add(newGrouse);
+            return newGrouse;
         }
 
         private void UpdateGrouse(float deltaSeconds)
         {
-            foreach (var g in grouse)
+            if (Context.IsMainPlayer && GetGrouseAtCurrentLocation() is NetCollection<NetGrouse> localGrouse)
             {
-                g.StateTimer += deltaSeconds;
-
-                switch (g.State)
+                foreach (var g in localGrouse)
                 {
-                    case GrouseState.Perched:
-                        // UpdateGrousePerched(g);
-                        break;
+                    g.StateTimer += deltaSeconds;
 
-                    case GrouseState.Surprised:
-                        UpdateGrouseSurprised(g, deltaSeconds);
-                        break;
+                    switch (g.State)
+                    {
+                        case GrouseState.Perched:
+                            // UpdateGrousePerched(g);
+                            break;
 
-                    case GrouseState.Flushing:
-                        UpdateGrouseFlushing(g, deltaSeconds);
-                        break;
+                        case GrouseState.Surprised:
+                            UpdateGrouseSurprised(g, deltaSeconds);
+                            break;
 
-                    case GrouseState.Flying:
-                        UpdateGrouseFlying(g, deltaSeconds);
-                        break;
+                        case GrouseState.Flushing:
+                            UpdateGrouseFlushing(g, deltaSeconds);
+                            break;
 
-                    case GrouseState.KnockedDown:
-                        UpdateGrouseKnockedDown(g, deltaSeconds);
-                        break;
+                        case GrouseState.Flying:
+                            UpdateGrouseFlying(g, deltaSeconds);
+                            break;
+
+                        case GrouseState.KnockedDown:
+                            UpdateGrouseKnockedDown(g, deltaSeconds);
+                            break;
+                    }
+                    g.Position += g.Velocity * deltaSeconds;
+                    UpdateGrouseAnimation(g, deltaSeconds);
                 }
-                g.Position += g.Velocity * deltaSeconds;
-                UpdateGrouseAnimation(g, deltaSeconds);
+                localGrouse.RemoveWhere(RemoveGrouse);
             }
-            grouse.RemoveWhere(RemoveGrouse);
         }
 
         private void UpdateGrousePerched(NetGrouse g)
