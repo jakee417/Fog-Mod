@@ -1,5 +1,6 @@
 #nullable enable
 using System;
+using System.Linq;
 using Microsoft.Xna.Framework;
 using StardewModdingAPI;
 using StardewValley;
@@ -37,18 +38,21 @@ namespace FogMod
             return rng.NextDouble() < 0.5;
         }
 
-        private void CreateItemDrop(Vector2 position, string itemId, int quantity)
+        private void CreateItemDrop(Vector2 position, string locationName, string itemId, int quantity)
         {
             var item = new StardewValley.Object(
                 itemId: itemId,
                 initialStack: quantity
             );
-            Debris debris = new Debris(
-                item: item,
-                position,
-                Game1.player.getStandingPosition()
-            );
-            Game1.currentLocation.debris.Add(debris);
+            try
+            {
+                GameLocation location = Game1.getLocationFromName(locationName);
+                Game1.createItemDebris(item, position, Game1.player.FacingDirection, location);
+            }
+            catch (Exception ex)
+            {
+                Monitor.Log($"Item drop failed: {ex.Message}", LogLevel.Error);
+            }
         }
     }
 }

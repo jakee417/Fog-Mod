@@ -94,17 +94,17 @@ namespace FogMod
         {
             try
             {
-                NetGrouse? grouse = GetGrouseById(msg.GrouseId);
-                if (grouse is NetGrouse g)
+                if (GetGrouseById(msg.GrouseId) is NetGrouse g)
                 {
                     switch (msg.Event)
                     {
                         case GrouseEventInfo.EventType.Flushed:
-                            SurpriseGrouse(g);
+                            if (g.State == GrouseState.Perched)
+                                SurpriseGrouse(g);
                             return;
-
                         case GrouseEventInfo.EventType.KnockedDown:
-                            KnockDownGrouse(g);
+                            if (g.State != GrouseState.KnockedDown)
+                                KnockDownGrouse(g);
                             return;
                     }
                     Monitor.Log($"🚀 Unknown grouse event: {msg.Event}", LogLevel.Warn);

@@ -4,10 +4,10 @@ using Microsoft.Xna.Framework.Graphics;
 using StardewModdingAPI;
 using System.Collections.Generic;
 using Netcode;
-using System;
 using StardewValley.TerrainFeatures;
 using StardewValley;
 using StardewValley.Projectiles;
+using xTile.Dimensions;
 
 namespace FogMod
 {
@@ -102,59 +102,32 @@ namespace FogMod
             // Static variables
             public static readonly int[] wingPattern = { 0, 1, 2, 3, 4, 3, 2, 1 };
 
-
+            // Netcode variables
             public readonly NetInt grouseId = new NetInt();
-            public readonly NetString location = new NetString();
+            public readonly NetString locationName = new NetString();
             public readonly NetVector2 treePosition = new NetVector2();
-            public readonly NetVector2 spawnPosition = new NetVector2();
             public readonly NetBool launchedByFarmer = new NetBool();
-            public readonly NetVector2 velocity = new NetVector2();
             public readonly NetEnum<GrouseState> state = new NetEnum<GrouseState>();
-            public readonly NetFloat stateTimer = new NetFloat();
-            public readonly NetFloat scale = new NetFloat();
             public readonly NetFloat flightHeight = new NetFloat();
             public readonly NetBool facingLeft = new NetBool();
-            public readonly NetFloat flightTimer = new NetFloat();
-            public readonly NetBool hasPlayedFlushSound = new NetBool();
-            public readonly NetBool hasPlayedKnockedDownSound = new NetBool();
-            public readonly NetBool hasBeenSpotted = new NetBool();
-            public readonly NetInt totalCycles = new NetInt();
-            public readonly NetInt animationFrame = new NetInt();
-            public readonly NetFloat animationTimer = new NetFloat();
-            public readonly NetBool isHiding = new NetBool();
-            public readonly NetFloat originalY = new NetFloat();
-            public readonly NetBool hasDamageFlashTimer = new NetBool();
-            public readonly NetFloat damageFlashTimer = new NetFloat();
-            public readonly NetBool hasSmoke = new NetBool();
-            public readonly NetVector2 smokePosition = new NetVector2();
-            public readonly NetBool hasDroppedEgg = new NetBool();
-            public readonly NetFloat hideTransitionProgress = new NetFloat();
-            public readonly NetBool isTransitioning = new NetBool();
 
-            // Property wrappers for clean access (following SDV pattern)
-            // Immutable properties - can only be set during construction
+            // Immutable Property Wrappers
             public int GrouseId
             {
                 get => grouseId.Value;
                 private set => grouseId.Value = value;
             }
 
-            public string Location
+            public string LocationName
             {
-                get => location.Value;
-                private set => location.Value = value;
+                get => locationName.Value;
+                private set => locationName.Value = value;
             }
 
             public Vector2 TreePosition
             {
                 get => treePosition.Value;
                 private set => treePosition.Value = value;
-            }
-
-            public Vector2 SpawnPosition
-            {
-                get => spawnPosition.Value;
-                private set => spawnPosition.Value = value;
             }
 
             public bool LaunchedByFarmer
@@ -178,8 +151,12 @@ namespace FogMod
 
             public Vector2 Velocity
             {
-                get => velocity.Value;
-                set => velocity.Value = value;
+                get => new Vector2(xVelocity.Value, yVelocity.Value);
+                set
+                {
+                    xVelocity.Value = value.X;
+                    yVelocity.Value = value.Y;
+                }
             }
 
             public GrouseState State
@@ -192,76 +169,10 @@ namespace FogMod
                 }
             }
 
-            public float StateTimer
-            {
-                get => stateTimer.Value;
-                set => stateTimer.Value = value;
-            }
-
-            public float Scale
-            {
-                get => scale.Value;
-                set => scale.Value = value;
-            }
-
-            public float Rotation
-            {
-                get => rotation;
-                set => rotation = value;
-            }
-
             public float FlightHeight
             {
                 get => flightHeight.Value;
                 set => flightHeight.Value = value;
-            }
-
-            public float FlightTimer
-            {
-                get => flightTimer.Value;
-                set => flightTimer.Value = value;
-            }
-
-            public bool HasPlayedFlushSound
-            {
-                get => hasPlayedFlushSound.Value;
-                set => hasPlayedFlushSound.Value = value;
-            }
-
-            public bool HasPlayedKnockedDownSound
-            {
-                get => hasPlayedKnockedDownSound.Value;
-                set => hasPlayedKnockedDownSound.Value = value;
-            }
-
-            public bool HasBeenSpotted
-            {
-                get => hasBeenSpotted.Value;
-                set => hasBeenSpotted.Value = value;
-            }
-
-            public int TotalCycles
-            {
-                get => totalCycles.Value;
-                set => totalCycles.Value = value;
-            }
-
-            public int AnimationFrame
-            {
-                get => animationFrame.Value;
-                set => animationFrame.Value = value;
-            }
-
-            public float AnimationTimer
-            {
-                get => animationTimer.Value;
-                set => animationTimer.Value = value;
-            }
-
-            public bool IsHiding
-            {
-                get => isHiding.Value;
-                set => isHiding.Value = value;
             }
 
             public float Alpha
@@ -278,51 +189,24 @@ namespace FogMod
                 set => alpha.Value = value;
             }
 
-            public float OriginalY
-            {
-                get => originalY.Value;
-                set => originalY.Value = value;
-            }
+            // Non-synced fields
+            internal float Scale;
+            internal float AnimationTimer { get; set; }
+            internal float StateTimer { get; set; }
+            internal float FlightTimer { get; set; }
+            internal int AnimationFrame { get; set; }
+            internal float HideTransitionProgress { get; set; }
+            internal bool IsTransitioning { get; set; }
+            internal int TotalCycles { get; set; }
+            internal float OriginalY { get; set; }
+            internal float? DamageFlashTimer;
+            internal bool HasPlayedFlushSound;
+            internal bool HasPlayedKnockedDownSound;
+            internal bool HasBeenSpotted;
+            internal bool IsHiding;
+            internal Vector2? Smoke;
+            internal bool HasDroppedEgg;
 
-            public float? DamageFlashTimer
-            {
-                get => hasDamageFlashTimer.Value ? damageFlashTimer.Value : null;
-                set
-                {
-                    hasDamageFlashTimer.Value = value.HasValue;
-                    if (value.HasValue)
-                        damageFlashTimer.Value = value.Value;
-                }
-            }
-
-            public Vector2? Smoke
-            {
-                get => hasSmoke.Value ? smokePosition.Value : null;
-                set
-                {
-                    hasSmoke.Value = value.HasValue;
-                    if (value.HasValue)
-                        smokePosition.Value = value.Value;
-                }
-            }
-
-            public bool HasDroppedEgg
-            {
-                get => hasDroppedEgg.Value;
-                set => hasDroppedEgg.Value = value;
-            }
-
-            public float HideTransitionProgress
-            {
-                get => hideTransitionProgress.Value;
-                set => hideTransitionProgress.Value = value;
-            }
-
-            public bool IsTransitioning
-            {
-                get => isTransitioning.Value;
-                set => isTransitioning.Value = value;
-            }
 
             // Computed properties
             public Vector2 GetExitDirection => FacingLeft ? new Vector2(-1, 0) : new Vector2(1, 0);
@@ -338,33 +222,13 @@ namespace FogMod
                 NetFields
                     .SetOwner(this)
                     .AddField(grouseId, "grouseId")
-                    .AddField(location, "location")
+                    .AddField(locationName, "locationName")
                     .AddField(treePosition, "treePosition")
-                    .AddField(spawnPosition, "spawnPosition")
                     .AddField(launchedByFarmer, "launchedByFarmer")
-                    .AddField(velocity, "velocity")
                     .AddField(state, "state")
-                    .AddField(stateTimer, "stateTimer")
-                    .AddField(scale, "scale")
                     .AddField(flightHeight, "flightHeight")
                     .AddField(facingLeft, "facingLeft")
-                    .AddField(flightTimer, "flightTimer")
-                    .AddField(hasPlayedFlushSound, "hasPlayedFlushSound")
-                    .AddField(hasPlayedKnockedDownSound, "hasPlayedKnockedDownSound")
-                    .AddField(hasBeenSpotted, "hasBeenSpotted")
-                    .AddField(totalCycles, "totalCycles")
-                    .AddField(animationFrame, "animationFrame")
-                    .AddField(animationTimer, "animationTimer")
-                    .AddField(isHiding, "isHiding")
-                    .AddField(alpha, "alpha")
-                    .AddField(originalY, "originalY")
-                    .AddField(hasDamageFlashTimer, "hasDamageFlashTimer")
-                    .AddField(damageFlashTimer, "damageFlashTimer")
-                    .AddField(hasSmoke, "hasSmoke")
-                    .AddField(smokePosition, "smokePosition")
-                    .AddField(hasDroppedEgg, "hasDroppedEgg")
-                    .AddField(hideTransitionProgress, "hideTransitionProgress")
-                    .AddField(isTransitioning, "isTransitioning");
+                    .AddField(alpha, "alpha");
             }
 
             public NetGrouse()
@@ -391,9 +255,10 @@ namespace FogMod
                 TotalCycles = 0;
             }
 
-            public NetGrouse(int grouseId, Vector2 treePosition, Vector2 position, bool facingLeft, bool launchedByFarmer) : this()
+            public NetGrouse(int grouseId, string locationName, Vector2 treePosition, Vector2 position, bool facingLeft, bool launchedByFarmer) : this()
             {
                 GrouseId = grouseId;
+                LocationName = locationName;
                 TreePosition = treePosition;
                 LaunchedByFarmer = launchedByFarmer;
                 Position = position;
@@ -412,6 +277,7 @@ namespace FogMod
             {
                 StateTimer = 0f;
                 AnimationTimer = 0f;
+                AnimationFrame = 0;
             }
 
             public float ComputeAnimationSpeed()
@@ -464,21 +330,68 @@ namespace FogMod
                 return false;
             }
 
-            public override Rectangle getBoundingBox()
-            {
-                int width = (int)(GrouseSpriteWidth * Scale);
-                int height = (int)(GrouseSpriteHeight * Scale);
-                return new Rectangle(
-                    (int)(Position.X - width / 2),
-                    (int)(Position.Y - height / 2),
-                    width,
-                    height
-                );
-            }
-
             public override void draw(SpriteBatch b)
             {
                 FogMod.Instance?.DrawSingleGrouse(spriteBatch: b, g: this);
+            }
+
+            public void UpdateGrouseAnimationState(float deltaSeconds)
+            {
+                AnimationTimer += deltaSeconds;
+                float animationSpeed = ComputeAnimationSpeed();
+                if (animationSpeed > 0f && AnimationTimer >= 1f / animationSpeed)
+                {
+                    AnimationTimer = 0f;
+                    switch (State)
+                    {
+                        case GrouseState.Perched:
+                            // Cycle through top sitting: sitting left (0) → sitting left (1)
+                            AnimationFrame = (AnimationFrame + 1) % 2;
+                            // Determine hiding state - vary per bird
+                            int hideCycle = (TotalCycles + GrouseId) % 10;
+                            bool wasHiding = IsHiding;
+                            bool shouldHide = hideCycle >= 4;
+
+                            // Start transition if hiding state changed
+                            if (wasHiding != shouldHide)
+                            {
+                                IsTransitioning = true;
+                                HideTransitionProgress = 0f;
+                            }
+                            IsHiding = shouldHide;
+                            break;
+                        case GrouseState.Surprised:
+                            // Cycle through top row once: 0→1→2→3→4, then stay at 4
+                            if (HasBeenSpotted && AnimationFrame < 4)
+                                AnimationFrame++;
+                            break;
+                        case GrouseState.Flushing:
+                        case GrouseState.Flying:
+                            // Smooth wing cycle: 0→1→2→3→2→1→0→1→2→3...
+                            AnimationFrame = (AnimationFrame + 1) % NetGrouse.wingPattern.Length;
+                            break;
+                        case GrouseState.KnockedDown:
+                            AnimationFrame = 2;
+                            break;
+                    }
+                    TotalCycles++;
+                }
+
+                // Update hide/show transition if needed
+                if (IsTransitioning)
+                {
+                    switch (State)
+                    {
+                        case GrouseState.Perched:
+                            HideTransitionProgress += deltaSeconds / GrouseTransitionDuration;
+                            if (HideTransitionProgress >= 1f)
+                            {
+                                HideTransitionProgress = 1f;
+                                IsTransitioning = false;
+                            }
+                            break;
+                    }
+                }
             }
         }
 

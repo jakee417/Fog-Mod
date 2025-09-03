@@ -54,5 +54,6 @@ namespace FogMod
         private const float GrouseFeatherDropChance = 0.3f;
         private const int DamageSpriteWidth = 32;
         private const int DamageSpriteHeight = 28;
+        private const float GrouseHearingRadius = 1024;
     }
 }

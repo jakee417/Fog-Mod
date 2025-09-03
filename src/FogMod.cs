@@ -44,7 +44,7 @@ namespace FogMod
         private float dailyFogStrength = 0f;
         private float lastWeatherFogIntensityFactor = 1f;
         private GameLocation? lastLocation = null;
-        private readonly IEnumerable<GameLocation> outdoorLocations = Game1.locations.Where(loc => loc.IsOutdoors && loc.IsActiveLocation());
+        private readonly IEnumerable<GameLocation> outdoorLocations = Game1.locations.Where(loc => loc.IsOutdoors);
 
         public override void Entry(IModHelper helper)
         {
@@ -169,7 +169,8 @@ namespace FogMod
         {
             InitializeDailyFogStrength();
             TreeHelper.ClearCache();
-            InitializeGrouse();
+            if (Context.IsMainPlayer)
+                InitializeGrouse();
         }
 
         private void OnUpdateTicked(object? sender, UpdateTickedEventArgs e)
@@ -200,7 +201,7 @@ namespace FogMod
             UpdateExplosionFlashInfos(deltaSeconds);
 
             // Update grouse
-            if (Context.IsMainPlayer && Config.EnableGrouseCritters)
+            if (Config.EnableGrouseCritters)
                 UpdateGrouse(deltaSeconds);
         }
 

@@ -115,17 +115,7 @@ namespace FogMod
                             float distance = Vector2.Distance(projectilePos, grousePos);
                             if (distance < GrouseCollisionRadius)
                             {
-                                if (Context.IsMainPlayer)
-                                    FogMod.Instance.KnockDownGrouse(g);
-                                else
-                                {
-                                    GrouseEventInfo eventInfo = new GrouseEventInfo(
-                                        grouseId: g.GrouseId,
-                                        _event: GrouseEventInfo.EventType.KnockedDown,
-                                        timestamp: Game1.currentGameTime?.TotalGameTime.Ticks ?? 0
-                                    );
-                                    FogMod.Instance.SendMessage(eventInfo);
-                                }
+                                FogMod.Instance.KnockDownGrouse(g);
                                 break;
                             }
                         }
@@ -154,17 +144,7 @@ namespace FogMod
                             // TODO: Find a better way to find tree identity other than the tile.
                             if (g.TreePosition == position)
                             {
-                                if (Context.IsMainPlayer)
-                                    FogMod.Instance.SurpriseGrouse(g);
-                                else
-                                {
-                                    GrouseEventInfo eventInfo = new GrouseEventInfo(
-                                        grouseId: g.GrouseId,
-                                        _event: GrouseEventInfo.EventType.Flushed,
-                                        timestamp: Game1.currentGameTime?.TotalGameTime.Ticks ?? 0
-                                    );
-                                    FogMod.Instance.SendMessage(eventInfo);
-                                }
+                                FogMod.Instance.SurpriseGrouse(g);
                                 break;
                             }
                         }
