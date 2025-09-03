@@ -142,7 +142,7 @@ namespace FogMod
                     return;
                 Vector2 position = TreeHelper.GetTreePosition(__instance);
                 if (FogMod.Instance.GetProjectilesAtCurrentLocation() is NetCollection<Projectile> projectiles)
-                    foreach (NetGrouse p in projectiles)
+                    foreach (Projectile p in projectiles)
                     {
                         if (p is NetGrouse g && g.State == GrouseState.Perched)
                         {

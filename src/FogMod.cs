@@ -12,7 +12,6 @@ using StardewValley.Objects;
 using System.Linq;
 using Netcode;
 using StardewValley.TerrainFeatures;
-using xTile.Dimensions;
 
 namespace FogMod
 {
@@ -45,7 +44,7 @@ namespace FogMod
         private float dailyFogStrength = 0f;
         private float lastWeatherFogIntensityFactor = 1f;
         private GameLocation? lastLocation = null;
-        private readonly IEnumerable<GameLocation> outdoorLocations = Game1.locations.Where(loc => loc.IsOutdoors);
+        private readonly IEnumerable<GameLocation> outdoorLocations = Game1.locations.Where(loc => loc.IsOutdoors && loc.IsActiveLocation());
 
         public override void Entry(IModHelper helper)
         {
@@ -201,7 +200,7 @@ namespace FogMod
             UpdateExplosionFlashInfos(deltaSeconds);
 
             // Update grouse
-            if (Config.EnableGrouseCritters)
+            if (Context.IsMainPlayer && Config.EnableGrouseCritters)
                 UpdateGrouse(deltaSeconds);
         }
 
@@ -213,7 +212,8 @@ namespace FogMod
 
         private void OnRendered(object? sender, RenderedEventArgs e)
         {
-            if (!Context.IsWorldReady || Game1.currentLocation == null) return;
+            if (!Context.IsWorldReady || Game1.currentLocation == null)
+                return;
 
             // DrawDebugFogGrid(e.SpriteBatch);
 
@@ -221,7 +221,6 @@ namespace FogMod
                 DrawDebugInfo(e.SpriteBatch);
 
             Color fogColor = GetEffectiveFogColor();
-
 
             DrawExplosionFlashes(e.SpriteBatch);
             DrawExplosionSmokeParticles(e.SpriteBatch, fogColor);

@@ -96,31 +96,12 @@ namespace FogMod
             }
         }
 
-        public struct CollisionSmoke : IComparable
-        {
-            public Vector2 Position { get; init; }
-
-            public CollisionSmoke(Vector2 position)
-            {
-                Position = position;
-            }
-
-            public int CompareTo(object? obj)
-            {
-                if (obj is CollisionSmoke other)
-                {
-                    return Position.GetHashCode().CompareTo(other.Position.GetHashCode());
-                }
-                return 0;
-            }
-        }
 
         public class NetGrouse : Projectile
         {
             // Static variables
             public static readonly int[] wingPattern = { 0, 1, 2, 3, 4, 3, 2, 1 };
 
-            // public NetFields NetFields { get; } = new NetFields("grouse");
 
             public readonly NetInt grouseId = new NetInt();
             public readonly NetString location = new NetString();
@@ -181,7 +162,13 @@ namespace FogMod
                 private set => launchedByFarmer.Value = value;
             }
 
-            // Mutable properties - can be changed during gameplay
+            public bool FacingLeft
+            {
+                get => facingLeft.Value;
+                private set => facingLeft.Value = value;
+            }
+
+            // Mutable Property wrappers
             public Vector2 Position
             {
                 get => position.Value;
@@ -226,12 +213,6 @@ namespace FogMod
             {
                 get => flightHeight.Value;
                 set => flightHeight.Value = value;
-            }
-
-            public bool FacingLeft
-            {
-                get => facingLeft.Value;
-                set => facingLeft.Value = value;
             }
 
             public float FlightTimer
@@ -312,14 +293,14 @@ namespace FogMod
                 }
             }
 
-            public CollisionSmoke? Smoke
+            public Vector2? Smoke
             {
-                get => hasSmoke.Value ? new CollisionSmoke(smokePosition.Value) : null;
+                get => hasSmoke.Value ? smokePosition.Value : null;
                 set
                 {
                     hasSmoke.Value = value.HasValue;
                     if (value.HasValue)
-                        smokePosition.Value = value.Value.Position;
+                        smokePosition.Value = value.Value;
                 }
             }
 
@@ -376,8 +357,7 @@ namespace FogMod
                     .AddField(smokePosition, "smokePosition")
                     .AddField(hasDroppedEgg, "hasDroppedEgg")
                     .AddField(hideTransitionProgress, "hideTransitionProgress")
-                    .AddField(isTransitioning, "isTransitioning")
-                    .AddField(modData, "modData");
+                    .AddField(isTransitioning, "isTransitioning");
             }
 
             public NetGrouse()
@@ -403,16 +383,14 @@ namespace FogMod
                 TotalCycles = 0;
             }
 
-            public NetGrouse(int grouseId, string locationName, Vector2 treePosition, Vector2 spawnPosition, bool facingLeft, bool launchedByFarmer) : this()
+            public NetGrouse(int grouseId, Vector2 treePosition, Vector2 position, bool facingLeft, bool launchedByFarmer) : this()
             {
                 GrouseId = grouseId;
-                Location = locationName;
                 TreePosition = treePosition;
-                SpawnPosition = spawnPosition;
                 LaunchedByFarmer = launchedByFarmer;
-                Position = spawnPosition;
+                Position = position;
                 FacingLeft = facingLeft;
-                OriginalY = spawnPosition.Y;
+                OriginalY = position.Y;
             }
 
             // Public functions

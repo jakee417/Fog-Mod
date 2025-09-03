@@ -1,9 +1,7 @@
 #nullable enable
 using Microsoft.Xna.Framework;
-using StardewValley;
 using StardewModdingAPI;
 using System;
-using System.Linq;
 
 namespace FogMod
 {
@@ -57,7 +55,7 @@ namespace FogMod
         {
             try
             {
-                Helper.Multiplayer.SendMessage(msg, MessageType.Explosion);
+                Helper.Multiplayer.SendMessage(msg, MessageType.Explosion, new[] { ModManifest.UniqueID });
             }
             catch (Exception ex)
             {
@@ -82,7 +80,7 @@ namespace FogMod
         {
             try
             {
-                Helper.Multiplayer.SendMessage(itemDropInfo, MessageType.ItemDrop);
+                Helper.Multiplayer.SendMessage(itemDropInfo, MessageType.ItemDrop, new[] { ModManifest.UniqueID });
             }
             catch (Exception ex)
             {

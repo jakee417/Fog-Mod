@@ -199,7 +199,7 @@ namespace FogMod
                 layerDepth: 0.85f
             );
 
-            if (g.DamageFlashTimer is float damageFlashTimer && damageFlashTimer > 0f && g.Smoke is CollisionSmoke smoke)
+            if (g.DamageFlashTimer is float damageFlashTimer && damageFlashTimer > 0f && g.Smoke is Vector2 smoke)
             {
                 float ratio = damageFlashTimer / GrouseDamageFlashDuration;
                 int damageFrameY = 0;
@@ -216,7 +216,7 @@ namespace FogMod
                 );
                 spriteBatch.Draw(
                     damageTexture,
-                    position: smoke.Position,
+                    position: smoke,
                     sourceRectangle: damageRect,
                     color: Color.White * ratio,
                     rotation: (float)Math.Sin(ratio * 2.0f * Math.PI),
@@ -257,7 +257,7 @@ namespace FogMod
             {
                 List<NetGrouse>? allGrouse = GetAllGrouse();
                 string grouseCountText = $"Grouse: {allGrouse?.Count ?? 0} in {outdoorLocations.Count()} locations";
-                string grouseInLocation = $"Grouse In {Game1.currentLocation?.NameOrUniqueName ?? "Unknown"}: {allGrouse?.Count(g => g.Location == Game1.currentLocation?.NameOrUniqueName) ?? 0}";
+                string grouseInLocation = $"Grouse In {Game1.currentLocation?.NameOrUniqueName ?? "Unknown"}: {GetProjectilesAtCurrentLocation()?.Count(p => p is NetGrouse)}";
                 int surprisedGrouse = allGrouse?.Count(g => g.State == GrouseState.Surprised) ?? 0;
                 int flyingGrouse = allGrouse?.Count(g => g.State == GrouseState.Flushing || g.State == GrouseState.Flying) ?? 0;
                 int knockedDownGrouse = allGrouse?.Count(g => g.State == GrouseState.KnockedDown) ?? 0;

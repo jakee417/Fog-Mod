@@ -104,9 +104,8 @@ namespace FogMod
             );
             NetGrouse newGrouse = new NetGrouse(
                 grouseId: grouseId,
-                locationName: locationName,
                 treePosition: treePosition,
-                spawnPosition: spawnPosition,
+                position: spawnPosition,
                 facingLeft: DeterministicBool(spawnPosition, 1),
                 launchedByFarmer: launchedByFarmer
             );
@@ -116,7 +115,7 @@ namespace FogMod
 
         private void UpdateGrouse(float deltaSeconds)
         {
-            if (Context.IsMainPlayer && GetProjectilesAtCurrentLocation() is NetCollection<Projectile> projectiles)
+            if (GetProjectilesAtCurrentLocation() is NetCollection<Projectile> projectiles)
             {
                 foreach (var g in projectiles.Where(p => p is NetGrouse).Cast<NetGrouse>())
                 {
@@ -151,6 +150,8 @@ namespace FogMod
             }
         }
 
+        // NOTE: Deprecated after changing the trigger logic from proximity
+        // to tool interaction.
         private void UpdateGrousePerched(NetGrouse g)
         {
             Vector2 playerPos = Game1.player.getStandingPosition();
@@ -334,7 +335,7 @@ namespace FogMod
             Vector2 screenPosition = Game1.GlobalToLocal(Game1.viewport, g.Position);
             screenPosition.Y -= GrouseSpriteHeight * g.Scale / 2f;
             g.DamageFlashTimer = GrouseDamageFlashDuration;
-            g.Smoke = new CollisionSmoke(position: screenPosition);
+            g.Smoke = screenPosition;
             DropFeatherAtImpact(impactPosition, g.GrouseId);
             PlayGrouseKnockdownSound(g);
         }
