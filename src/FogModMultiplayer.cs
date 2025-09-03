@@ -10,7 +10,7 @@ namespace FogMod
         private class MessageType
         {
             public const string Explosion = "Explosion";
-            public const string ItemDrop = "ItemDrop";
+            public const string GrouseEvent = "GrouseEvent";
         }
 
         private struct ExplosionFlashInfo
@@ -29,37 +29,52 @@ namespace FogMod
             }
         }
 
-        private struct ItemDropInfo
+        private struct GrouseEventInfo
         {
-            public string? LocationName { get; init; }
-            public Vector2 Position { get; init; }
-            public string ItemId { get; init; }
-            public int Quantity { get; init; }
+            public int GrouseId { get; init; }
+            public string Event { get; init; }
             public long Timestamp { get; init; }
 
-            public ItemDropInfo(string? locationName, Vector2 position, string itemId, int quantity, long timestamp)
+            public GrouseEventInfo(int grouseId, string _event, long timestamp)
             {
-                LocationName = locationName;
-                Position = position;
-                ItemId = itemId;
-                Quantity = quantity;
+                GrouseId = grouseId;
+                Event = _event;
                 Timestamp = timestamp;
+            }
+
+            public class EventType
+            {
+                public const string Flushed = "Flushed";
+                public const string KnockedDown = "KnockedDown";
             }
         }
     }
 
     public partial class FogMod : Mod
     {
-        // Bomb Explosions
-        private void SendExplosionMessage(ExplosionFlashInfo msg)
+        private void SendMessage<T>(T message)
         {
+            string messageType = "";
             try
             {
-                Helper.Multiplayer.SendMessage(msg, MessageType.Explosion, new[] { ModManifest.UniqueID });
+                if (message is ExplosionFlashInfo)
+                {
+                    messageType = MessageType.Explosion;
+                }
+                else if (message is GrouseEventInfo)
+                {
+                    messageType = MessageType.GrouseEvent;
+                }
+                else
+                {
+                    Monitor.Log($"🚀 Unknown message type: {message?.GetType().Name}", LogLevel.Warn);
+                    return;
+                }
+                Helper.Multiplayer.SendMessage(message, messageType, new[] { ModManifest.UniqueID });
             }
             catch (Exception ex)
             {
-                Monitor.Log($"🚀 Error broadcasting explosion: {ex.Message}", LogLevel.Error);
+                Monitor.Log($"🚀 Error broadcasting {messageType} message: {ex.Message}", LogLevel.Error);
             }
         }
 
@@ -75,30 +90,30 @@ namespace FogMod
             }
         }
 
-        // Item Drop Handling
-        private void SendItemDropMessage(ItemDropInfo itemDropInfo)
+        private void HandleGrouseEventFromMessage(GrouseEventInfo msg)
         {
             try
             {
-                Helper.Multiplayer.SendMessage(itemDropInfo, MessageType.ItemDrop, new[] { ModManifest.UniqueID });
-            }
-            catch (Exception ex)
-            {
-                Monitor.Log($"SendGrouseItemDropMessage failed: {ex.Message}", LogLevel.Error);
-            }
-        }
+                NetGrouse? grouse = GetGrouseById(msg.GrouseId);
+                if (grouse is NetGrouse g)
+                {
+                    switch (msg.Event)
+                    {
+                        case GrouseEventInfo.EventType.Flushed:
+                            SurpriseGrouse(g);
+                            return;
 
-        private void HandleItemDropFromMessage(ItemDropInfo itemDropInfo)
-        {
-            try
-            {
-                // Only create item drops on the host to prevent duplicates
-                if (Context.IsMainPlayer)
-                    CreateItemDrop(itemDropInfo.Position, itemDropInfo.ItemId, itemDropInfo.Quantity);
+                        case GrouseEventInfo.EventType.KnockedDown:
+                            KnockDownGrouse(g);
+                            return;
+                    }
+                    Monitor.Log($"🚀 Unknown grouse event: {msg.Event}", LogLevel.Warn);
+                }
+                Monitor.Log($"🚀 Grouse not found: {msg.GrouseId}", LogLevel.Warn);
             }
             catch (Exception ex)
             {
-                Monitor.Log($"HandleGrouseItemDropFromMessage failed: {ex.Message}", LogLevel.Error);
+                Monitor.Log($"🚀 Error handling grouse event message: {ex.Message}", LogLevel.Error);
             }
         }
     }

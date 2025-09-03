@@ -243,9 +243,10 @@ namespace FogMod
                         if (explosionData.LocationName == currentLocation)
                             HandleExplosionFromMessage(explosionData);
                         break;
-                    case MessageType.ItemDrop:
-                        var itemDropData = e.ReadAs<ItemDropInfo>();
-                        HandleItemDropFromMessage(itemDropData);
+                    case MessageType.GrouseEvent:
+                        var grouseEventData = e.ReadAs<GrouseEventInfo>();
+                        if (Context.IsMainPlayer)
+                            HandleGrouseEventFromMessage(grouseEventData);
                         break;
                     default:
                         Monitor.Log($"OnModMessageReceived: Unknown message type '{e.Type}' from mod '{e.FromModID}'", LogLevel.Warn);

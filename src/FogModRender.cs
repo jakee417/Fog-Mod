@@ -94,6 +94,7 @@ namespace FogMod
 
         private void DrawSingleGrouse(SpriteBatch spriteBatch, NetGrouse g)
         {
+            PlayGrouseNoise(g);
             if (g.State == GrouseState.Perched)
                 DrawPerchedGrouse(spriteBatch, g);
             else

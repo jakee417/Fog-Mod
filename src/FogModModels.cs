@@ -116,6 +116,7 @@ namespace FogMod
             public readonly NetBool facingLeft = new NetBool();
             public readonly NetFloat flightTimer = new NetFloat();
             public readonly NetBool hasPlayedFlushSound = new NetBool();
+            public readonly NetBool hasPlayedKnockedDownSound = new NetBool();
             public readonly NetBool hasBeenSpotted = new NetBool();
             public readonly NetInt totalCycles = new NetInt();
             public readonly NetInt animationFrame = new NetInt();
@@ -227,6 +228,12 @@ namespace FogMod
                 set => hasPlayedFlushSound.Value = value;
             }
 
+            public bool HasPlayedKnockedDownSound
+            {
+                get => hasPlayedKnockedDownSound.Value;
+                set => hasPlayedKnockedDownSound.Value = value;
+            }
+
             public bool HasBeenSpotted
             {
                 get => hasBeenSpotted.Value;
@@ -269,11 +276,6 @@ namespace FogMod
                     return alpha.Value;
                 }
                 set => alpha.Value = value;
-            }
-
-            public bool ReadyToBeRemoved
-            {
-                get => alpha.Value <= 0f;
             }
 
             public float OriginalY
@@ -325,6 +327,10 @@ namespace FogMod
             // Computed properties
             public Vector2 GetExitDirection => FacingLeft ? new Vector2(-1, 0) : new Vector2(1, 0);
 
+            public bool NewAnimationFrame => AnimationTimer == 0f;
+
+            public bool ReadyToBeRemoved => Alpha <= 0f;
+
             // Constructors
             protected override void InitNetFields()
             {
@@ -344,6 +350,7 @@ namespace FogMod
                     .AddField(facingLeft, "facingLeft")
                     .AddField(flightTimer, "flightTimer")
                     .AddField(hasPlayedFlushSound, "hasPlayedFlushSound")
+                    .AddField(hasPlayedKnockedDownSound, "hasPlayedKnockedDownSound")
                     .AddField(hasBeenSpotted, "hasBeenSpotted")
                     .AddField(totalCycles, "totalCycles")
                     .AddField(animationFrame, "animationFrame")
@@ -370,6 +377,7 @@ namespace FogMod
                 FlightHeight = 0f;
                 FlightTimer = 0f;
                 HasPlayedFlushSound = false;
+                HasPlayedKnockedDownSound = false;
                 HasBeenSpotted = false;
                 AnimationFrame = 0;
                 AnimationTimer = 0f;

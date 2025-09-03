@@ -51,6 +51,11 @@ namespace FogMod
             return allGrouse;
         }
 
+        private NetGrouse? GetGrouseById(int grouseId)
+        {
+            return GetAllGrouse().FirstOrDefault(g => g.GrouseId == grouseId);
+        }
+
         private void SpawnGrouseInTrees(IEnumerable<GameLocation> locations)
         {
             if (!Context.IsMainPlayer)
@@ -262,8 +267,6 @@ namespace FogMod
                         {
                             g.IsTransitioning = true;
                             g.HideTransitionProgress = 0f;
-                            if (!IsGrouseOffScreen(g))
-                                PlayHideNoise(g);
                         }
 
                         g.IsHiding = shouldHide;
@@ -271,16 +274,12 @@ namespace FogMod
                     case GrouseState.Surprised:
                         // Cycle through top row once: 0→1→2→3→4, then stay at 4
                         if (g.HasBeenSpotted && g.AnimationFrame < 4)
-                        {
                             g.AnimationFrame++;
-                            PlaySurpriseSound(g);
-                        }
                         break;
                     case GrouseState.Flushing:
                     case GrouseState.Flying:
                         // Smooth wing cycle: 0→1→2→3→2→1→0→1→2→3...
                         g.AnimationFrame = (g.AnimationFrame + 1) % NetGrouse.wingPattern.Length;
-                        PlayWingBeatSound(g);
                         break;
                     case GrouseState.KnockedDown:
                         g.AnimationFrame = 2;
@@ -337,7 +336,6 @@ namespace FogMod
             g.DamageFlashTimer = GrouseDamageFlashDuration;
             g.Smoke = screenPosition;
             DropFeatherAtImpact(impactPosition, g.GrouseId);
-            PlayGrouseKnockdownSound(g);
         }
 
         private bool IsGrouseOffScreen(NetGrouse g)
@@ -345,35 +343,38 @@ namespace FogMod
             return !grid.GetExtendedBounds().Contains(new Point((int)g.Position.X, (int)g.Position.Y));
         }
 
-        private void PlayHideNoise(NetGrouse g)
+        private void PlayGrouseNoise(NetGrouse g)
         {
-            if (g.State == GrouseState.Perched)
-                Game1.playSound("leafrustle");
-        }
-
-        private void PlaySurpriseSound(NetGrouse g)
-        {
-            if (!g.HasPlayedFlushSound && g.AnimationFrame == 4)
+            switch (g.State)
             {
-                Game1.playSound("crow");
-                g.HasPlayedFlushSound = true;
+                case GrouseState.Perched:
+                    if (g.IsTransitioning && g.NewAnimationFrame && !IsGrouseOffScreen(g))
+                        Game1.playSound("leafrustle");
+                    break;
+                case GrouseState.Surprised:
+                    if (g.HasBeenSpotted && g.AnimationFrame == 4 && !g.HasPlayedFlushSound)
+                    {
+                        Game1.playSound("crow");
+                        g.HasPlayedFlushSound = true;
+                    }
+                    else if (!g.LaunchedByFarmer && g.NewAnimationFrame && g.AnimationFrame < 2)
+                    {
+                        Game1.playSound("leafrustle");
+                    }
+                    break;
+                case GrouseState.Flushing:
+                case GrouseState.Flying:
+                    if (g.AnimationFrame == 3 && g.NewAnimationFrame)
+                        Game1.playSound("fishSlap");
+                    break;
+                case GrouseState.KnockedDown:
+                    if (!g.HasPlayedKnockedDownSound)
+                    {
+                        Game1.playSound("hitEnemy");
+                        g.HasPlayedKnockedDownSound = true;
+                    }
+                    break;
             }
-            else if (g.AnimationFrame < 2 && !g.LaunchedByFarmer)
-            {
-                Game1.playSound("leafrustle");
-            }
-        }
-
-        private void PlayWingBeatSound(NetGrouse g)
-        {
-            if (g.AnimationFrame == 3)
-                Game1.playSound("fishSlap");
-        }
-
-        private void PlayGrouseKnockdownSound(NetGrouse g)
-        {
-            if (g.State == GrouseState.KnockedDown)
-                Game1.playSound("hitEnemy");
         }
 
         private void DropFeatherAtImpact(Vector2 impactPosition, int grouseId)
@@ -383,17 +384,7 @@ namespace FogMod
             if (shouldDropFeather)
             {
                 string featherItemId = "444";
-                var itemDropInfo = new ItemDropInfo(
-                    locationName: Game1.currentLocation?.NameOrUniqueName,
-                    position: impactPosition,
-                    itemId: featherItemId,
-                    quantity: 1,
-                    timestamp: Game1.currentGameTime?.TotalGameTime.Ticks ?? 0
-                );
-                SendItemDropMessage(itemDropInfo);
-                // Only create the item drop on the main player to avoid duplicates
-                if (Context.IsMainPlayer)
-                    CreateItemDrop(impactPosition, featherItemId, 1);
+                CreateItemDrop(impactPosition, featherItemId, 1);
             }
         }
 
@@ -412,17 +403,7 @@ namespace FogMod
             // Fried egg
             else if (roll >= 0.06 && roll < 0.1)
                 eggItemId = "194";
-            var itemDropInfo = new ItemDropInfo(
-                locationName: Game1.currentLocation?.NameOrUniqueName,
-                position: landingPosition,
-                itemId: eggItemId,
-                quantity: 1,
-                timestamp: Game1.currentGameTime?.TotalGameTime.Ticks ?? 0
-            );
-            SendItemDropMessage(itemDropInfo);
-            // Only create the item drop on the main player to avoid duplicates
-            if (Context.IsMainPlayer)
-                CreateItemDrop(landingPosition, eggItemId, 1);
+            CreateItemDrop(landingPosition, eggItemId, 1);
         }
     }
 }

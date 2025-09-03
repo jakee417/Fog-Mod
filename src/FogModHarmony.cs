@@ -27,7 +27,7 @@ namespace FogMod
                     radiusPixels: radiusPx,
                     timeLeft: ExplosionFlashDurationSeconds
                 );
-                FogMod.Instance.SendExplosionMessage(info);
+                FogMod.Instance.SendMessage(info);
                 FogMod.Instance.HandleExplosion(info);
             }
             catch
@@ -95,12 +95,7 @@ namespace FogMod
         {
             try
             {
-                if (FogMod.Instance == null || !FogMod.Instance.Config.EnableGrouseCritters)
-                    return;
-
-                // Only process projectile collisions on the client that fired the projectile
-                // This prevents multiple knockdown messages for the same grouse
-                if (__instance.theOneWhoFiredMe.Get(location) != Game1.player)
+                if (FogMod.Instance == null || !FogMod.Instance.Config.EnableGrouseCritters || __instance.theOneWhoFiredMe.Get(location) != Game1.player)
                     return;
 
                 Vector2 projectilePos = __instance.position.Value;
@@ -120,7 +115,17 @@ namespace FogMod
                             float distance = Vector2.Distance(projectilePos, grousePos);
                             if (distance < GrouseCollisionRadius)
                             {
-                                FogMod.Instance.KnockDownGrouse(g);
+                                if (Context.IsMainPlayer)
+                                    FogMod.Instance.KnockDownGrouse(g);
+                                else
+                                {
+                                    GrouseEventInfo eventInfo = new GrouseEventInfo(
+                                        grouseId: g.GrouseId,
+                                        _event: GrouseEventInfo.EventType.KnockedDown,
+                                        timestamp: Game1.currentGameTime?.TotalGameTime.Ticks ?? 0
+                                    );
+                                    FogMod.Instance.SendMessage(eventInfo);
+                                }
                                 break;
                             }
                         }
@@ -149,7 +154,17 @@ namespace FogMod
                             // TODO: Find a better way to find tree identity other than the tile.
                             if (g.TreePosition == position)
                             {
-                                FogMod.Instance.SurpriseGrouse(g);
+                                if (Context.IsMainPlayer)
+                                    FogMod.Instance.SurpriseGrouse(g);
+                                else
+                                {
+                                    GrouseEventInfo eventInfo = new GrouseEventInfo(
+                                        grouseId: g.GrouseId,
+                                        _event: GrouseEventInfo.EventType.Flushed,
+                                        timestamp: Game1.currentGameTime?.TotalGameTime.Ticks ?? 0
+                                    );
+                                    FogMod.Instance.SendMessage(eventInfo);
+                                }
                                 break;
                             }
                         }
