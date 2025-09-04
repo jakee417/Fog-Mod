@@ -37,7 +37,8 @@ namespace FogMod
             string locationText = $"Location: {Game1.currentLocation?.NameOrUniqueName ?? "None"}";
             string fogGridSizeText = $"Fog grid size: {grid.ExtCols}x{grid.ExtRows} = {grid.ExtCols * grid.ExtRows}";
             string fogDayText = $"Fog day: {isFogDay} w/ prob {probabilityOfFogRoll:F2} <? {probabilityOfFogForADay:F2}";
-            string text = $"{fogDayText}\n{fogGridSizeText}\n{cloudCountText}\n{smokeCountText}{grouseInfo}\n{dailyFogMultiplierText}\n{timeOfDayMultiplierText}\n{weatherMultiplierText}\n{locationText}";
+            string needsSync = $"Needs Sync: {!IsAbleToUpdateOwnWorld()}";
+            string text = $"{fogDayText}\n{fogGridSizeText}\n{cloudCountText}\n{smokeCountText}{grouseInfo}\n{dailyFogMultiplierText}\n{timeOfDayMultiplierText}\n{weatherMultiplierText}\n{locationText}\n{needsSync}";
             var font = Game1.smallFont;
             int margin = 8;
             // Put text in upper-left corner

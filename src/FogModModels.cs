@@ -7,7 +7,6 @@ using Netcode;
 using StardewValley.TerrainFeatures;
 using StardewValley;
 using StardewValley.Projectiles;
-using xTile.Dimensions;
 
 namespace FogMod
 {

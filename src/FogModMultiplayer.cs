@@ -1,6 +1,7 @@
 #nullable enable
 using Microsoft.Xna.Framework;
 using StardewModdingAPI;
+using StardewValley;
 using System;
 
 namespace FogMod
@@ -47,6 +48,31 @@ namespace FogMod
                 public const string Flushed = "Flushed";
                 public const string KnockedDown = "KnockedDown";
             }
+        }
+
+        private bool IsAbleToUpdateOwnWorld()
+        {
+            if (Game1.IsMasterGame)
+                return true;
+
+            if (Game1.currentLocation is GameLocation localLocation && GetHost()?.currentLocation is GameLocation hostLocation)
+            {
+                return localLocation != hostLocation;
+            }
+            return true;
+        }
+
+        private Farmer? GetHost()
+        {
+            foreach (Farmer farmer in Game1.getOnlineFarmers())
+            {
+                if (Helper.Multiplayer.GetConnectedPlayer(farmer.UniqueMultiplayerID) is IMultiplayerPeer peer)
+                {
+                    if (peer.IsHost)
+                        return farmer;
+                }
+            }
+            return null;
         }
     }
 

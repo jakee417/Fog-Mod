@@ -201,7 +201,7 @@ namespace FogMod
             UpdateExplosionFlashInfos(deltaSeconds);
 
             // Update grouse
-            if (Config.EnableGrouseCritters)
+            if (Config.EnableGrouseCritters && IsAbleToUpdateOwnWorld())
                 UpdateGrouse(deltaSeconds);
         }
 

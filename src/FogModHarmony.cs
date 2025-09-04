@@ -115,7 +115,17 @@ namespace FogMod
                             float distance = Vector2.Distance(projectilePos, grousePos);
                             if (distance < GrouseCollisionRadius)
                             {
-                                FogMod.Instance.KnockDownGrouse(g);
+                                if (FogMod.Instance.IsAbleToUpdateOwnWorld())
+                                    FogMod.Instance.KnockDownGrouse(g);
+                                else
+                                {
+                                    GrouseEventInfo info = new GrouseEventInfo(
+                                        grouseId: g.GrouseId,
+                                        _event: GrouseEventInfo.EventType.KnockedDown,
+                                        timestamp: DateTime.UtcNow.Ticks
+                                    );
+                                    FogMod.Instance.SendMessage(info);
+                                }
                                 break;
                             }
                         }
@@ -144,7 +154,17 @@ namespace FogMod
                             // TODO: Find a better way to find tree identity other than the tile.
                             if (g.TreePosition == position)
                             {
-                                FogMod.Instance.SurpriseGrouse(g);
+                                if (FogMod.Instance.IsAbleToUpdateOwnWorld())
+                                    FogMod.Instance.SurpriseGrouse(g);
+                                else
+                                {
+                                    GrouseEventInfo info = new GrouseEventInfo(
+                                        grouseId: g.GrouseId,
+                                        _event: GrouseEventInfo.EventType.Flushed,
+                                        timestamp: DateTime.UtcNow.Ticks
+                                    );
+                                    FogMod.Instance.SendMessage(info);
+                                }
                                 break;
                             }
                         }
