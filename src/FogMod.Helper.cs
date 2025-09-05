@@ -1,6 +1,5 @@
 #nullable enable
 using System;
-using System.Linq;
 using Microsoft.Xna.Framework;
 using StardewModdingAPI;
 using StardewValley;
@@ -31,7 +30,7 @@ namespace FogMod
             }
         }
 
-        private bool DeterministicBool(Vector2 position, int variant)
+        private static bool DeterministicBool(Vector2 position, int variant)
         {
             int seed = (int)(position.X * 1000 + position.Y * 1000 + variant);
             var rng = new Random(seed);
@@ -53,6 +52,12 @@ namespace FogMod
             {
                 Monitor.Log($"Item drop failed: {ex.Message}", LogLevel.Error);
             }
+        }
+
+        private static Vector2 ApplyMomentumThruTurn(Vector2 targetPosition, float targetSpeed, Vector2 currentPosition, Vector2 currentVelocity, float turnFactor)
+        {
+            Vector2 direction = Vector2.Normalize(targetPosition - currentPosition);
+            return Vector2.Lerp(currentVelocity, direction * targetSpeed, turnFactor);
         }
     }
 }

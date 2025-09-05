@@ -138,42 +138,59 @@ namespace FogMod
             }
         }
 
-        // Tree Tool Action
+        // Grouse Surprising
         private static void OnTreePerformToolActionPostfix(Tree __instance, Tool t, int explosion, Vector2 tileLocation)
         {
             try
             {
-                if (FogMod.Instance == null || !FogMod.Instance.Config.EnableGrouseCritters)
-                    return;
-                Vector2 position = TreeHelper.GetTreePosition(__instance);
-                if (FogMod.Instance.GetProjectilesAtCurrentLocation() is NetCollection<Projectile> projectiles)
-                    foreach (Projectile p in projectiles)
-                    {
-                        if (p is NetGrouse g && g.State == GrouseState.Perched)
-                        {
-                            // TODO: Find a better way to find tree identity other than the tile.
-                            if (g.TreePosition == position)
-                            {
-                                if (FogMod.Instance.IsAbleToUpdateOwnWorld())
-                                    FogMod.Instance.SurpriseGrouse(g);
-                                else
-                                {
-                                    GrouseEventInfo info = new GrouseEventInfo(
-                                        grouseId: g.GrouseId,
-                                        _event: GrouseEventInfo.EventType.Flushed,
-                                        timestamp: DateTime.UtcNow.Ticks
-                                    );
-                                    FogMod.Instance.SendMessage(info);
-                                }
-                                break;
-                            }
-                        }
-                    }
+                FogMod.Instance?.HandleGrouseSurprise(__instance);
             }
             catch (Exception ex)
             {
                 FogMod.Instance?.Monitor.Log($"OnTreePerformToolActionPostfix failed: {ex.Message}", LogLevel.Error);
             }
+        }
+
+        private static void OnTreeShakePostfix(Tree __instance, Vector2 tileLocation, bool doEvenIfStillShaking)
+        {
+            try
+            {
+                FogMod.Instance?.HandleGrouseSurprise(__instance);
+            }
+            catch (Exception ex)
+            {
+                FogMod.Instance?.Monitor.Log($"OnTreeShakePostfix failed: {ex.Message}", LogLevel.Error);
+            }
+        }
+
+        private void HandleGrouseSurprise(Tree tree)
+        {
+            if (FogMod.Instance == null || !FogMod.Instance.Config.EnableGrouseCritters)
+                return;
+
+            Vector2 position = TreeHelper.GetTreePosition(tree);
+            if (FogMod.Instance.GetProjectilesAtCurrentLocation() is NetCollection<Projectile> projectiles)
+                foreach (Projectile p in projectiles)
+                {
+                    if (p is NetGrouse g && g.State == GrouseState.Perched)
+                    {
+                        if (g.TreePosition == position)
+                        {
+                            if (FogMod.Instance.IsAbleToUpdateOwnWorld())
+                                FogMod.Instance.SurpriseGrouse(g);
+                            else
+                            {
+                                GrouseEventInfo info = new GrouseEventInfo(
+                                    grouseId: g.GrouseId,
+                                    _event: GrouseEventInfo.EventType.Flushed,
+                                    timestamp: DateTime.UtcNow.Ticks
+                                );
+                                FogMod.Instance.SendMessage(info);
+                            }
+                            break;
+                        }
+                    }
+                }
         }
     }
 }

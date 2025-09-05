@@ -96,6 +96,7 @@ namespace FogMod
 
             float deltaSeconds = (float)Game1.currentGameTime.ElapsedGameTime.TotalSeconds;
             g.UpdateGrouseAnimationState(deltaSeconds);
+            g.UpdateFacingDirection();
 
             PlayGrouseNoise(g);
             if (g.State == GrouseState.Perched)
@@ -250,7 +251,6 @@ namespace FogMod
                     layerDepth: 0.86f
                 );
             }
-            g.HasBeenSpotted = true;
         }
     }
 }

@@ -34,7 +34,6 @@ namespace FogMod
         private const float DebugRingThickness = 2.0f;
 
         // Grouse constants
-        private const float GrouseDetectionRadius = 128f;
         private const float GrouseFlushSpeed = 200f;
         private const float GrouseBobAmplitude = 10f;
         private const float GrouseExitSpeed = 400f;
@@ -52,7 +51,7 @@ namespace FogMod
         private const float GrouseFadeOutDuration = 1.0f;
         private const float GrouseDamageFlashDuration = 0.3f;
         private const float GrouseFeatherDropChance = 0.3f;
-        private const float GrouseLandingDistanceThreshold = 0.75f;
+        private const float GrouseLandingDistanceThreshold = 512f;
         private const int DamageSpriteWidth = 32;
         private const int DamageSpriteHeight = 28;
     }

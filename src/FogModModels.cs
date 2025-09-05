@@ -109,7 +109,6 @@ namespace FogMod
             public readonly NetBool launchedByFarmer = new NetBool();
             public readonly NetEnum<GrouseState> state = new NetEnum<GrouseState>();
             public readonly NetFloat flightHeight = new NetFloat();
-            public readonly NetBool facingLeft = new NetBool();
             public readonly NetVector2 targetTreePosition = new NetVector2();
 
             // Immutable Property Wrappers
@@ -129,12 +128,6 @@ namespace FogMod
             {
                 get => launchedByFarmer.Value;
                 private set => launchedByFarmer.Value = value;
-            }
-
-            public bool FacingLeft
-            {
-                get => facingLeft.Value;
-                private set => facingLeft.Value = value;
             }
 
             // Mutable Property wrappers
@@ -165,8 +158,30 @@ namespace FogMod
                 get => state.Value;
                 set
                 {
-                    state.Value = value;
                     ResetStateAnimations();
+                    state.Value = value;
+                    switch (state.Value)
+                    {
+                        case GrouseState.Perched:
+                        case GrouseState.Surprised:
+                            Velocity = Vector2.Zero;
+                            break;
+                        case GrouseState.Flushing:
+                        case GrouseState.Flying:
+                        case GrouseState.Landing:
+                            break;
+                        case GrouseState.KnockedDown:
+                            Velocity = new Vector2(Velocity.X * 0.8f, Math.Max(Velocity.Y + 100f, 150f));
+                            FlightHeight = 0f;
+                            Alpha = 1.0f;
+                            Vector2 screenPosition = Game1.GlobalToLocal(Game1.viewport, Position);
+                            screenPosition.Y -= GrouseSpriteHeight * Scale / 2f;
+                            DamageFlashTimer = GrouseDamageFlashDuration;
+                            Smoke = screenPosition;
+                            AnimationFrame = 2;
+                            break;
+                    }
+
                 }
             }
 
@@ -218,15 +233,14 @@ namespace FogMod
             internal float HideTransitionProgress { get; set; }
             internal bool IsTransitioning { get; set; }
             internal int TotalCycles { get; set; }
-            internal float OriginalY { get; set; }
+            internal float FallProgress;
             internal float? DamageFlashTimer;
             internal bool HasPlayedFlushSound;
             internal bool HasPlayedKnockedDownSound;
-            internal bool HasBeenSpotted;
             internal bool IsHiding;
             internal Vector2? Smoke;
             internal bool HasDroppedEgg;
-            internal float InitialTargetDistance;
+            internal bool FacingLeft;
 
 
             // Computed properties
@@ -248,9 +262,7 @@ namespace FogMod
                     .AddField(launchedByFarmer, "launchedByFarmer")
                     .AddField(state, "state")
                     .AddField(flightHeight, "flightHeight")
-                    .AddField(facingLeft, "facingLeft")
-                    .AddField(targetTreePosition, "targetTreePosition")
-                    .AddField(alpha, "alpha");
+                    .AddField(targetTreePosition, "targetTreePosition");
             }
 
             public NetGrouse()
@@ -264,7 +276,6 @@ namespace FogMod
                 FlightTimer = 0f;
                 HasPlayedFlushSound = false;
                 HasPlayedKnockedDownSound = false;
-                HasBeenSpotted = false;
                 AnimationFrame = 0;
                 AnimationTimer = 0f;
                 IsHiding = false;
@@ -275,8 +286,28 @@ namespace FogMod
                 HideTransitionProgress = 0f;
                 IsTransitioning = false;
                 TotalCycles = 0;
-                TargetTreePosition = Vector2.Zero;
-                InitialTargetDistance = 0f;
+                TargetTreePosition = null;
+            }
+
+            public void Reset()
+            {
+                State = GrouseState.Perched;
+                Scale = GrouseScale;
+                FlightTimer = 0f;
+                Velocity = Vector2.Zero;
+                FlightHeight = 0f;
+                TargetTreePosition = null;
+                HasPlayedFlushSound = false;
+                HasPlayedKnockedDownSound = false;
+                DamageFlashTimer = null;
+                Smoke = null;
+                HasDroppedEgg = false;
+                HideTransitionProgress = 0f;
+                IsTransitioning = false;
+                TotalCycles = 0;
+                Alpha = 1.0f;
+                FacingLeft = FogMod.DeterministicBool(TreePosition, GrouseId);
+                FallProgress = 0f;
             }
 
             public NetGrouse(int grouseId, string locationName, Vector2 treePosition, Vector2 position, bool facingLeft, bool launchedByFarmer) : this()
@@ -287,7 +318,7 @@ namespace FogMod
                 LaunchedByFarmer = launchedByFarmer;
                 Position = position;
                 FacingLeft = facingLeft;
-                OriginalY = position.Y;
+                FallProgress = 0f;
             }
 
             // Public functions
@@ -304,30 +335,9 @@ namespace FogMod
                 AnimationFrame = 0;
             }
 
-            public void Reset()
-            {
-                State = GrouseState.Perched;
-                Scale = GrouseScale;
-                FlightTimer = 0f;
-                Velocity = Vector2.Zero;
-                FlightHeight = 0f;
-                TargetTreePosition = null;
-                InitialTargetDistance = 0f;
-                HasPlayedFlushSound = false;
-                HasPlayedKnockedDownSound = false;
-                DamageFlashTimer = null;
-                Smoke = null;
-                HasDroppedEgg = false;
-                HideTransitionProgress = 0f;
-                IsTransitioning = false;
-                TotalCycles = 0;
-                Alpha = 1.0f;
-                FacingLeft = FogMod.Instance?.DeterministicBool(TreePosition, GrouseId) ?? false;
-            }
-
             public void UpdateFacingDirection()
             {
-                if (Math.Abs(Velocity.X) > 10f) // Only update if moving significantly horizontally
+                if (Math.Abs(Velocity.X) > 10f)
                 {
                     FacingLeft = Velocity.X < 0;
                 }
@@ -416,7 +426,7 @@ namespace FogMod
                             break;
                         case GrouseState.Surprised:
                             // Cycle through top row once: 0→1→2→3→4, then stay at 4
-                            if (HasBeenSpotted && AnimationFrame < 4)
+                            if (AnimationFrame < 4)
                                 AnimationFrame++;
                             break;
                         case GrouseState.Flushing:

@@ -56,11 +56,11 @@ namespace FogMod
 
             // Subscribe to events
             helper.Events.GameLoop.GameLaunched += OnGameLaunched;
-            helper.Events.GameLoop.UpdateTicked += OnUpdateTicked;
-            helper.Events.Display.Rendered += OnRendered;
             helper.Events.GameLoop.DayStarted += OnDayStarted;
             helper.Events.Multiplayer.ModMessageReceived += OnModMessageReceived;
             helper.Events.Input.ButtonPressed += OnButtonPressed;
+            helper.Events.GameLoop.UpdateTicked += OnUpdateTicked;
+            helper.Events.Display.Rendered += OnRendered;
 
             // Harmony patches
             Instance = this;
@@ -81,6 +81,10 @@ namespace FogMod
             harmony.Patch(
                 original: AccessTools.Method(typeof(Tree), nameof(Tree.performToolAction), new Type[] { typeof(Tool), typeof(int), typeof(Vector2) }),
                 postfix: new HarmonyMethod(typeof(FogMod), nameof(OnTreePerformToolActionPostfix))
+            );
+            harmony.Patch(
+                original: AccessTools.Method(typeof(Tree), nameof(Tree.shake), new Type[] { typeof(Vector2), typeof(bool) }),
+                postfix: new HarmonyMethod(typeof(FogMod), nameof(OnTreeShakePostfix))
             );
         }
 

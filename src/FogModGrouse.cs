@@ -109,7 +109,7 @@ namespace FogMod
                 locationName: locationName,
                 treePosition: treePosition,
                 position: spawnPosition,
-                facingLeft: DeterministicBool(spawnPosition, 1),
+                facingLeft: DeterministicBool(treePosition, grouseId),
                 launchedByFarmer: launchedByFarmer
             );
             projectiles.Add(newGrouse);
@@ -160,8 +160,9 @@ namespace FogMod
 
             if (g.StateTimer >= GrouseSurprisedDuration)
             {
-                // Transition to flushing after being surprised
                 g.State = GrouseState.Flushing;
+                if (TreeHelper.GetTreeFromId(Game1.currentLocation, g.TreePosition) is Tree tree)
+                    tree.shake(tileLocation: g.TreePosition, doEvenIfStillShaking: true);
             }
         }
 
@@ -173,7 +174,8 @@ namespace FogMod
             {
                 g.State = GrouseState.Flying;
                 g.FlightTimer = 0f;
-                g.Velocity = g.GetExitDirection * GrouseExitSpeed;
+                Vector2 targetVelocity = g.GetExitDirection * GrouseExitSpeed;
+                g.Velocity = Vector2.Lerp(g.Velocity, targetVelocity, 0.8f);
             }
             else
             {
@@ -197,18 +199,27 @@ namespace FogMod
             if (g.TargetTreePosition == null && SelectNewTree(g) is Tree targetTree)
             {
                 Vector2 targetPosition = TreeHelper.GetGrouseSpawnPosition(targetTree);
-                Vector2 direction = Vector2.Normalize(targetPosition - g.Position);
                 g.TargetTreePosition = TreeHelper.GetTreePosition(targetTree);
-                g.Velocity = direction * GrouseExitSpeed;
-                g.InitialTargetDistance = Vector2.Distance(g.Position, targetPosition);
-                g.UpdateFacingDirection();
+                g.Velocity = ApplyMomentumThruTurn(
+                    targetPosition: targetPosition,
+                    targetSpeed: GrouseExitSpeed,
+                    currentPosition: g.Position,
+                    currentVelocity: g.Velocity,
+                    turnFactor: 1f * deltaSeconds
+                );
             }
             else if (g.TargetTreePosition is Vector2 landTarget && TreeHelper.GetTreeFromId(Game1.currentLocation, landTarget) is Tree landingTree)
             {
                 Vector2 targetPosition = TreeHelper.GetGrouseSpawnPosition(landingTree);
+                g.Velocity = ApplyMomentumThruTurn(
+                    targetPosition: targetPosition,
+                    targetSpeed: GrouseExitSpeed,
+                    currentPosition: g.Position,
+                    currentVelocity: g.Velocity,
+                    turnFactor: 2f * deltaSeconds
+                );
                 float currentDistance = Vector2.Distance(g.Position, targetPosition);
-                float distanceProgress = 1f - (currentDistance / g.InitialTargetDistance);
-                if (distanceProgress >= GrouseLandingDistanceThreshold)
+                if (currentDistance <= GrouseLandingDistanceThreshold)
                     g.State = GrouseState.Landing;
             }
         }
@@ -230,6 +241,7 @@ namespace FogMod
                 {
                     g.TreePosition = TreeHelper.GetTreePosition(targetTree);
                     g.Position = targetPosition;
+                    targetTree.shake(tileLocation: g.TreePosition, doEvenIfStillShaking: true);
                     g.Reset();
                 }
             }
@@ -268,6 +280,7 @@ namespace FogMod
                     float weight = distance * distance;
                     return (tree, weight);
                 })
+                .OrderBy(x => Game1.random.Next())
                 .ToList();
 
             float totalWeight = weightedTrees.Sum(t => t.weight);
@@ -276,7 +289,6 @@ namespace FogMod
 
             float randomValue = (float)Game1.random.NextDouble() * totalWeight;
             float cumulativeWeight = 0f;
-
             foreach (var (tree, weight) in weightedTrees)
             {
                 cumulativeWeight += weight;
@@ -296,21 +308,18 @@ namespace FogMod
                 if (g.DamageFlashTimer < 0f)
                     g.DamageFlashTimer = 0f;
             }
-            float fallProgress = (g.Position.Y - g.OriginalY) / GrouseFallDistance;
+            g.FallProgress += deltaSeconds * g.Velocity.Y;
+            float fallProgress = g.FallProgress / GrouseFallDistance;
             if (fallProgress < 1.0f)
                 g.Velocity = new Vector2(g.Velocity.X, g.Velocity.Y + 500f * deltaSeconds);
             else
             {
-                // Landed - stop falling and drop egg (only once)
-                Vector2 landingPosition = new Vector2(g.Position.X, g.OriginalY + GrouseFallDistance);
                 if (!g.HasDroppedEgg)
                 {
-                    DropEggAtLanding(landingPosition, g.LocationName, g.GrouseId);
+                    DropEggAtLanding(g.Position, g.LocationName, g.GrouseId);
                     g.HasDroppedEgg = true;
                 }
                 g.Velocity = Vector2.Zero;
-                g.Position = landingPosition;
-                // Start fading
                 if (g.StateTimer > GrouseFallDistance / 150f)
                 {
                     float timeSinceLanding = g.StateTimer - (GrouseFallDistance / 150f);
@@ -340,21 +349,12 @@ namespace FogMod
         private void SurpriseGrouse(NetGrouse g)
         {
             g.State = GrouseState.Surprised;
-            g.Velocity = Vector2.Zero;
         }
 
         private void KnockDownGrouse(NetGrouse g)
         {
             g.State = GrouseState.KnockedDown;
-            g.Velocity = new Vector2(g.Velocity.X * 0.8f, Math.Max(g.Velocity.Y + 100f, 150f));
-            g.FlightHeight = 0f;
-            g.Alpha = 1.0f;
             Vector2 impactPosition = g.Position;
-            g.OriginalY = impactPosition.Y;
-            Vector2 screenPosition = Game1.GlobalToLocal(Game1.viewport, g.Position);
-            screenPosition.Y -= GrouseSpriteHeight * g.Scale / 2f;
-            g.DamageFlashTimer = GrouseDamageFlashDuration;
-            g.Smoke = screenPosition;
             DropFeatherAtImpact(impactPosition, g.LocationName, g.GrouseId);
         }
 
@@ -367,7 +367,7 @@ namespace FogMod
                         Game1.playSound("leafrustle");
                     break;
                 case GrouseState.Surprised:
-                    if (g.HasBeenSpotted && g.AnimationFrame == 4 && !g.HasPlayedFlushSound)
+                    if (g.AnimationFrame == 4 && !g.HasPlayedFlushSound)
                     {
                         Game1.playSound("crow");
                         g.HasPlayedFlushSound = true;
