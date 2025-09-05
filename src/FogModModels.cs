@@ -2,6 +2,7 @@
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using StardewModdingAPI;
+using System;
 using System.Collections.Generic;
 using Netcode;
 using StardewValley.TerrainFeatures;
@@ -109,6 +110,7 @@ namespace FogMod
             public readonly NetEnum<GrouseState> state = new NetEnum<GrouseState>();
             public readonly NetFloat flightHeight = new NetFloat();
             public readonly NetBool facingLeft = new NetBool();
+            public readonly NetVector2 targetTreePosition = new NetVector2();
 
             // Immutable Property Wrappers
             public int GrouseId
@@ -121,12 +123,6 @@ namespace FogMod
             {
                 get => locationName.Value;
                 private set => locationName.Value = value;
-            }
-
-            public Vector2 TreePosition
-            {
-                get => treePosition.Value;
-                private set => treePosition.Value = value;
             }
 
             public bool LaunchedByFarmer
@@ -142,6 +138,12 @@ namespace FogMod
             }
 
             // Mutable Property wrappers
+            public Vector2 TreePosition
+            {
+                get => treePosition.Value;
+                set => treePosition.Value = value;
+            }
+
             public Vector2 Position
             {
                 get => position.Value;
@@ -172,6 +174,25 @@ namespace FogMod
             {
                 get => flightHeight.Value;
                 set => flightHeight.Value = value;
+            }
+
+            public Vector2? TargetTreePosition
+            {
+                get
+                {
+                    return targetTreePosition.Value == Vector2.Zero ? null : targetTreePosition.Value;
+                }
+                set
+                {
+                    if (value is Vector2 newValue)
+                    {
+                        targetTreePosition.Value = newValue;
+                    }
+                    else
+                    {
+                        targetTreePosition.Value = Vector2.Zero;
+                    }
+                }
             }
 
             public float Alpha
@@ -205,6 +226,7 @@ namespace FogMod
             internal bool IsHiding;
             internal Vector2? Smoke;
             internal bool HasDroppedEgg;
+            internal float InitialTargetDistance;
 
 
             // Computed properties
@@ -227,6 +249,7 @@ namespace FogMod
                     .AddField(state, "state")
                     .AddField(flightHeight, "flightHeight")
                     .AddField(facingLeft, "facingLeft")
+                    .AddField(targetTreePosition, "targetTreePosition")
                     .AddField(alpha, "alpha");
             }
 
@@ -252,6 +275,8 @@ namespace FogMod
                 HideTransitionProgress = 0f;
                 IsTransitioning = false;
                 TotalCycles = 0;
+                TargetTreePosition = Vector2.Zero;
+                InitialTargetDistance = 0f;
             }
 
             public NetGrouse(int grouseId, string locationName, Vector2 treePosition, Vector2 position, bool facingLeft, bool launchedByFarmer) : this()
@@ -279,6 +304,34 @@ namespace FogMod
                 AnimationFrame = 0;
             }
 
+            public void Reset()
+            {
+                State = GrouseState.Perched;
+                FlightTimer = 0f;
+                Velocity = Vector2.Zero;
+                FlightHeight = 0f;
+                TargetTreePosition = null;
+                InitialTargetDistance = 0f;
+                HasPlayedFlushSound = false;
+                HasPlayedKnockedDownSound = false;
+                DamageFlashTimer = null;
+                Smoke = null;
+                HasDroppedEgg = false;
+                HideTransitionProgress = 0f;
+                IsTransitioning = false;
+                TotalCycles = 0;
+                Alpha = 1.0f;
+                FacingLeft = FogMod.Instance?.DeterministicBool(TreePosition, GrouseId) ?? false;
+            }
+
+            public void UpdateFacingDirection()
+            {
+                if (Math.Abs(Velocity.X) > 10f) // Only update if moving significantly horizontally
+                {
+                    FacingLeft = Velocity.X < 0;
+                }
+            }
+
             public float ComputeAnimationSpeed()
             {
                 float animationSpeed = State switch
@@ -287,6 +340,7 @@ namespace FogMod
                     GrouseState.Surprised => 3f,
                     GrouseState.Flushing => 36f,
                     GrouseState.Flying => 12f,
+                    GrouseState.Landing => 0f, // Freeze animation during landing
                     GrouseState.KnockedDown => 0f, // No animation when knocked down
                     _ => 1f
                 };
@@ -369,6 +423,9 @@ namespace FogMod
                             // Smooth wing cycle: 0→1→2→3→2→1→0→1→2→3...
                             AnimationFrame = (AnimationFrame + 1) % NetGrouse.wingPattern.Length;
                             break;
+                        case GrouseState.Landing:
+                            // Freeze animation during landing - keep current frame
+                            break;
                         case GrouseState.KnockedDown:
                             AnimationFrame = 2;
                             break;
@@ -400,6 +457,7 @@ namespace FogMod
             Surprised,
             Flushing,
             Flying,
+            Landing,
             KnockedDown
         }
     }

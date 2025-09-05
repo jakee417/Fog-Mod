@@ -25,9 +25,11 @@ namespace FogMod
                 string grouseCountText = $"Grouse: {allGrouse?.Count ?? 0} in {outdoorLocations.Count()} locations";
                 string grouseInLocation = $"Grouse In {Game1.currentLocation?.NameOrUniqueName ?? "Unknown"}: {GetProjectilesAtCurrentLocation()?.Count(p => p is NetGrouse)}";
                 int surprisedGrouse = allGrouse?.Count(g => g.State == GrouseState.Surprised) ?? 0;
-                int flyingGrouse = allGrouse?.Count(g => g.State == GrouseState.Flushing || g.State == GrouseState.Flying) ?? 0;
+                int flyingGrouse = allGrouse?.Count(g => g.State == GrouseState.Flying) ?? 0;
+                int flushedGrouse = allGrouse?.Count(g => g.State == GrouseState.Flushing) ?? 0;
+                int landingGrouse = allGrouse?.Count(g => g.State == GrouseState.Landing) ?? 0;
                 int knockedDownGrouse = allGrouse?.Count(g => g.State == GrouseState.KnockedDown) ?? 0;
-                string stateText = $"Surprised: {surprisedGrouse}, Flying: {flyingGrouse}, Knocked Down: {knockedDownGrouse}";
+                string stateText = $"Surprised: {surprisedGrouse}, Flying: {flyingGrouse}, Flushed: {flushedGrouse}, Landing: {landingGrouse}, Knocked Down: {knockedDownGrouse}";
                 grouseInfo = $"\n{grouseCountText}\n{grouseInLocation}\n{stateText}";
             }
 

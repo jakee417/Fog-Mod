@@ -21,11 +21,11 @@ namespace FogMod
         {
             Rectangle renderBounds = tree.getRenderBounds();
             int seed = renderBounds.X * 1000 + renderBounds.Y * 1000;
-            var treeRng = new System.Random(seed);
-            float minHeightFromTop = renderBounds.Height / 8f;  // 1/8 from top = 7/8 height
+            var treeRng = new Random(seed);
+            float minHeightFromTop = renderBounds.Height / 4f;  // 1/4 from top = 3/4 height
             float maxHeightFromTop = renderBounds.Height / 2f;  // 1/2 from top = 1/2 height
             float yOffset = (float)(treeRng.NextDouble() * (maxHeightFromTop - minHeightFromTop) + minHeightFromTop);
-            float xVariance = (float)(treeRng.NextDouble() - 0.5) * (renderBounds.Width * 0.2f);
+            float xVariance = (float)(treeRng.NextDouble() - 0.5) * (renderBounds.Width * 0.1f);
             return new Vector2(
                 renderBounds.X + renderBounds.Width / 2f + xVariance,
                 renderBounds.Y + yOffset

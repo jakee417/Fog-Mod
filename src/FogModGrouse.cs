@@ -141,6 +141,10 @@ namespace FogMod
                             UpdateGrouseFlying(g, deltaSeconds);
                             break;
 
+                        case GrouseState.Landing:
+                            UpdateGrouseLanding(g, deltaSeconds);
+                            break;
+
                         case GrouseState.KnockedDown:
                             UpdateGrouseKnockedDown(g, deltaSeconds);
                             break;
@@ -189,6 +193,94 @@ namespace FogMod
             g.FlightTimer += deltaSeconds;
             float bobAmount = (float)Math.Sin(g.FlightTimer * 4f) * GrouseBobAmplitude;
             g.FlightHeight = bobAmount;
+
+            if (g.TargetTreePosition == null && SelectNewTree(g) is Tree targetTree)
+            {
+                Vector2 targetPosition = TreeHelper.GetGrouseSpawnPosition(targetTree);
+                Vector2 direction = Vector2.Normalize(targetPosition - g.Position);
+                g.TargetTreePosition = TreeHelper.GetTreePosition(targetTree);
+                g.Velocity = direction * GrouseExitSpeed;
+                g.InitialTargetDistance = Vector2.Distance(g.Position, targetPosition);
+                g.UpdateFacingDirection();
+            }
+            else if (g.TargetTreePosition is Vector2 landTarget && TreeHelper.GetTreeFromId(Game1.currentLocation, landTarget) is Tree landingTree)
+            {
+                Vector2 targetPosition = TreeHelper.GetGrouseSpawnPosition(landingTree);
+                float currentDistance = Vector2.Distance(g.Position, targetPosition);
+                float distanceProgress = 1f - (currentDistance / g.InitialTargetDistance);
+                if (distanceProgress >= GrouseLandingDistanceThreshold)
+                    g.State = GrouseState.Landing;
+            }
+        }
+
+        private void UpdateGrouseLanding(NetGrouse g, float deltaSeconds)
+        {
+            float bobAmount = (float)Math.Sin(g.FlightTimer * 4f) * GrouseBobAmplitude;
+            g.FlightHeight = bobAmount;
+
+            if (g.TargetTreePosition is Vector2 target && TreeHelper.GetTreeFromId(Game1.currentLocation, target) is Tree targetTree)
+            {
+                Vector2 targetPosition = TreeHelper.GetGrouseSpawnPosition(targetTree);
+                float distanceToTarget = Vector2.Distance(g.Position, targetPosition);
+                if (distanceToTarget < 10f)
+                {
+                    g.TreePosition = TreeHelper.GetTreePosition(targetTree);
+                    g.Position = targetPosition;
+                    g.Reset();
+                }
+            }
+            else
+            {
+                g.TargetTreePosition = null;
+                g.State = GrouseState.Flying;
+            }
+        }
+
+        private Tree? SelectNewTree(NetGrouse g)
+        {
+            Tree? currentTree = TreeHelper.GetTreeFromId(Game1.currentLocation, g.TreePosition);
+            List<Tree> availableTrees = TreeHelper.GetAvailableTreePositions(Game1.currentLocation);
+            if (availableTrees.Count == 0)
+                return null;
+
+            var occupiedTrees = GetAllGrouse()
+                .Where(otherG => otherG.GrouseId != g.GrouseId)
+                .Select(otherG => otherG.TreePosition)
+                .ToHashSet();
+
+            var candidateTrees = availableTrees
+                .Where(tree => tree != currentTree && !occupiedTrees.Contains(TreeHelper.GetTreePosition(tree)))
+                .ToList();
+
+            if (candidateTrees.Count == 0)
+                return null;
+
+            Vector2 currentPos = g.TreePosition * 64f;
+            var weightedTrees = candidateTrees
+                .Select(tree =>
+                {
+                    Vector2 treePos = TreeHelper.GetTreePosition(tree) * 64f;
+                    float distance = Vector2.Distance(currentPos, treePos);
+                    float weight = distance * distance;
+                    return (tree, weight);
+                })
+                .ToList();
+
+            float totalWeight = weightedTrees.Sum(t => t.weight);
+            if (totalWeight == 0)
+                return candidateTrees[0];
+
+            float randomValue = (float)Game1.random.NextDouble() * totalWeight;
+            float cumulativeWeight = 0f;
+
+            foreach (var (tree, weight) in weightedTrees)
+            {
+                cumulativeWeight += weight;
+                if (randomValue <= cumulativeWeight)
+                    return tree;
+            }
+
+            return candidateTrees[0];
         }
 
         private void UpdateGrouseKnockedDown(NetGrouse g, float deltaSeconds)
@@ -228,7 +320,8 @@ namespace FogMod
         {
             if (p is NetGrouse g)
             {
-                bool offLocation = (g.State == GrouseState.Flushing || g.State == GrouseState.Flying) && IsGrouseOffLocation(g, location);
+                bool offLocation = (g.State == GrouseState.Flushing || g.State == GrouseState.Flying ||
+                                   (g.State == GrouseState.Landing && g.StateTimer > 30f)) && IsGrouseOffLocation(g, location);
                 return offLocation || g.ReadyToBeRemoved;
             }
             return false;
@@ -282,6 +375,7 @@ namespace FogMod
                     break;
                 case GrouseState.Flushing:
                 case GrouseState.Flying:
+                case GrouseState.Landing:
                     if (g.AnimationFrame == 3 && g.NewAnimationFrame)
                         Game1.playSound("fishSlap");
                     break;
