@@ -147,7 +147,6 @@ namespace FogMod
                     }
                     g.Position += g.Velocity * deltaSeconds;
                 }
-                projectiles.RemoveWhere(RemoveGrouse);
             }
         }
 
@@ -225,22 +224,18 @@ namespace FogMod
             }
         }
 
-        private bool RemoveGrouse(Projectile p)
+        private bool RemoveGrouse(Projectile p, GameLocation location)
         {
             if (p is NetGrouse g)
             {
-                bool offLocation = (g.State == GrouseState.Flushing || g.State == GrouseState.Flying) && IsGrouseOffLocation(g);
+                bool offLocation = (g.State == GrouseState.Flushing || g.State == GrouseState.Flying) && IsGrouseOffLocation(g, location);
                 return offLocation || g.ReadyToBeRemoved;
             }
             return false;
         }
 
-        private bool IsGrouseOffLocation(NetGrouse g)
+        private bool IsGrouseOffLocation(NetGrouse g, GameLocation location)
         {
-            GameLocation? location = Game1.getLocationFromName(g.LocationName);
-            if (location == null)
-                return true;
-
             Rectangle locationBounds = new Rectangle(0, 0, location.Map.Layers[0].LayerWidth * 64, location.Map.Layers[0].LayerHeight * 64);
             return !locationBounds.Contains(new Point((int)g.Position.X, (int)g.Position.Y));
         }

@@ -311,7 +311,7 @@ namespace FogMod
 
             public override bool update(GameTime time, GameLocation location)
             {
-                return false;
+                return FogMod.Instance?.RemoveGrouse(this, location) ?? false;
             }
 
             protected override bool ShouldApplyCollisionLocally(GameLocation location)
