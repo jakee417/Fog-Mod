@@ -107,7 +107,7 @@ namespace FogMod
                 {
                     foreach (Projectile p in projectiles)
                     {
-                        if (p is NetGrouse g && (g.State == GrouseState.Flushing || g.State == GrouseState.Flying))
+                        if (p is NetGrouse g && (g.State == GrouseState.Flushing || g.State == GrouseState.Flying || g.State == GrouseState.Landing))
                         {
                             Vector2 grousePos = g.Position;
                             grousePos.Y += g.FlightHeight;

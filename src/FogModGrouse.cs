@@ -222,7 +222,11 @@ namespace FogMod
             {
                 Vector2 targetPosition = TreeHelper.GetGrouseSpawnPosition(targetTree);
                 float distanceToTarget = Vector2.Distance(g.Position, targetPosition);
-                if (distanceToTarget < 10f)
+                Vector2 direction = Vector2.Normalize(targetPosition - g.Position);
+                float slowdownFactor = Math.Min(1f, distanceToTarget / 50f);
+                float targetSpeed = GrouseFlushSpeed * slowdownFactor;
+                g.Velocity = direction * Math.Max(targetSpeed, 20f);
+                if (distanceToTarget < 32f)
                 {
                     g.TreePosition = TreeHelper.GetTreePosition(targetTree);
                     g.Position = targetPosition;

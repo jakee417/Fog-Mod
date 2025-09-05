@@ -177,6 +177,7 @@ namespace FogMod
                     break;
                 case GrouseState.Flushing:
                 case GrouseState.Flying:
+                case GrouseState.Landing:
                     frameX = NetGrouse.wingPattern[g.AnimationFrame % NetGrouse.wingPattern.Length];
                     frameY = 1;
                     scale *= 1.2f;

@@ -307,6 +307,7 @@ namespace FogMod
             public void Reset()
             {
                 State = GrouseState.Perched;
+                Scale = GrouseScale;
                 FlightTimer = 0f;
                 Velocity = Vector2.Zero;
                 FlightHeight = 0f;
@@ -340,8 +341,8 @@ namespace FogMod
                     GrouseState.Surprised => 3f,
                     GrouseState.Flushing => 36f,
                     GrouseState.Flying => 12f,
-                    GrouseState.Landing => 0f, // Freeze animation during landing
-                    GrouseState.KnockedDown => 0f, // No animation when knocked down
+                    GrouseState.Landing => 36f,
+                    GrouseState.KnockedDown => 0f,
                     _ => 1f
                 };
                 return animationSpeed;
@@ -420,11 +421,9 @@ namespace FogMod
                             break;
                         case GrouseState.Flushing:
                         case GrouseState.Flying:
+                        case GrouseState.Landing:
                             // Smooth wing cycle: 0→1→2→3→2→1→0→1→2→3...
                             AnimationFrame = (AnimationFrame + 1) % NetGrouse.wingPattern.Length;
-                            break;
-                        case GrouseState.Landing:
-                            // Freeze animation during landing - keep current frame
                             break;
                         case GrouseState.KnockedDown:
                             AnimationFrame = 2;
