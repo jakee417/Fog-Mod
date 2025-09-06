@@ -13,281 +13,280 @@ using System.Linq;
 using Netcode;
 using StardewValley.TerrainFeatures;
 
-namespace FogMod
+namespace FogMod;
+
+public partial class FogMod : Mod
 {
-    public partial class FogMod : Mod
-    {
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
-        public ModConfig Config { get; set; }
+    public GMCM.ModConfig Config { get; set; }
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
-        public Random Random = new Random();
-        private static readonly Vector2 globalWindDirection = new Vector2(WeatherDebris.globalWind, 0f);
-        private static readonly Color DefaultFogColor = Color.LightGray;
-        internal static FogMod? Instance;
-        private bool isFogDay = false;
-        private float probabilityOfFogForADay = 0.05f;
-        private float probabilityOfFogRoll = 0.0f;
-        private List<FogParticle> floatingParticles = new List<FogParticle>();
-        private CellOccupancy fogCellOccupancy;
-        private List<ExplosionFlashInfo> explosionFlashInfos = new List<ExplosionFlashInfo>();
-        private List<FogParticle> explosionSmokeParticles = new List<FogParticle>();
-        private CellOccupancy smokeCellOccupancy;
-        private List<LightInfo> lightSources = new List<LightInfo>();
-        public List<Texture2D>? cloudTextures { get; set; }
-        public Texture2D? whitePixel { get; set; }
-        public Texture2D? grouseTexture { get; set; }
-        public Texture2D? surprisedTexture { get; set; }
-        public Texture2D? damageTexture { get; set; }
-        private FogGrid grid;
-        private float time;
-        private float breathBasePhase;
-        private float dailyFogStrength = 0f;
-        private float lastWeatherFogIntensityFactor = 1f;
-        private GameLocation? lastLocation = null;
-        private readonly IEnumerable<GameLocation> outdoorLocations = Game1.locations.Where(loc => loc.IsOutdoors);
+    public Random Random = new Random();
+    private static readonly Vector2 globalWindDirection = new Vector2(WeatherDebris.globalWind, 0f);
+    private static readonly Color DefaultFogColor = Color.LightGray;
+    internal static FogMod? Instance;
+    private bool isFogDay = false;
+    private float probabilityOfFogForADay = 0.05f;
+    private float probabilityOfFogRoll = 0.0f;
+    private List<FogParticle> floatingParticles = new List<FogParticle>();
+    private CellOccupancy fogCellOccupancy;
+    private List<ExplosionFlashInfo> explosionFlashInfos = new List<ExplosionFlashInfo>();
+    private List<FogParticle> explosionSmokeParticles = new List<FogParticle>();
+    private CellOccupancy smokeCellOccupancy;
+    private List<LightInfo> lightSources = new List<LightInfo>();
+    public List<Texture2D>? cloudTextures { get; set; }
+    public Texture2D? whitePixel { get; set; }
+    public Texture2D? grouseTexture { get; set; }
+    public Texture2D? surprisedTexture { get; set; }
+    public Texture2D? damageTexture { get; set; }
+    private FogGrid grid;
+    private float time;
+    private float breathBasePhase;
+    private float dailyFogStrength = 0f;
+    private float lastWeatherFogIntensityFactor = 1f;
+    private GameLocation? lastLocation = null;
+    private readonly IEnumerable<GameLocation> outdoorLocations = Game1.locations.Where(loc => loc.IsOutdoors);
 
-        public override void Entry(IModHelper helper)
+    public override void Entry(IModHelper helper)
+    {
+        Instance = this;
+        // Test log that should definitely appear
+        Monitor.Log($"🌫️ Fog Mod (v{this.ModManifest.Version}) is loading! 🌫️", LogLevel.Alert);
+
+        // Load config
+        Config = Helper.ReadConfig<GMCM.ModConfig>();
+
+        // Subscribe to events
+        helper.Events.GameLoop.GameLaunched += OnGameLaunched;
+        helper.Events.GameLoop.DayStarted += OnDayStarted;
+        helper.Events.Multiplayer.ModMessageReceived += OnModMessageReceived;
+        helper.Events.Input.ButtonPressed += OnButtonPressed;
+        helper.Events.GameLoop.UpdateTicked += OnUpdateTicked;
+        helper.Events.Display.Rendered += OnRendered;
+
+        // Harmony patches
+        var harmony = new Harmony(this.ModManifest.UniqueID);
+        harmony.Patch(
+            original: AccessTools.Method(typeof(GameLocation), nameof(GameLocation.explode), new Type[] { typeof(Vector2), typeof(int), typeof(Farmer), typeof(bool), typeof(int), typeof(bool) }),
+            postfix: new HarmonyMethod(typeof(FogMod), nameof(OnBombExplodedPostfix))
+        );
+        harmony.Patch(
+            original: AccessTools.Method(typeof(TV), nameof(TV.proceedToNextScene)),
+            prefix: new HarmonyMethod(typeof(FogMod), nameof(ProceedToNextScenePrefix)),
+            postfix: new HarmonyMethod(typeof(FogMod), nameof(ProceedToNextScenePostfix))
+        );
+        harmony.Patch(
+            original: AccessTools.Method(typeof(Projectile), nameof(Projectile.update), new Type[] { typeof(GameTime), typeof(GameLocation) }),
+            postfix: new HarmonyMethod(typeof(FogMod), nameof(OnProjectileUpdatePostfix))
+        );
+        harmony.Patch(
+            original: AccessTools.Method(typeof(Tree), nameof(Tree.performToolAction), new Type[] { typeof(Tool), typeof(int), typeof(Vector2) }),
+            postfix: new HarmonyMethod(typeof(FogMod), nameof(OnTreePerformToolActionPostfix))
+        );
+        harmony.Patch(
+            original: AccessTools.Method(typeof(Tree), nameof(Tree.shake), new Type[] { typeof(Vector2), typeof(bool) }),
+            postfix: new HarmonyMethod(typeof(FogMod), nameof(OnTreeShakePostfix))
+        );
+    }
+
+    private void OnGameLaunched(object? sender, GameLaunchedEventArgs e)
+    {
+        // Register with Generic Mod Config Menu using the typed API
+        GenericModConfigMenu.IGenericModConfigMenuApi? gmcmApi = Helper.ModRegistry.GetApi<GenericModConfigMenu.IGenericModConfigMenuApi>("spacechase0.GenericModConfigMenu");
+        if (gmcmApi != null)
         {
-            // Test log that should definitely appear
-            Monitor.Log($"🌫️ Fog Mod (v{this.ModManifest.Version}) is loading! 🌫️", LogLevel.Alert);
-
-            // Load config
-            Config = Helper.ReadConfig<ModConfig>();
-
-            // Subscribe to events
-            helper.Events.GameLoop.GameLaunched += OnGameLaunched;
-            helper.Events.GameLoop.DayStarted += OnDayStarted;
-            helper.Events.Multiplayer.ModMessageReceived += OnModMessageReceived;
-            helper.Events.Input.ButtonPressed += OnButtonPressed;
-            helper.Events.GameLoop.UpdateTicked += OnUpdateTicked;
-            helper.Events.Display.Rendered += OnRendered;
-
-            // Harmony patches
-            Instance = this;
-            var harmony = new Harmony(this.ModManifest.UniqueID);
-            harmony.Patch(
-                original: AccessTools.Method(typeof(GameLocation), nameof(GameLocation.explode), new Type[] { typeof(Vector2), typeof(int), typeof(Farmer), typeof(bool), typeof(int), typeof(bool) }),
-                postfix: new HarmonyMethod(typeof(FogMod), nameof(OnBombExplodedPostfix))
-            );
-            harmony.Patch(
-                original: AccessTools.Method(typeof(TV), nameof(TV.proceedToNextScene)),
-                prefix: new HarmonyMethod(typeof(FogMod), nameof(ProceedToNextScenePrefix)),
-                postfix: new HarmonyMethod(typeof(FogMod), nameof(ProceedToNextScenePostfix))
-            );
-            harmony.Patch(
-                original: AccessTools.Method(typeof(Projectile), nameof(Projectile.update), new Type[] { typeof(GameTime), typeof(GameLocation) }),
-                postfix: new HarmonyMethod(typeof(FogMod), nameof(OnProjectileUpdatePostfix))
-            );
-            harmony.Patch(
-                original: AccessTools.Method(typeof(Tree), nameof(Tree.performToolAction), new Type[] { typeof(Tool), typeof(int), typeof(Vector2) }),
-                postfix: new HarmonyMethod(typeof(FogMod), nameof(OnTreePerformToolActionPostfix))
-            );
-            harmony.Patch(
-                original: AccessTools.Method(typeof(Tree), nameof(Tree.shake), new Type[] { typeof(Vector2), typeof(bool) }),
-                postfix: new HarmonyMethod(typeof(FogMod), nameof(OnTreeShakePostfix))
-            );
+            Monitor.Log("Generic Mod Config Menu API found! Registering options...", LogLevel.Info);
+            GMCM.RegisterModConfig(gmcmApi);
         }
 
-        private void OnGameLaunched(object? sender, GameLaunchedEventArgs e)
+        // Normalize global wind direction once
+        if (globalWindDirection.LengthSquared() > 0f)
+            globalWindDirection.Normalize();
+
+        try
         {
-            // Register with Generic Mod Config Menu using the typed API
-            GenericModConfigMenu.IGenericModConfigMenuApi? gmcmApi = Helper.ModRegistry.GetApi<GenericModConfigMenu.IGenericModConfigMenuApi>("spacechase0.GenericModConfigMenu");
-            if (gmcmApi != null)
+            cloudTextures = new List<Texture2D>();
+            string[] names = new[] { "Cloud1.png", "Cloud2.png", "Cloud3.png" };
+            foreach (var name in names)
             {
-                Monitor.Log("Generic Mod Config Menu API found! Registering options...", LogLevel.Info);
-                RegisterModConfig(gmcmApi);
-            }
-
-            // Normalize global wind direction once
-            if (globalWindDirection.LengthSquared() > 0f)
-                globalWindDirection.Normalize();
-
-            try
-            {
-                cloudTextures = new List<Texture2D>();
-                string[] names = new[] { "Cloud1.png", "Cloud2.png", "Cloud3.png" };
-                foreach (var name in names)
+                try
                 {
-                    try
-                    {
-                        var tex = Helper.ModContent.Load<Texture2D>($"assets/{name}");
-                        if (tex != null)
-                            cloudTextures.Add(tex);
-                    }
-                    catch { }
+                    var tex = Helper.ModContent.Load<Texture2D>($"assets/{name}");
+                    if (tex != null)
+                        cloudTextures.Add(tex);
                 }
-            }
-            catch (Exception ex)
-            {
-                Monitor.Log($"Failed to load cloud textures: {ex.Message}", LogLevel.Trace);
-            }
-            try
-            {
-                whitePixel = new Texture2D(Game1.graphics.GraphicsDevice, 1, 1);
-                whitePixel.SetData(new[] { Color.White });
-            }
-            catch { }
-
-            try
-            {
-                grouseTexture = Helper.ModContent.Load<Texture2D>("assets/grouse.png");
-                Monitor.Log("Successfully loaded grouse texture", LogLevel.Trace);
-            }
-            catch (Exception ex)
-            {
-                Monitor.Log($"Failed to load grouse texture: {ex.Message}", LogLevel.Warn);
-            }
-
-            try
-            {
-                grouseTexture = Helper.ModContent.Load<Texture2D>("assets/grouse.png");
-                Monitor.Log("Successfully loaded grouse texture", LogLevel.Trace);
-            }
-            catch (Exception ex)
-            {
-                Monitor.Log($"Failed to load grouse texture: {ex.Message}", LogLevel.Warn);
-            }
-
-            try
-            {
-                surprisedTexture = Helper.ModContent.Load<Texture2D>("assets/surprised.png");
-                Monitor.Log("Successfully loaded surprised texture", LogLevel.Trace);
-            }
-            catch (Exception ex)
-            {
-                Monitor.Log($"Failed to load surprised texture: {ex.Message}", LogLevel.Warn);
-            }
-
-            try
-            {
-                damageTexture = Helper.ModContent.Load<Texture2D>("assets/damage.png");
-                Monitor.Log("Successfully loaded damage texture", LogLevel.Trace);
-            }
-            catch (Exception ex)
-            {
-                Monitor.Log($"Failed to load surprised texture: {ex.Message}", LogLevel.Warn);
+                catch { }
             }
         }
-
-        private void OnDayStarted(object? sender, DayStartedEventArgs e)
+        catch (Exception ex)
         {
-            InitializeDailyFogStrength();
-            TreeHelper.ClearCache();
-            if (Context.IsMainPlayer)
-                InitializeGrouse();
+            Monitor.Log($"Failed to load cloud textures: {ex.Message}", LogLevel.Trace);
+        }
+        try
+        {
+            whitePixel = new Texture2D(Game1.graphics.GraphicsDevice, 1, 1);
+            whitePixel.SetData(new[] { Color.White });
+        }
+        catch { }
+
+        try
+        {
+            grouseTexture = Helper.ModContent.Load<Texture2D>("assets/grouse.png");
+            Monitor.Log("Successfully loaded grouse texture", LogLevel.Trace);
+        }
+        catch (Exception ex)
+        {
+            Monitor.Log($"Failed to load grouse texture: {ex.Message}", LogLevel.Warn);
         }
 
-        private void OnUpdateTicked(object? sender, UpdateTickedEventArgs e)
+        try
         {
-            if (!Context.IsWorldReady) return;
-
-            // Update grid snapshot
-            grid = new FogGrid(
-                cellSize: FogTileSize,
-                bufferCells: DefaultFogGridBufferCells
-            );
-
-            float deltaSeconds = (float)Game1.currentGameTime.ElapsedGameTime.TotalSeconds;
-            time += deltaSeconds;
-            breathBasePhase = time * (MathHelper.TwoPi / BreathPeriodSeconds);
-
-            // Reset fog if we transitioned to a new location
-            if (Game1.currentLocation != lastLocation || lastLocation == null)
-            {
-                ResetAllParticlesOnLocationChange();
-                lastLocation = Game1.currentLocation;
-            }
-
-            RefreshLightSources();
-            UpdateExplosionSmokeParticles(deltaSeconds);
-            if (isFogDay && Game1.currentLocation != null && Game1.currentLocation.IsOutdoors)
-                UpdateFloatingFogParticles(deltaSeconds);
-            UpdateExplosionFlashInfos(deltaSeconds);
-
-            // Update grouse
-            if (Config.EnableGrouseCritters && IsAbleToUpdateOwnWorld())
-                UpdateGrouse(deltaSeconds);
+            grouseTexture = Helper.ModContent.Load<Texture2D>("assets/grouse.png");
+            Monitor.Log("Successfully loaded grouse texture", LogLevel.Trace);
+        }
+        catch (Exception ex)
+        {
+            Monitor.Log($"Failed to load grouse texture: {ex.Message}", LogLevel.Warn);
         }
 
-        private void ResetAllParticlesOnLocationChange()
+        try
         {
-            ResetFogParticles();
-            ResetExplosionSmokeParticles();
+            surprisedTexture = Helper.ModContent.Load<Texture2D>("assets/surprised.png");
+            Monitor.Log("Successfully loaded surprised texture", LogLevel.Trace);
+        }
+        catch (Exception ex)
+        {
+            Monitor.Log($"Failed to load surprised texture: {ex.Message}", LogLevel.Warn);
         }
 
-        private void OnRendered(object? sender, RenderedEventArgs e)
+        try
         {
-            if (!Context.IsWorldReady || Game1.currentLocation == null)
+            damageTexture = Helper.ModContent.Load<Texture2D>("assets/damage.png");
+            Monitor.Log("Successfully loaded damage texture", LogLevel.Trace);
+        }
+        catch (Exception ex)
+        {
+            Monitor.Log($"Failed to load surprised texture: {ex.Message}", LogLevel.Warn);
+        }
+    }
+
+    private void OnDayStarted(object? sender, DayStartedEventArgs e)
+    {
+        InitializeDailyFogStrength();
+        TreeHelper.ClearCache();
+        if (Context.IsMainPlayer)
+            InitializeGrouse();
+    }
+
+    private void OnUpdateTicked(object? sender, UpdateTickedEventArgs e)
+    {
+        if (!Context.IsWorldReady) return;
+
+        // Update grid snapshot
+        grid = new FogGrid(
+            cellSize: Constants.FogTileSize,
+            bufferCells: Constants.DefaultFogGridBufferCells
+        );
+
+        float deltaSeconds = (float)Game1.currentGameTime.ElapsedGameTime.TotalSeconds;
+        time += deltaSeconds;
+        breathBasePhase = time * (MathHelper.TwoPi / Constants.BreathPeriodSeconds);
+
+        // Reset fog if we transitioned to a new location
+        if (Game1.currentLocation != lastLocation || lastLocation == null)
+        {
+            ResetAllParticlesOnLocationChange();
+            lastLocation = Game1.currentLocation;
+        }
+
+        RefreshLightSources();
+        UpdateExplosionSmokeParticles(deltaSeconds);
+        if (isFogDay && Game1.currentLocation != null && Game1.currentLocation.IsOutdoors)
+            UpdateFloatingFogParticles(deltaSeconds);
+        UpdateExplosionFlashInfos(deltaSeconds);
+
+        // Update grouse
+        if (Config.EnableGrouseCritters && IsAbleToUpdateOwnWorld())
+            UpdateGrouse(deltaSeconds);
+    }
+
+    private void ResetAllParticlesOnLocationChange()
+    {
+        ResetFogParticles();
+        ResetExplosionSmokeParticles();
+    }
+
+    private void OnRendered(object? sender, RenderedEventArgs e)
+    {
+        if (!Context.IsWorldReady || Game1.currentLocation == null)
+            return;
+
+        // DrawDebugFogGrid(e.SpriteBatch);
+
+        if (Config.DebugShowInfo)
+            DrawDebugInfo(e.SpriteBatch);
+
+        Color fogColor = GetEffectiveFogColor();
+
+        DrawExplosionFlashes(e.SpriteBatch);
+        DrawExplosionSmokeParticles(e.SpriteBatch, fogColor);
+        if (isFogDay && Game1.currentLocation.IsOutdoors)
+            DrawFloatingFogParticles(e.SpriteBatch, fogColor);
+    }
+
+    private void OnModMessageReceived(object? sender, ModMessageReceivedEventArgs e)
+    {
+        try
+        {
+            if (e.FromPlayerID == Game1.player.UniqueMultiplayerID)
                 return;
 
-            // DrawDebugFogGrid(e.SpriteBatch);
-
-            if (Config.DebugShowInfo)
-                DrawDebugInfo(e.SpriteBatch);
-
-            Color fogColor = GetEffectiveFogColor();
-
-            DrawExplosionFlashes(e.SpriteBatch);
-            DrawExplosionSmokeParticles(e.SpriteBatch, fogColor);
-            if (isFogDay && Game1.currentLocation.IsOutdoors)
-                DrawFloatingFogParticles(e.SpriteBatch, fogColor);
-        }
-
-        private void OnModMessageReceived(object? sender, ModMessageReceivedEventArgs e)
-        {
-            try
+            string? currentLocation = Game1.currentLocation?.NameOrUniqueName;
+            switch (e.Type)
             {
-                if (e.FromPlayerID == Game1.player.UniqueMultiplayerID)
-                    return;
-
-                string? currentLocation = Game1.currentLocation?.NameOrUniqueName;
-                switch (e.Type)
-                {
-                    case MessageType.Explosion:
-                        var explosionData = e.ReadAs<ExplosionFlashInfo>();
-                        if (explosionData.LocationName == currentLocation)
-                            HandleExplosionFromMessage(explosionData);
-                        break;
-                    case MessageType.GrouseEvent:
-                        var grouseEventData = e.ReadAs<GrouseEventInfo>();
-                        if (Context.IsMainPlayer)
-                            HandleGrouseEventFromMessage(grouseEventData);
-                        break;
-                    default:
-                        Monitor.Log($"OnModMessageReceived: Unknown message type '{e.Type}' from mod '{e.FromModID}'", LogLevel.Warn);
-                        break;
-                }
-            }
-            catch
-            {
-                FogMod.Instance?.Monitor.Log($"OnModMessageReceived failed - FromModID: {e.FromModID}, Type: {e.Type}, ThisModID: {this.ModManifest.UniqueID}, IsMainPlayer: {Context.IsMainPlayer}", LogLevel.Error);
+                case MessageType.Explosion:
+                    var explosionData = e.ReadAs<ExplosionFlashInfo>();
+                    if (explosionData.LocationName == currentLocation)
+                        HandleExplosionFromMessage(explosionData);
+                    break;
+                case MessageType.GrouseEvent:
+                    var grouseEventData = e.ReadAs<GrouseEventInfo>();
+                    if (Context.IsMainPlayer)
+                        HandleGrouseEventFromMessage(grouseEventData);
+                    break;
+                default:
+                    Monitor.Log($"OnModMessageReceived: Unknown message type '{e.Type}' from mod '{e.FromModID}'", LogLevel.Warn);
+                    break;
             }
         }
-
-        private void OnButtonPressed(object? sender, ButtonPressedEventArgs e)
+        catch
         {
-            // Debug hotkey: G to spawn grouse at main player's location.
-            if (e.Button == SButton.G && Config.EnableGrouseCritters && Game1.currentLocation.IsOutdoors && Context.IsMainPlayer)
-            {
-                if (GetProjectilesAtCurrentLocation() is NetCollection<Projectile> projectiles)
-                {
-                    Vector2 playerPosition = Game1.player.getStandingPosition();
-                    FarmerHelper.raiseHands(Game1.player);
-                    Vector2 spawnPosition = playerPosition + new Vector2(0, -Game1.player.FarmerSprite.SpriteHeight * 2.5f);
-                    int salt = (int)Random.NextInt64();
-                    NetGrouse g = SpawnGrouse(
-                        projectiles: projectiles,
-                        treePosition: spawnPosition,
-                        spawnPosition: spawnPosition,
-                        locationName: Game1.currentLocation.NameOrUniqueName,
-                        salt: salt,
-                        launchedByFarmer: true
-                    );
-                    SurpriseGrouse(g);
-                    Game1.addHUDMessage(new HUDMessage("Grouse Released!", 2));
-                }
+            FogMod.Instance?.Monitor.Log($"OnModMessageReceived failed - FromModID: {e.FromModID}, Type: {e.Type}, ThisModID: {this.ModManifest.UniqueID}, IsMainPlayer: {Context.IsMainPlayer}", LogLevel.Error);
+        }
+    }
 
+    private void OnButtonPressed(object? sender, ButtonPressedEventArgs e)
+    {
+        // Debug hotkey: G to spawn grouse at main player's location.
+        if (e.Button == SButton.G && Config.EnableGrouseCritters && Game1.currentLocation.IsOutdoors && Context.IsMainPlayer)
+        {
+            if (GetProjectilesAtCurrentLocation() is NetCollection<Projectile> projectiles)
+            {
+                Vector2 playerPosition = Game1.player.getStandingPosition();
+                FarmerHelper.raiseHands(Game1.player);
+                Vector2 spawnPosition = playerPosition + new Vector2(0, -Game1.player.FarmerSprite.SpriteHeight * 2.5f);
+                int salt = (int)Random.NextInt64();
+                NetGrouse g = SpawnGrouse(
+                    projectiles: projectiles,
+                    treePosition: spawnPosition,
+                    spawnPosition: spawnPosition,
+                    locationName: Game1.currentLocation.NameOrUniqueName,
+                    salt: salt,
+                    launchedByFarmer: true
+                );
+                SurpriseGrouse(g);
+                Game1.addHUDMessage(new HUDMessage("Grouse Released!", 2));
             }
+
         }
     }
 }

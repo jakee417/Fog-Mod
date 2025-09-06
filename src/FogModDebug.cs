@@ -63,7 +63,7 @@ namespace FogMod
             squareFogTexture.SetData(new[] { Color.White });
             if (squareFogTexture == null) return;
             Color lineColor = Color.Black * 0.85f;
-            float thickness = DebugRingThickness;
+            float thickness = Constants.DebugRingThickness;
             var font = Game1.smallFont;
             int margin = 2;
             int countCols = fogCellOccupancy.Counts != null ? fogCellOccupancy.Counts.GetLength(0) : 0;
