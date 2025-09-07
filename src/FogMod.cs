@@ -12,6 +12,8 @@ using StardewValley.Objects;
 using System.Linq;
 using Netcode;
 using StardewValley.TerrainFeatures;
+using System.IO;
+using StardewValley.GameData;
 
 namespace FogMod;
 
@@ -56,6 +58,7 @@ public partial class FogMod : Mod
 
         // Subscribe to events
         helper.Events.GameLoop.GameLaunched += OnGameLaunched;
+        helper.Events.Content.AssetRequested += OnAssetRequested;
         helper.Events.GameLoop.DayStarted += OnDayStarted;
         helper.Events.Multiplayer.ModMessageReceived += OnModMessageReceived;
         helper.Events.Input.ButtonPressed += OnButtonPressed;
@@ -161,6 +164,40 @@ public partial class FogMod : Mod
         catch (Exception ex)
         {
             Monitor.Log($"Failed to load surprised texture: {ex.Message}", LogLevel.Warn);
+        }
+    }
+
+    private void OnAssetRequested(object? sender, AssetRequestedEventArgs e)
+    {
+        if (e.NameWithoutLocale.IsEquivalentTo("Data/AudioChanges"))
+        {
+
+            e.LoadFrom(
+                () =>
+                {
+                    string grouseAudioPath = Path.Combine(Helper.DirectoryPath, "assets", "grouse.wav");
+
+                    if (!File.Exists(grouseAudioPath))
+                    {
+                        Monitor.Log($"Grouse audio file not found at: {grouseAudioPath}", LogLevel.Warn);
+                        return new Dictionary<string, AudioCueData>();
+                    }
+                    AudioCueData cue = new AudioCueData
+                    {
+                        Id = Constants.GrouseAudioCueId,
+                        FilePaths = new List<string> { grouseAudioPath },
+                        Category = "Sound",
+                        StreamedVorbis = false,
+                        Looped = false,
+                        UseReverb = false
+                    };
+                    return new Dictionary<string, AudioCueData>
+                    {
+                        { Constants.GrouseAudioCueId, cue }
+                    };
+                },
+                AssetLoadPriority.Medium
+            );
         }
     }
 

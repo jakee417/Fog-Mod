@@ -45,6 +45,10 @@
       <HintPath>/Users/jakeetaylor/Library/Application Support/Steam/steamapps/common/Stardew Valley/Contents/MacOS/xTile.dll</HintPath>
       <Private>False</Private>
     </Reference>
+    <Reference Include="StardewValley.GameData">
+      <HintPath>/Users/jakeetaylor/Library/Application Support/Steam/steamapps/common/Stardew Valley/Contents/MacOS/StardewValley.GameData.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
   </ItemGroup>
 
   

@@ -365,8 +365,8 @@ public partial class FogMod : Mod
                             }
                             else
                             {
-                                // Use crow sound as a placeholder for grouse call
-                                loc.localSound("crow", g.TilePosition);
+                                // Use custom grouse sound
+                                loc.localSound(Constants.GrouseAudioCueId, g.TilePosition);
                                 g.HasPlayedHideSoundThisCycle = true;
                             }
                         }
