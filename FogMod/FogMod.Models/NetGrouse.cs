@@ -189,13 +189,13 @@ public class NetGrouse : Monster
     }
 
     // Non-synced fields
-    internal float AnimationTimer { get; set; }
-    internal float StateTimer { get; set; }
-    internal float FlightTimer { get; set; }
-    internal int AnimationFrame { get; set; }
-    internal float HideTransitionProgress { get; set; }
-    internal bool IsTransitioning { get; set; }
-    internal int TotalCycles { get; set; }
+    internal float AnimationTimer;
+    internal float StateTimer;
+    internal float FlightTimer;
+    internal int AnimationFrame;
+    internal float HideTransitionProgress;
+    internal bool IsTransitioning;
+    internal int TotalCycles = 0;
     internal float FallProgress;
     internal float? DamageFlashTimer;
     internal bool HasPlayedFlushSound;
@@ -384,20 +384,7 @@ public class NetGrouse : Monster
                 case GrouseState.Perched:
                     // Cycle through top sitting: sitting left (0) → sitting left (1)
                     AnimationFrame = (AnimationFrame + 1) % 2;
-                    int exposedCycles = 4;
-                    int hideCycle = (TotalCycles + GrouseId) % Constants.GrouseHidingCycles;
-                    bool shouldHide = hideCycle >= exposedCycles;
-
-                    // Start transition if hiding state changed
-                    if (IsHiding != shouldHide)
-                    {
-                        IsTransitioning = true;
-                        HideTransitionProgress = 0f;
-                        HideSoundTimer = shouldHide ? FogMod.Random.Next(0, Constants.GrouseHidingCycles - exposedCycles) : 0;
-                        IsHiding = shouldHide;
-                    }
-                    else
-                        HideSoundTimer--;
+                    UpdateGrouseHidingLogic();
                     break;
                 case GrouseState.Surprised:
                     // Cycle through top row once: 0→1→2→3→4, then stay at 4
@@ -434,6 +421,24 @@ public class NetGrouse : Monster
         }
     }
 
+    internal void UpdateGrouseHidingLogic()
+    {
+        int exposedCycles = 4;
+        int hideCycle = (TotalCycles + GrouseId) % Constants.GrouseHidingCycles;
+        bool shouldHide = hideCycle >= exposedCycles;
+
+        // Start transition if hiding state changed
+        if (IsHiding != shouldHide)
+        {
+            IsTransitioning = true;
+            HideTransitionProgress = 0f;
+            HideSoundTimer = shouldHide ? FogMod.Random.Next(0, Constants.GrouseHidingCycles - exposedCycles) : 0;
+            IsHiding = shouldHide;
+        }
+        else
+            HideSoundTimer--;
+    }
+
     internal void PlayGrouseNoise()
     {
         if (Game1.currentLocation is GameLocation loc)
@@ -444,7 +449,11 @@ public class NetGrouse : Monster
                     if (IsTransitioning && NewAnimationFrame)
                         loc.localSound("leafrustle", TilePosition);
                     else if (IsHiding && HideSoundTimer == 0)
+                    {
                         loc.localSound(Constants.GrouseAudioCueId, TilePosition);
+                        // This will push us past 0 which disables further sounds until next cycle
+                        HideSoundTimer--;
+                    }
                     break;
                 case GrouseState.Surprised:
                     if (AnimationFrame == 4 && !HasPlayedFlushSound)

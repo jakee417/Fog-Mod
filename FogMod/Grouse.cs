@@ -248,6 +248,7 @@ public partial class FogMod : Mod
                 g.Position = targetPosition;
                 targetTree.shake(tileLocation: g.TreePosition, doEvenIfStillShaking: true);
                 g.Reset();
+                g.UpdateGrouseHidingLogic();
             }
         }
         else
