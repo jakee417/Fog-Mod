@@ -86,11 +86,11 @@ public partial class FogMod : Mod
                 {
                     case GrouseEventInfo.EventType.Flushed:
                         if (g.State == GrouseState.Perched)
-                            SurpriseGrouse(g);
+                            g.State = GrouseState.Surprised;
                         return;
                     case GrouseEventInfo.EventType.KnockedDown:
                         if (g.State != GrouseState.KnockedDown)
-                            KnockDownGrouse(g);
+                            g.State = GrouseState.KnockedDown;
                         return;
                 }
                 Monitor.Log($"🚀 Unknown grouse event: {msg.Event}", LogLevel.Warn);

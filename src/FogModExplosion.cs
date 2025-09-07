@@ -18,7 +18,7 @@ public partial class FogMod : Mod
 
             int count = Math.Max(24, Math.Min(220, (int)(radiusPixels * 0.45f)));
             // Start from current occupancy so we can cap per-tile spawns
-            var occupancy = ComputeSmokeCellOccupancy();
+            var occupancy = CellOccupancy.ComputeCellOccupancy(explosionSmokeParticles, grid);
             if (occupancy.Counts is int[,])
             {
                 for (int i = 0; i < count; i++)
@@ -70,6 +70,13 @@ public partial class FogMod : Mod
         catch { }
     }
 
+    private void UpdateExplosionSmokeParticles(float deltaSeconds)
+    {
+        explosionSmokeParticles = FogParticle.RemoveUnusedParticles(explosionSmokeParticles, grid, deltaSeconds, false);
+        smokeCellOccupancy = CellOccupancy.ComputeCellOccupancy(explosionSmokeParticles, grid);
+        RemoveExtraSmokeOverTarget(smokeCellOccupancy);
+    }
+
     public void ResetExplosionSmokeParticles()
     {
         explosionSmokeParticles = new List<FogParticle>();
@@ -77,7 +84,6 @@ public partial class FogMod : Mod
 
     private void UpdateExplosionFlashInfos(float deltaSeconds)
     {
-        // Update explosion flash infos
         for (int i = explosionFlashInfos.Count - 1; i >= 0; i--)
         {
             var ef = explosionFlashInfos[i];
@@ -89,44 +95,6 @@ public partial class FogMod : Mod
             }
             explosionFlashInfos[i] = ef;
         }
-    }
-
-    private void UpdateExplosionSmokeParticles(float deltaSeconds)
-    {
-        // Update explosion smoke particles
-        RemoveUnusedParticles(ref explosionSmokeParticles, grid, deltaSeconds, false);
-
-        // Update occupancy snapshot for smoke particles
-        smokeCellOccupancy = ComputeSmokeCellOccupancy();
-        RemoveExtraSmokeOverTarget(smokeCellOccupancy);
-    }
-
-    private CellOccupancy ComputeSmokeCellOccupancy()
-    {
-        int[,] counts = new int[grid.ExtCols, grid.ExtRows];
-        List<int>[,] indices = new List<int>[grid.ExtCols, grid.ExtRows];
-        for (int i = 0; i < explosionSmokeParticles.Count; i++)
-        {
-            var p = explosionSmokeParticles[i];
-            (int row, int col) = grid.GetCellFromPosition(p.Position);
-            if (col < 0 || col >= grid.ExtCols || row < 0 || row >= grid.ExtRows)
-                continue;
-            counts[col, row]++;
-            if (!p.IsFadingOut)
-            {
-                var list = indices[col, row];
-                if (list == null)
-                {
-                    list = new List<int>();
-                    indices[col, row] = list;
-                }
-                list.Add(i);
-            }
-        }
-        return new CellOccupancy(
-            counts: counts,
-            indices: indices
-        );
     }
 
     private void RemoveExtraSmokeOverTarget(CellOccupancy occupancy)

@@ -80,7 +80,7 @@ public partial class FogMod : Mod
             FogForecast forecast = FogMod.ComputeFogForecast(daysPlayed);
             string text = "And no fog!";
             // Either the player wants fog everyday or it gets forecasted.
-            if (!FogMod.Instance?.Config.EnableDailyRandomFog is bool enableDailyRandomFog && enableDailyRandomFog || forecast.IsFogDay)
+            if (!FogMod.Config.EnableDailyRandomFog is bool enableDailyRandomFog && enableDailyRandomFog || forecast.IsFogDay)
             {
                 string playersName = Game1.player.Name;
                 text = $"And bad news! the fog's getting thicker... and {playersName}'s getting larger!";
@@ -95,7 +95,7 @@ public partial class FogMod : Mod
     {
         try
         {
-            if (FogMod.Instance == null || !FogMod.Instance.Config.EnableGrouseCritters || __instance.theOneWhoFiredMe.Get(location) != Game1.player)
+            if (FogMod.Instance == null || !FogMod.Config.EnableGrouseCritters || __instance.theOneWhoFiredMe.Get(location) != Game1.player)
                 return;
 
             Vector2 projectilePos = __instance.position.Value;
@@ -116,7 +116,7 @@ public partial class FogMod : Mod
                         if (distance < Constants.GrouseCollisionRadius)
                         {
                             if (FogMod.Instance.IsAbleToUpdateOwnWorld())
-                                FogMod.Instance.KnockDownGrouse(g);
+                                g.State = GrouseState.KnockedDown;
                             else
                             {
                                 GrouseEventInfo info = new GrouseEventInfo(
@@ -165,7 +165,7 @@ public partial class FogMod : Mod
 
     private static void HandleGrouseSurprise(Tree tree)
     {
-        if (FogMod.Instance == null || !FogMod.Instance.Config.EnableGrouseCritters)
+        if (FogMod.Instance == null || !FogMod.Config.EnableGrouseCritters)
             return;
 
         Vector2 position = TreeHelper.GetTreePosition(tree);
@@ -177,7 +177,7 @@ public partial class FogMod : Mod
                     if (g.TreePosition == position)
                     {
                         if (FogMod.Instance.IsAbleToUpdateOwnWorld())
-                            FogMod.Instance.SurpriseGrouse(g);
+                            g.State = GrouseState.Surprised;
                         else
                         {
                             GrouseEventInfo info = new GrouseEventInfo(

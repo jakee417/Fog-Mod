@@ -18,9 +18,9 @@ namespace FogMod;
 public partial class FogMod : Mod
 {
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
-    public GMCM.ModConfig Config { get; set; }
+    public static GMCM.ModConfig Config { get; set; }
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
-    public Random Random = new Random();
+    public static Random Random = new Random();
     private static readonly Vector2 globalWindDirection = new Vector2(WeatherDebris.globalWind, 0f);
     private static readonly Color DefaultFogColor = Color.LightGray;
     internal static FogMod? Instance;
@@ -43,7 +43,6 @@ public partial class FogMod : Mod
     private float breathBasePhase;
     private float dailyFogStrength = 0f;
     private float lastWeatherFogIntensityFactor = 1f;
-    private GameLocation? lastLocation = null;
     private readonly IEnumerable<GameLocation> outdoorLocations = Game1.locations.Where(loc => loc.IsOutdoors);
 
     public override void Entry(IModHelper helper)
@@ -60,6 +59,7 @@ public partial class FogMod : Mod
         helper.Events.GameLoop.DayStarted += OnDayStarted;
         helper.Events.Multiplayer.ModMessageReceived += OnModMessageReceived;
         helper.Events.Input.ButtonPressed += OnButtonPressed;
+        helper.Events.Player.Warped += OnWarped;
         helper.Events.GameLoop.UpdateTicked += OnUpdateTicked;
         helper.Events.Display.Rendered += OnRendered;
 
@@ -90,13 +90,8 @@ public partial class FogMod : Mod
 
     private void OnGameLaunched(object? sender, GameLaunchedEventArgs e)
     {
-        // Register with Generic Mod Config Menu using the typed API
-        GenericModConfigMenu.IGenericModConfigMenuApi? gmcmApi = Helper.ModRegistry.GetApi<GenericModConfigMenu.IGenericModConfigMenuApi>("spacechase0.GenericModConfigMenu");
-        if (gmcmApi != null)
-        {
-            Monitor.Log("Generic Mod Config Menu API found! Registering options...", LogLevel.Info);
+        if (Helper.ModRegistry.GetApi<GenericModConfigMenu.IGenericModConfigMenuApi>("spacechase0.GenericModConfigMenu") is GenericModConfigMenu.IGenericModConfigMenuApi gmcmApi)
             GMCM.RegisterModConfig(gmcmApi);
-        }
 
         // Normalize global wind direction once
         if (globalWindDirection.LengthSquared() > 0f)
@@ -177,6 +172,13 @@ public partial class FogMod : Mod
             InitializeGrouse();
     }
 
+    private void OnWarped(object? sender, WarpedEventArgs e)
+    {
+        if (!Context.IsWorldReady) return;
+        if (e.IsLocalPlayer)
+            ResetAllParticlesOnLocationChange();
+    }
+
     private void OnUpdateTicked(object? sender, UpdateTickedEventArgs e)
     {
         if (!Context.IsWorldReady) return;
@@ -190,13 +192,6 @@ public partial class FogMod : Mod
         float deltaSeconds = (float)Game1.currentGameTime.ElapsedGameTime.TotalSeconds;
         time += deltaSeconds;
         breathBasePhase = time * (MathHelper.TwoPi / Constants.BreathPeriodSeconds);
-
-        // Reset fog if we transitioned to a new location
-        if (Game1.currentLocation != lastLocation || lastLocation == null)
-        {
-            ResetAllParticlesOnLocationChange();
-            lastLocation = Game1.currentLocation;
-        }
 
         RefreshLightSources();
         UpdateExplosionSmokeParticles(deltaSeconds);
@@ -283,7 +278,7 @@ public partial class FogMod : Mod
                     salt: salt,
                     launchedByFarmer: true
                 );
-                SurpriseGrouse(g);
+                g.State = GrouseState.Surprised;
                 Game1.addHUDMessage(new HUDMessage("Grouse Released!", 2));
             }
 

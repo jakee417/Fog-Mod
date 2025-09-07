@@ -2,19 +2,17 @@
 
 namespace FogMod;
 
-public class Constants
+public static class Constants
 {
     public const int FogTileSize = 128;
     public const int DefaultFogGridBufferCells = 3;
-    public const float FogCloudScale = 3.0f;
+    public const float FogCloudScale = 2.0f;
     public const float DefaultFloatingScaleMin = 0.4f;
     public const float DefaultFloatingScaleMax = 1.4f;
-    public const float DefaultFogAlpha = 0.6f;
-    public const float DefaultFogAlphaWeak = 0.3f;
+    public const float DefaultFogAlpha = 0.3f;
     public const int MinimumFogParticlesPerCell = 1;
     public const int MaximumFogParticlesPerCell = 3;
     public const float LightThinningStrength = 0.75f;
-    public const float LightThinningStrengthWeak = 0.25f;
     public const float DailyRandomFogMin = 0.8f;
     public const float DailyRandomFogMax = 1.2f;
     public const float FloatingParticleSpeed = 10f;

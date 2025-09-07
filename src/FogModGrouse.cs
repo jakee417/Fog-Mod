@@ -346,18 +346,6 @@ public partial class FogMod : Mod
         return !locationBounds.Contains(new Point((int)g.Position.X, (int)g.Position.Y));
     }
 
-    private void SurpriseGrouse(NetGrouse g)
-    {
-        g.State = GrouseState.Surprised;
-    }
-
-    private void KnockDownGrouse(NetGrouse g)
-    {
-        g.State = GrouseState.KnockedDown;
-        Vector2 impactPosition = g.Position;
-        DropFeatherAtImpact(impactPosition, g.LocationName, g.GrouseId);
-    }
-
     private void PlayGrouseNoise(NetGrouse g)
     {
         switch (g.State)
@@ -393,7 +381,7 @@ public partial class FogMod : Mod
         }
     }
 
-    private void DropFeatherAtImpact(Vector2 impactPosition, string locationName, int grouseId)
+    internal static void DropFeatherAtImpact(Vector2 impactPosition, string locationName, int grouseId)
     {
         var deterministicRng = new Random(grouseId);
         bool shouldDropFeather = deterministicRng.NextDouble() < Constants.GrouseFeatherDropChance;
@@ -404,7 +392,7 @@ public partial class FogMod : Mod
         }
     }
 
-    private void DropEggAtLanding(Vector2 landingPosition, string locationName, int grouseId)
+    internal static void DropEggAtLanding(Vector2 landingPosition, string locationName, int grouseId)
     {
         var deterministicRng = new Random(grouseId);
         double roll = deterministicRng.NextDouble();

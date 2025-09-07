@@ -1,4 +1,5 @@
 #nullable enable
+using System.Collections.Generic;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 
@@ -37,5 +38,31 @@ public struct FogParticle
         AgeSeconds = ageSeconds;
         IsFadingOut = isFadingOut;
         FadeOutSecondsLeft = fadeOutSecondsLeft;
+    }
+
+    internal static List<FogParticle> RemoveUnusedParticles(List<FogParticle> particles, FogGrid grid, float deltaSeconds, bool removeOffscreen)
+    {
+        for (int i = particles.Count - 1; i >= 0; i--)
+        {
+            var p = particles[i];
+            p.Position += p.Velocity * deltaSeconds;
+            p.AgeSeconds += deltaSeconds;
+            if (removeOffscreen && !grid.GetExtendedBounds().Contains(new Point((int)p.Position.X, (int)p.Position.Y)))
+            {
+                particles.RemoveAt(i);
+                continue;
+            }
+            if (p.IsFadingOut)
+            {
+                p.FadeOutSecondsLeft -= deltaSeconds;
+                if (p.FadeOutSecondsLeft <= 0f)
+                {
+                    particles.RemoveAt(i);
+                    continue;
+                }
+            }
+            particles[i] = p;
+        }
+        return particles;
     }
 }

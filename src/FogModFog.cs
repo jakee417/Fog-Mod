@@ -34,7 +34,6 @@ public partial class FogMod : Mod
 
     private static FogForecast ComputeFogForecast(int daysPlayed)
     {
-        // Use a deterministic per-day seed for both fog presence and strength
         int seed = daysPlayed ^ (int)(Game1.uniqueIDForThisGame & 0x7FFFFFFF);
         var rng = new Random(seed);
         float probabilityOfFogRoll = (float)rng.NextDouble();
@@ -57,17 +56,16 @@ public partial class FogMod : Mod
         switch (season)
         {
             case "spring":
-                seasonalProbability = 0.12f;
+                seasonalProbability = 0.05f;
                 break;
             case "summer":
-                seasonalProbability = 0.03f;
+                seasonalProbability = 0.1f;
                 break;
             case "fall":
-            case "autumn":
-                seasonalProbability = 0.14f;
+                seasonalProbability = 0.2f;
                 break;
             case "winter":
-                seasonalProbability = 0.06f;
+                seasonalProbability = 0.18f;
                 break;
             default:
                 seasonalProbability = 0.08f;
@@ -90,9 +88,7 @@ public partial class FogMod : Mod
                 for (int n = 0; n < Constants.MinimumFogParticlesPerCell; n++)
                 {
                     if (CreateParticleInCell(col, row, grid.ExtOriginWorld) is FogParticle p)
-                    {
                         floatingParticles.Add(p);
-                    }
                 }
             }
         }
@@ -100,7 +96,7 @@ public partial class FogMod : Mod
 
     public void ResetFogParticles()
     {
-        floatingParticles = new List<FogParticle>();
+        floatingParticles.Clear();
     }
 
     private FogParticle? CreateParticleInCell(int col, int row, Vector2 viewportTopLeftWorld)
@@ -137,7 +133,7 @@ public partial class FogMod : Mod
                 velocity: velocity,
                 scale: scale,
                 rotation: 0f,
-                alpha: Math.Max(0.05f, Math.Min(0.6f, alpha)),
+                alpha: Math.Clamp(alpha, 0.05f, 0.6f),
                 ageSeconds: 0f,
                 texture: chosenTex,
                 isFadingOut: false,
@@ -151,72 +147,14 @@ public partial class FogMod : Mod
     {
         if (floatingParticles.Count == 0)
             InitializeFloatingFogParticles();
-        RemoveUnusedParticles(ref floatingParticles, grid, deltaSeconds, true);
-        var occupancy = ComputeCellOccupancy();
-        PopulateCellsUnderTarget(ref occupancy.Counts);
+        floatingParticles = FogParticle.RemoveUnusedParticles(floatingParticles, grid, deltaSeconds, true);
+        var occupancy = CellOccupancy.ComputeCellOccupancy(floatingParticles, grid);
+        occupancy.Counts = PopulateCellsUnderTarget(occupancy.Counts);
         RemoveFogOverTarget(occupancy);
         fogCellOccupancy = occupancy;
     }
 
-    private static void RemoveUnusedParticles(ref List<FogParticle> particles, FogGrid grid, float deltaSeconds, bool removeOffscreen)
-    {
-        for (int i = particles.Count - 1; i >= 0; i--)
-        {
-            var p = particles[i];
-            p.Position += p.Velocity * deltaSeconds;
-            p.AgeSeconds += deltaSeconds;
-            if (removeOffscreen && !grid.GetExtendedBounds().Contains(new Point((int)p.Position.X, (int)p.Position.Y)))
-            {
-                particles.RemoveAt(i);
-                continue;
-            }
-            if (p.IsFadingOut)
-            {
-                p.FadeOutSecondsLeft -= deltaSeconds;
-                if (p.FadeOutSecondsLeft <= 0f)
-                {
-                    particles.RemoveAt(i);
-                    continue;
-                }
-            }
-            particles[i] = p;
-        }
-    }
-
-    private CellOccupancy ComputeCellOccupancy()
-    {
-        int[,] counts = new int[grid.ExtCols, grid.ExtRows];
-        List<int>[,] indices = new List<int>[grid.ExtCols, grid.ExtRows];
-
-        for (int i = 0; i < floatingParticles.Count; i++)
-        {
-            var p = floatingParticles[i];
-            (int row, int col) = grid.GetCellFromPosition(p.Position);
-            if (col < 0 || col >= grid.ExtCols || row < 0 || row >= grid.ExtRows)
-                continue;
-
-            // Count all particles
-            counts[col, row]++;
-
-            // Build selection pool excluding those already fading out
-            if (!p.IsFadingOut)
-            {
-                var list = indices[col, row];
-                if (list == null)
-                {
-                    list = new List<int>();
-                    indices[col, row] = list;
-                }
-                list.Add(i);
-            }
-        }
-        return new CellOccupancy(
-            counts: counts,
-            indices: indices
-        );
-    }
-
-    private void PopulateCellsUnderTarget(ref int[,] counts)
+    private int[,] PopulateCellsUnderTarget(int[,] counts)
     {
         for (int row = 0; row < grid.ExtRows; row++)
         {
@@ -234,6 +172,7 @@ public partial class FogMod : Mod
                 }
             }
         }
+        return counts;
     }
 
     private void RemoveFogOverTarget(CellOccupancy occupancy)

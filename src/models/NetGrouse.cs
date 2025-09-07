@@ -101,6 +101,7 @@ public class NetGrouse : Projectile
                     DamageFlashTimer = Constants.GrouseDamageFlashDuration;
                     Smoke = screenPosition;
                     AnimationFrame = 2;
+                    FogMod.DropFeatherAtImpact(Position, LocationName, GrouseId);
                     break;
             }
 

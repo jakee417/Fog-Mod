@@ -4,9 +4,9 @@ using StardewModdingAPI;
 
 namespace FogMod;
 
-public class GMCM
+public static class GMCM
 {
-    public static ModConfig Config = FogMod.Instance!.Config;
+    public static ModConfig Config = FogMod.Config;
     public static IManifest? ModManifest = FogMod.Instance?.ModManifest;
     public static IModHelper? Helper = FogMod.Instance?.Helper;
     public static IMonitor? Monitor = FogMod.Instance?.Monitor;
@@ -16,8 +16,6 @@ public class GMCM
         public bool EnableDailyRandomFog { get; set; } = true;
         public bool EnableWeatherBasedFog { get; set; } = true;
         public bool EnableTimeOfDayFog { get; set; } = true;
-        public bool ParticleStrength { get; set; } = true;
-        public bool LightThinningStrength { get; set; } = true;
         public bool DebugShowInfo { get; set; } = false;
         public bool EnableGrouseCritters { get; set; } = false;
     }
@@ -26,6 +24,9 @@ public class GMCM
     {
         try
         {
+            if (Config == null)
+                return;
+
             configMenu.Register(
                 ModManifest,
                 () => { Config = new ModConfig(); Monitor?.Log("Config reset to defaults", LogLevel.Info); },
@@ -66,22 +67,6 @@ public class GMCM
                 value => Config.EnableTimeOfDayFog = value,
                 () => "Time of Day Fog Effect",
                 () => "Enable or disable time of day fog effect (daylight, night, etc.)"
-            );
-
-            configMenu.AddBoolOption(
-                ModManifest,
-                () => Config.ParticleStrength,
-                value => Config.ParticleStrength = value,
-                () => "Particle Strength",
-                () => "Set the strength of the particle effect high/low"
-            );
-
-            configMenu.AddBoolOption(
-                ModManifest,
-                () => Config.LightThinningStrength,
-                value => Config.LightThinningStrength = value,
-                () => "Light Thinning Strength",
-                () => "Set the strength of the light thinning effect high/low"
             );
 
             configMenu.AddSectionTitle(

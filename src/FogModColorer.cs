@@ -10,19 +10,13 @@ public partial class FogMod : Mod
 {
     private Color GetEffectiveFogColor()
     {
-        // Debug override
-        // return Color.Black;
-
         Color fog = FogAtLocation();
-
-        // Adjust fog for weather
         if (Config.EnableWeatherBasedFog)
             fog = AdjustFogForWeather(fog);
 
         return fog;
     }
 
-    // Adjust fog color based on environment/location
     private Color FogAtLocation()
     {
         try
@@ -67,8 +61,6 @@ public partial class FogMod : Mod
         try
         {
             float intensityFactor = 1f;
-
-            // Stronger fog during precipitation
             if (Game1.isRaining)
                 intensityFactor += 0.25f;
             if (Game1.isLightning)
@@ -112,7 +104,7 @@ public partial class FogMod : Mod
         float timeOfDay = Config.EnableTimeOfDayFog ? ComputeTimeOfDayOpacityMultiplier() : 1.0f;
         float lightAlphaMult = ComputeLightThinningMultiplier(p.Position);
         float dailyMult = GetDailyFogAlphaMultiplier();
-        float a = (Config.ParticleStrength ? Constants.DefaultFogAlpha : Constants.DefaultFogAlphaWeak) * p.Alpha * fadeIn * fadeOut * cellBreath * timeOfDay * dailyMult;
+        float a = Constants.DefaultFogAlpha * p.Alpha * fadeIn * fadeOut * cellBreath * timeOfDay * dailyMult;
         a = MathHelper.Clamp(a, 0f, 1f) * lightAlphaMult;
         return ApplyExplosionTintPerBlasts(baseColor, p.Position) * a;
     }
@@ -125,7 +117,7 @@ public partial class FogMod : Mod
         fadeToFloorT = fadeToFloorT * fadeToFloorT * (3f - 2f * fadeToFloorT);
         float lightAlphaMult = ComputeLightThinningMultiplier(p.Position);
         Color smokeTone = LerpColor(baseColor, Color.DimGray, 0.85f); ;
-        float initialOpacity = (Config.ParticleStrength ? Constants.DefaultFogAlpha : Constants.DefaultFogAlphaWeak) * p.Alpha * fadeIn;
+        float initialOpacity = Constants.DefaultFogAlpha * p.Alpha * fadeIn;
         float currentOpacity = MathHelper.Lerp(initialOpacity, Constants.SmokeMinAlpha, fadeToFloorT);
         float a = currentOpacity * lightAlphaMult;
         return ApplyExplosionTintPerBlasts(smokeTone, p.Position) * a;
@@ -139,7 +131,7 @@ public partial class FogMod : Mod
     private float ComputeLightThinningMultiplier(Vector2 worldPosition)
     {
         float warmth = ComputeLightWarmth(worldPosition);
-        return MathHelper.Clamp(1f - warmth * (Config.LightThinningStrength ? Constants.LightThinningStrength : Constants.LightThinningStrengthWeak), 0f, 1f);
+        return MathHelper.Clamp(1f - warmth * Constants.LightThinningStrength, 0f, 1f);
     }
 
     private float ComputeLightWarmth(Vector2 worldPosition)
