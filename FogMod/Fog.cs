@@ -5,6 +5,7 @@ using StardewModdingAPI;
 using System;
 using System.Collections.Generic;
 using StardewValley;
+using FogMod.Models;
 
 namespace FogMod;
 

@@ -6,7 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace FogMod;
+namespace FogMod.Utils;
 
 public static class TreeHelper
 {

@@ -4,9 +4,9 @@ using Microsoft.Xna.Framework;
 using StardewModdingAPI;
 using StardewValley;
 
-namespace FogMod;
+namespace FogMod.Utils;
 
-public class Utils
+public class Utilities
 {
     internal static Vector2 GetPlayerWorldCenter()
     {

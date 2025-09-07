@@ -1,7 +1,7 @@
 #nullable enable
 using Microsoft.Xna.Framework;
 
-namespace FogMod;
+namespace FogMod.Models;
 
 public struct ExplosionFlashInfo
 {

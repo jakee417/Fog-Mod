@@ -4,6 +4,7 @@ using Microsoft.Xna.Framework.Graphics;
 using StardewModdingAPI;
 using System.Collections.Generic;
 using System;
+using FogMod.Models;
 
 namespace FogMod;
 

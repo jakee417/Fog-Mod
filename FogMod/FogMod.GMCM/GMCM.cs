@@ -2,7 +2,7 @@
 using System;
 using StardewModdingAPI;
 
-namespace FogMod;
+namespace FogMod.GMCM;
 
 public static class GMCM
 {
@@ -20,7 +20,7 @@ public static class GMCM
         public bool EnableGrouseCritters { get; set; } = false;
     }
 
-    public static void RegisterModConfig(GenericModConfigMenu.IGenericModConfigMenuApi configMenu)
+    public static void RegisterModConfig(IGenericModConfigMenuApi configMenu)
     {
         try
         {

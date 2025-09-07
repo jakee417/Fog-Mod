@@ -1,7 +1,7 @@
 #nullable enable
 using StardewValley;
 
-namespace FogMod;
+namespace FogMod.Utils;
 
 public static class FarmerHelper
 {

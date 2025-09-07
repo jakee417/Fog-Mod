@@ -1,6 +1,6 @@
 #nullable enable
 
-namespace FogMod;
+namespace FogMod.Models;
 
 public struct FogForecast
 {

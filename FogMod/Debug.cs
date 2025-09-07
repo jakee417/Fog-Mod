@@ -6,6 +6,8 @@ using StardewValley;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using FogMod.Models;
+using FogMod.Utils;
 
 namespace FogMod
 {
@@ -39,7 +41,7 @@ namespace FogMod
             string locationText = $"Location: {Game1.currentLocation?.NameOrUniqueName ?? "None"}";
             string fogGridSizeText = $"Fog grid size: {grid.ExtCols}x{grid.ExtRows} = {grid.ExtCols * grid.ExtRows}";
             string fogDayText = $"Fog day: {isFogDay} w/ prob {probabilityOfFogRoll:F2} <? {probabilityOfFogForADay:F2}";
-            string needsSync = $"Needs Sync: {!IsAbleToUpdateOwnWorld()}";
+            string needsSync = $"Needs Sync: {!Utils.Multiplayer.IsAbleToUpdateOwnWorld()}";
             string text = $"{fogDayText}\n{fogGridSizeText}\n{cloudCountText}\n{smokeCountText}{grouseInfo}\n{dailyFogMultiplierText}\n{timeOfDayMultiplierText}\n{weatherMultiplierText}\n{locationText}\n{needsSync}";
             var font = Game1.smallFont;
             int margin = 8;

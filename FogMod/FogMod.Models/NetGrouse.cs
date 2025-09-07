@@ -6,8 +6,9 @@ using Netcode;
 using StardewValley.TerrainFeatures;
 using StardewValley;
 using StardewValley.Projectiles;
+using FogMod.Utils;
 
-namespace FogMod;
+namespace FogMod.Models;
 
 public enum GrouseState
 {
@@ -238,7 +239,7 @@ public class NetGrouse : Projectile
         IsTransitioning = false;
         TotalCycles = 0;
         Alpha = 1.0f;
-        FacingLeft = Utils.DeterministicBool(TreePosition, GrouseId);
+        FacingLeft = Utilities.DeterministicBool(TreePosition, GrouseId);
         FallProgress = 0f;
         HideSoundTimer = 0f;
         HasPlayedHideSoundThisCycle = false;

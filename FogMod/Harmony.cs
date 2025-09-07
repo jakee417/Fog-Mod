@@ -7,6 +7,8 @@ using StardewValley.Objects;
 using StardewValley.Projectiles;
 using StardewValley.TerrainFeatures;
 using System;
+using FogMod.Models;
+using FogMod.Utils;
 
 namespace FogMod;
 
@@ -27,7 +29,7 @@ public partial class FogMod : Mod
                 radiusPixels: radiusPx,
                 timeLeft: Constants.ExplosionFlashDurationSeconds
             );
-            FogMod.Instance.SendMessage(info);
+            Utils.Multiplayer.SendMessage(info);
             FogMod.HandleExplosion(info);
         }
         catch
@@ -36,7 +38,7 @@ public partial class FogMod : Mod
         }
     }
 
-    private static void HandleExplosion(ExplosionFlashInfo info)
+    public static void HandleExplosion(ExplosionFlashInfo info)
     {
 
         FogMod.Instance?.explosionFlashInfos.Add(info);
@@ -115,7 +117,7 @@ public partial class FogMod : Mod
                         float distance = Vector2.Distance(projectilePos, grousePos);
                         if (distance < Constants.GrouseCollisionRadius)
                         {
-                            if (FogMod.Instance.IsAbleToUpdateOwnWorld())
+                            if (Utils.Multiplayer.IsAbleToUpdateOwnWorld())
                                 g.State = GrouseState.KnockedDown;
                             else
                             {
@@ -124,7 +126,7 @@ public partial class FogMod : Mod
                                     _event: GrouseEventInfo.EventType.KnockedDown,
                                     timestamp: DateTime.UtcNow.Ticks
                                 );
-                                FogMod.Instance.SendMessage(info);
+                                Utils.Multiplayer.SendMessage(info);
                             }
                             break;
                         }
@@ -176,7 +178,7 @@ public partial class FogMod : Mod
                 {
                     if (g.TreePosition == position)
                     {
-                        if (FogMod.Instance.IsAbleToUpdateOwnWorld())
+                        if (Utils.Multiplayer.IsAbleToUpdateOwnWorld())
                             g.State = GrouseState.Surprised;
                         else
                         {
@@ -185,7 +187,7 @@ public partial class FogMod : Mod
                                 _event: GrouseEventInfo.EventType.Flushed,
                                 timestamp: DateTime.UtcNow.Ticks
                             );
-                            FogMod.Instance.SendMessage(info);
+                            Utils.Multiplayer.SendMessage(info);
                         }
                         break;
                     }

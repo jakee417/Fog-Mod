@@ -4,6 +4,8 @@ using Microsoft.Xna.Framework.Graphics;
 using StardewModdingAPI;
 using StardewValley;
 using System;
+using FogMod.Models;
+using FogMod.Utils;
 
 namespace FogMod;
 
@@ -11,7 +13,7 @@ public partial class FogMod : Mod
 {
     private void DrawFloatingFogParticles(SpriteBatch spriteBatch, Color fogColor)
     {
-        Vector2 playerWorldCenter = Utils.GetPlayerWorldCenter();
+        Vector2 playerWorldCenter = Utilities.GetPlayerWorldCenter();
         foreach (var p in floatingParticles)
         {
             Vector2 screenPos = Game1.GlobalToLocal(Game1.viewport, p.Position);
@@ -37,7 +39,7 @@ public partial class FogMod : Mod
 
     private void DrawExplosionSmokeParticles(SpriteBatch spriteBatch, Color fogColor)
     {
-        Vector2 playerWorldCenter = Utils.GetPlayerWorldCenter();
+        Vector2 playerWorldCenter = Utilities.GetPlayerWorldCenter();
         foreach (var p in explosionSmokeParticles)
         {
             Vector2 screenPos = Game1.GlobalToLocal(Game1.viewport, p.Position);

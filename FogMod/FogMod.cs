@@ -14,13 +14,15 @@ using Netcode;
 using StardewValley.TerrainFeatures;
 using System.IO;
 using StardewValley.GameData;
+using FogMod.Models;
+using FogMod.Utils;
 
 namespace FogMod;
 
 public partial class FogMod : Mod
 {
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
-    public static GMCM.ModConfig Config { get; set; }
+    public static GMCM.GMCM.ModConfig Config { get; set; }
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
     public static Random Random = new Random();
     private static readonly Vector2 globalWindDirection = new Vector2(WeatherDebris.globalWind, 0f);
@@ -54,13 +56,13 @@ public partial class FogMod : Mod
         Monitor.Log($"🌫️ Fog Mod (v{this.ModManifest.Version}) is loading! 🌫️", LogLevel.Alert);
 
         // Load config
-        Config = Helper.ReadConfig<GMCM.ModConfig>();
+        Config = Helper.ReadConfig<GMCM.GMCM.ModConfig>();
 
         // Subscribe to events
         helper.Events.GameLoop.GameLaunched += OnGameLaunched;
         helper.Events.Content.AssetRequested += OnAssetRequested;
         helper.Events.GameLoop.DayStarted += OnDayStarted;
-        helper.Events.Multiplayer.ModMessageReceived += OnModMessageReceived;
+        helper.Events.Multiplayer.ModMessageReceived += Utils.Multiplayer.OnModMessageReceived;
         helper.Events.Input.ButtonPressed += OnButtonPressed;
         helper.Events.Player.Warped += OnWarped;
         helper.Events.GameLoop.UpdateTicked += OnUpdateTicked;
@@ -93,8 +95,8 @@ public partial class FogMod : Mod
 
     private void OnGameLaunched(object? sender, GameLaunchedEventArgs e)
     {
-        if (Helper.ModRegistry.GetApi<GenericModConfigMenu.IGenericModConfigMenuApi>("spacechase0.GenericModConfigMenu") is GenericModConfigMenu.IGenericModConfigMenuApi gmcmApi)
-            GMCM.RegisterModConfig(gmcmApi);
+        if (Helper.ModRegistry.GetApi<GMCM.IGenericModConfigMenuApi>("spacechase0.GenericModConfigMenu") is GMCM.IGenericModConfigMenuApi gmcmApi)
+            GMCM.GMCM.RegisterModConfig(gmcmApi);
 
         // Normalize global wind direction once
         if (globalWindDirection.LengthSquared() > 0f)
@@ -237,7 +239,7 @@ public partial class FogMod : Mod
         UpdateExplosionFlashInfos(deltaSeconds);
 
         // Update grouse
-        if (Config.EnableGrouseCritters && IsAbleToUpdateOwnWorld())
+        if (Config.EnableGrouseCritters && Utils.Multiplayer.IsAbleToUpdateOwnWorld())
             UpdateGrouse(deltaSeconds);
     }
 
@@ -263,37 +265,6 @@ public partial class FogMod : Mod
         DrawExplosionSmokeParticles(e.SpriteBatch, fogColor);
         if (isFogDay && Game1.currentLocation.IsOutdoors)
             DrawFloatingFogParticles(e.SpriteBatch, fogColor);
-    }
-
-    private void OnModMessageReceived(object? sender, ModMessageReceivedEventArgs e)
-    {
-        try
-        {
-            if (e.FromPlayerID == Game1.player.UniqueMultiplayerID)
-                return;
-
-            string? currentLocation = Game1.currentLocation?.NameOrUniqueName;
-            switch (e.Type)
-            {
-                case MessageType.Explosion:
-                    var explosionData = e.ReadAs<ExplosionFlashInfo>();
-                    if (explosionData.LocationName == currentLocation)
-                        HandleExplosionFromMessage(explosionData);
-                    break;
-                case MessageType.GrouseEvent:
-                    var grouseEventData = e.ReadAs<GrouseEventInfo>();
-                    if (Context.IsMainPlayer)
-                        HandleGrouseEventFromMessage(grouseEventData);
-                    break;
-                default:
-                    Monitor.Log($"OnModMessageReceived: Unknown message type '{e.Type}' from mod '{e.FromModID}'", LogLevel.Warn);
-                    break;
-            }
-        }
-        catch
-        {
-            FogMod.Instance?.Monitor.Log($"OnModMessageReceived failed - FromModID: {e.FromModID}, Type: {e.Type}, ThisModID: {this.ModManifest.UniqueID}, IsMainPlayer: {Context.IsMainPlayer}", LogLevel.Error);
-        }
     }
 
     private void OnButtonPressed(object? sender, ButtonPressedEventArgs e)

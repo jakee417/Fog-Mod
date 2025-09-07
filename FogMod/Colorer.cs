@@ -3,6 +3,8 @@ using Microsoft.Xna.Framework;
 using StardewModdingAPI;
 using StardewValley;
 using System;
+using FogMod.Models;
+using FogMod.Utils;
 
 namespace FogMod;
 
@@ -190,7 +192,7 @@ public partial class FogMod : Mod
         int col = (int)Math.Floor(worldPosition.X / cellSize);
         int row = (int)Math.Floor(worldPosition.Y / cellSize);
         // Simple hash to desync phases per cell
-        float jitter = Utils.Hash01(col * 73856093 ^ row * 19349663);
+        float jitter = Utilities.Hash01(col * 73856093 ^ row * 19349663);
         float phase = breathBasePhase + jitter * MathHelper.TwoPi * Constants.BreathDesync;
         float s = (float)Math.Sin(phase);
         // Map to [1 - A, 1 + A], then clamp to [0, 1.5] and finally to [0,1]

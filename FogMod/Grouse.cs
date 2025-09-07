@@ -8,6 +8,8 @@ using System.Collections.Generic;
 using Netcode;
 using StardewValley.Projectiles;
 using System.Linq;
+using FogMod.Models;
+using FogMod.Utils;
 
 namespace FogMod;
 
@@ -50,7 +52,7 @@ public partial class FogMod : Mod
         return allGrouse;
     }
 
-    private NetGrouse? GetGrouseById(int grouseId)
+    internal NetGrouse? GetGrouseById(int grouseId)
     {
         return GetAllGrouse().FirstOrDefault(g => g.GrouseId == grouseId);
     }
@@ -109,7 +111,7 @@ public partial class FogMod : Mod
             locationName: locationName,
             treePosition: treePosition,
             position: spawnPosition,
-            facingLeft: Utils.DeterministicBool(treePosition, grouseId),
+            facingLeft: Utilities.DeterministicBool(treePosition, grouseId),
             launchedByFarmer: launchedByFarmer
         );
         projectiles.Add(newGrouse);
@@ -200,7 +202,7 @@ public partial class FogMod : Mod
         {
             Vector2 targetPosition = TreeHelper.GetGrouseSpawnPosition(targetTree);
             g.TargetTreePosition = TreeHelper.GetTreePosition(targetTree);
-            g.Velocity = Utils.ApplyMomentumThruTurn(
+            g.Velocity = Utilities.ApplyMomentumThruTurn(
                 targetPosition: targetPosition,
                 targetSpeed: Constants.GrouseExitSpeed,
                 currentPosition: g.Position,
@@ -211,7 +213,7 @@ public partial class FogMod : Mod
         else if (g.TargetTreePosition is Vector2 landTarget && TreeHelper.GetTreeFromId(Game1.currentLocation, landTarget) is Tree landingTree)
         {
             Vector2 targetPosition = TreeHelper.GetGrouseSpawnPosition(landingTree);
-            g.Velocity = Utils.ApplyMomentumThruTurn(
+            g.Velocity = Utilities.ApplyMomentumThruTurn(
                 targetPosition: targetPosition,
                 targetSpeed: Constants.GrouseExitSpeed,
                 currentPosition: g.Position,
@@ -407,7 +409,7 @@ public partial class FogMod : Mod
         if (shouldDropFeather)
         {
             string featherItemId = "444";
-            Utils.CreateItemDrop(impactPosition, locationName, featherItemId, 1);
+            Utilities.CreateItemDrop(impactPosition, locationName, featherItemId, 1);
         }
     }
 
@@ -426,6 +428,6 @@ public partial class FogMod : Mod
         // Fried egg
         else if (roll >= 0.06 && roll < 0.1)
             eggItemId = "194";
-        Utils.CreateItemDrop(landingPosition, locationName, eggItemId, 1);
+        Utilities.CreateItemDrop(landingPosition, locationName, eggItemId, 1);
     }
 }

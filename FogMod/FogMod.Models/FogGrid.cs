@@ -3,7 +3,7 @@ using System;
 using Microsoft.Xna.Framework;
 using StardewValley;
 
-namespace FogMod;
+namespace FogMod.Models;
 
 public readonly struct FogGrid
 {

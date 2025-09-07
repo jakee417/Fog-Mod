@@ -2,7 +2,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace FogMod;
+namespace FogMod.Models;
 
 public struct CellOccupancy
 {
