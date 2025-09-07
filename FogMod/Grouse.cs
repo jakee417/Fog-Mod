@@ -6,7 +6,6 @@ using StardewValley;
 using System;
 using System.Collections.Generic;
 using Netcode;
-using StardewValley.Projectiles;
 using System.Linq;
 using FogMod.Models;
 using FogMod.Utils;
@@ -19,25 +18,25 @@ public partial class FogMod : Mod
     {
         foreach (GameLocation loc in outdoorLocations)
         {
-            loc.projectiles.RemoveWhere(p => p is NetGrouse);
+            loc.characters.RemoveWhere(p => p is NetGrouse);
         }
         SpawnGrouseInTrees(outdoorLocations);
     }
 
-    public NetCollection<Projectile>? GetProjectilesAtCurrentLocation()
+    public NetCollection<NPC>? GetNPCsAtCurrentLocation()
     {
-        if (GetProjectileForLocation(Game1.currentLocation) is NetCollection<Projectile> projectiles)
+        if (GetNPCsForLocation(Game1.currentLocation) is NetCollection<NPC> npc)
         {
-            return projectiles;
+            return npc;
         }
         return null;
     }
 
-    private NetCollection<Projectile>? GetProjectileForLocation(GameLocation? location)
+    private NetCollection<NPC>? GetNPCsForLocation(GameLocation? location)
     {
-        if (location is GameLocation loc && loc.projectiles is NetCollection<Projectile> grouse)
+        if (location is GameLocation loc && loc.characters is NetCollection<NPC> npc)
         {
-            return grouse;
+            return npc;
         }
         return null;
     }
@@ -47,7 +46,7 @@ public partial class FogMod : Mod
         List<NetGrouse> allGrouse = new List<NetGrouse>();
         foreach (GameLocation loc in outdoorLocations)
         {
-            allGrouse.AddRange(loc.projectiles.Where(p => p is NetGrouse).Cast<NetGrouse>());
+            allGrouse.AddRange(loc.characters.Where(c => c is NetGrouse).Cast<NetGrouse>());
         }
         return allGrouse;
     }
@@ -62,20 +61,20 @@ public partial class FogMod : Mod
         int numLocations = 0;
         foreach (GameLocation loc in locations)
         {
-            if (loc.IsOutdoors && GetProjectileForLocation(loc) is NetCollection<Projectile> projectiles)
+            if (loc.IsOutdoors && GetNPCsForLocation(loc) is NetCollection<NPC> npc)
             {
-                SpawnGrouseForTrees(projectiles, TreeHelper.GetAvailableTreePositions(loc), loc.NameOrUniqueName);
+                SpawnGrouseForTrees(npc, TreeHelper.GetAvailableTreePositions(loc), loc.NameOrUniqueName);
                 numLocations++;
             }
         }
     }
 
-    private void SpawnGrouseForTrees(NetCollection<Projectile> projectiles, List<Tree> availableTrees, string locationName)
+    private void SpawnGrouseForTrees(NetCollection<NPC> npc, List<Tree> availableTrees, string locationName)
     {
         int locationSeed = locationName.GetHashCode();
         int daySeed = (int)Game1.stats.DaysPlayed;
         var locationRng = new Random(locationSeed ^ daySeed);
-        int grouseCount = projectiles.Count(p => p is NetGrouse);
+        int grouseCount = npc.Count(c => c is NetGrouse);
         foreach (var tree in availableTrees)
         {
             if (grouseCount >= Constants.GrouseMaxPerLocation)
@@ -86,7 +85,7 @@ public partial class FogMod : Mod
                 Vector2 treePosition = TreeHelper.GetTreePosition(tree);
                 Vector2 spawnPosition = TreeHelper.GetGrouseSpawnPosition(tree);
                 _ = SpawnGrouse(
-                    projectiles: projectiles,
+                    npc: npc,
                     treePosition: treePosition,
                     spawnPosition: spawnPosition,
                     locationName: locationName,
@@ -98,7 +97,7 @@ public partial class FogMod : Mod
         }
     }
 
-    private NetGrouse SpawnGrouse(NetCollection<Projectile> projectiles, Vector2 treePosition, Vector2 spawnPosition, string locationName, int? salt, bool launchedByFarmer)
+    private NetGrouse SpawnGrouse(NetCollection<NPC> npc, Vector2 treePosition, Vector2 spawnPosition, string locationName, int? salt, bool launchedByFarmer)
     {
         int grouseId = NetGrouse.GetDeterministicId(
             locationSeed: locationName.GetHashCode(),
@@ -108,21 +107,25 @@ public partial class FogMod : Mod
         );
         NetGrouse newGrouse = new NetGrouse(
             grouseId: grouseId,
+            textures: new NetGrouse.TexturePack(
+                grouseTexture: grouseTexture,
+                surprisedTexture: surprisedTexture,
+                damageTexture: damageTexture
+            ),
             locationName: locationName,
             treePosition: treePosition,
             position: spawnPosition,
-            facingLeft: Utilities.DeterministicBool(treePosition, grouseId),
             launchedByFarmer: launchedByFarmer
         );
-        projectiles.Add(newGrouse);
+        npc.Add(newGrouse);
         return newGrouse;
     }
 
     private void UpdateGrouse(float deltaSeconds)
     {
-        if (GetProjectilesAtCurrentLocation() is NetCollection<Projectile> projectiles)
+        if (GetNPCsAtCurrentLocation() is NetCollection<NPC> npc)
         {
-            foreach (var g in projectiles.Where(p => p is NetGrouse).Cast<NetGrouse>())
+            foreach (var g in npc.OfType<NetGrouse>())
             {
                 g.StateTimer += deltaSeconds;
 
@@ -327,77 +330,8 @@ public partial class FogMod : Mod
                 float timeSinceLanding = g.StateTimer - (Constants.GrouseFallDistance / 150f);
                 float fadeProgress = timeSinceLanding / Constants.GrouseFadeOutDuration;
                 g.Alpha = Math.Max(0f, 1.0f - fadeProgress);
-            }
-        }
-    }
-
-    internal bool RemoveGrouse(Projectile p, GameLocation location)
-    {
-        if (p is NetGrouse g)
-        {
-            bool offLocation = (g.State == GrouseState.Flushing || g.State == GrouseState.Flying ||
-                               (g.State == GrouseState.Landing && g.StateTimer > 30f)) && IsGrouseOffLocation(g, location);
-            return offLocation || g.ReadyToBeRemoved;
-        }
-        return false;
-    }
-
-    private bool IsGrouseOffLocation(NetGrouse g, GameLocation location)
-    {
-        Rectangle locationBounds = new Rectangle(0, 0, location.Map.Layers[0].LayerWidth * Game1.tileSize, location.Map.Layers[0].LayerHeight * Game1.tileSize);
-        return !locationBounds.Contains(new Point((int)g.Position.X, (int)g.Position.Y));
-    }
-
-    private void PlayGrouseNoise(NetGrouse g)
-    {
-        if (Game1.currentLocation is GameLocation loc)
-        {
-            switch (g.State)
-            {
-                case GrouseState.Perched:
-                    if (g.IsTransitioning && g.NewAnimationFrame)
-                        loc.localSound("leafrustle", g.TilePosition);
-                    if (g.IsHiding && !g.HasPlayedHideSoundThisCycle)
-                    {
-                        if (g.NewAnimationFrame)
-                        {
-                            if (g.HideSoundTimer > 0)
-                            {
-                                g.HideSoundTimer--;
-                            }
-                            else
-                            {
-                                // Use custom grouse sound
-                                loc.localSound(Constants.GrouseAudioCueId, g.TilePosition);
-                                g.HasPlayedHideSoundThisCycle = true;
-                            }
-                        }
-                    }
-                    break;
-                case GrouseState.Surprised:
-                    if (g.AnimationFrame == 4 && !g.HasPlayedFlushSound)
-                    {
-                        loc.localSound("crow", g.TilePosition);
-                        g.HasPlayedFlushSound = true;
-                    }
-                    else if (!g.LaunchedByFarmer && g.NewAnimationFrame && g.AnimationFrame < 2)
-                    {
-                        loc.localSound("leafrustle", g.TilePosition);
-                    }
-                    break;
-                case GrouseState.Flushing:
-                case GrouseState.Flying:
-                case GrouseState.Landing:
-                    if (g.AnimationFrame == 3 && g.NewAnimationFrame)
-                        loc.localSound("fishSlap", g.TilePosition);
-                    break;
-                case GrouseState.KnockedDown:
-                    if (!g.HasPlayedKnockedDownSound)
-                    {
-                        loc.localSound("hitEnemy", g.TilePosition);
-                        g.HasPlayedKnockedDownSound = true;
-                    }
-                    break;
+                if (fadeProgress >= 1.0f)
+                    g.Health = -1;
             }
         }
     }

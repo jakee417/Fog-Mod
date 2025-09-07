@@ -272,14 +272,14 @@ public partial class FogMod : Mod
         // Debug hotkey: G to spawn grouse at main player's location.
         if (e.Button == SButton.G && Config.EnableGrouseCritters && Game1.currentLocation.IsOutdoors && Context.IsMainPlayer)
         {
-            if (GetProjectilesAtCurrentLocation() is NetCollection<Projectile> projectiles)
+            if (GetNPCsAtCurrentLocation() is NetCollection<NPC> npc)
             {
                 Vector2 playerPosition = Game1.player.getStandingPosition();
                 FarmerHelper.raiseHands(Game1.player);
                 Vector2 spawnPosition = playerPosition + new Vector2(0, -Game1.player.FarmerSprite.SpriteHeight * 2.5f);
                 int salt = (int)Random.NextInt64();
                 NetGrouse g = SpawnGrouse(
-                    projectiles: projectiles,
+                    npc: npc,
                     treePosition: spawnPosition,
                     spawnPosition: spawnPosition,
                     locationName: Game1.currentLocation.NameOrUniqueName,

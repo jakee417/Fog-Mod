@@ -5,8 +5,8 @@ using System;
 using Netcode;
 using StardewValley.TerrainFeatures;
 using StardewValley;
-using StardewValley.Projectiles;
 using FogMod.Utils;
+using StardewValley.Monsters;
 
 namespace FogMod.Models;
 
@@ -20,7 +20,7 @@ public enum GrouseState
     KnockedDown
 }
 
-public class NetGrouse : Projectile
+public class NetGrouse : Monster
 {
     // Static variables
     public static readonly int[] wingPattern = { 0, 1, 2, 3, 4, 3, 2, 1 };
@@ -33,6 +33,8 @@ public class NetGrouse : Projectile
     public readonly NetEnum<GrouseState> state = new NetEnum<GrouseState>();
     public readonly NetFloat flightHeight = new NetFloat();
     public readonly NetVector2 targetTreePosition = new NetVector2();
+    public readonly NetBool isHiding = new NetBool();
+    public readonly NetInt hideSoundTimer = new NetInt();
 
     // Immutable Property Wrappers
     public int GrouseId
@@ -60,12 +62,6 @@ public class NetGrouse : Projectile
         set => treePosition.Value = value;
     }
 
-    public Vector2 Position
-    {
-        get => position.Value;
-        set => position.Value = value;
-    }
-
     public Vector2 TilePosition
     {
         get => new Vector2((float)Math.Floor(Position.X / Game1.tileSize), (float)Math.Floor(Position.Y / Game1.tileSize));
@@ -73,11 +69,11 @@ public class NetGrouse : Projectile
 
     public Vector2 Velocity
     {
-        get => new Vector2(xVelocity.Value, yVelocity.Value);
+        get => new Vector2(xVelocity, yVelocity);
         set
         {
-            xVelocity.Value = value.X;
-            yVelocity.Value = value.Y;
+            xVelocity = value.X;
+            yVelocity = value.Y;
         }
     }
 
@@ -120,6 +116,18 @@ public class NetGrouse : Projectile
         set => flightHeight.Value = value;
     }
 
+    internal bool IsHiding
+    {
+        get => isHiding.Value;
+        set => isHiding.Value = value;
+    }
+
+    internal int HideSoundTimer
+    {
+        get => hideSoundTimer.Value;
+        set => hideSoundTimer.Value = value;
+    }
+
     public Vector2? TargetTreePosition
     {
         get
@@ -146,15 +154,41 @@ public class NetGrouse : Projectile
             if (State == GrouseState.Perched && Game1.currentLocation is GameLocation location)
             {
                 Tree? tree = TreeHelper.GetTreeFromId(location, TreePosition);
-                return tree?.alpha ?? alpha.Value;
+                return tree?.alpha ?? alpha;
             }
-            return alpha.Value;
+            return alpha;
         }
-        set => alpha.Value = value;
+        set => alpha = value;
+    }
+
+    public float AnimationSpeed
+    {
+        get
+        {
+            return State switch
+            {
+                GrouseState.Perched => 0.5f,
+                GrouseState.Surprised => 3f,
+                GrouseState.Flushing => 36f,
+                GrouseState.Flying => 12f,
+                GrouseState.Landing => 36f,
+                GrouseState.KnockedDown => 0f,
+                _ => 1f
+            };
+        }
+        set { }
+    }
+
+    public bool FacingLeft
+    {
+        get
+        {
+            return Velocity.X < 0;
+        }
+        set { }
     }
 
     // Non-synced fields
-    internal float Scale;
     internal float AnimationTimer { get; set; }
     internal float StateTimer { get; set; }
     internal float FlightTimer { get; set; }
@@ -166,12 +200,10 @@ public class NetGrouse : Projectile
     internal float? DamageFlashTimer;
     internal bool HasPlayedFlushSound;
     internal bool HasPlayedKnockedDownSound;
-    internal bool IsHiding;
     internal Vector2? Smoke;
     internal bool HasDroppedEgg;
-    internal bool FacingLeft;
-    internal float HideSoundTimer;
-    internal bool HasPlayedHideSoundThisCycle;
+    internal float alpha;
+    internal TexturePack Textures;
 
 
     // Computed properties
@@ -179,12 +211,10 @@ public class NetGrouse : Projectile
 
     public bool NewAnimationFrame => AnimationTimer == 0f;
 
-    public bool ReadyToBeRemoved => Alpha <= 0f;
-
     // Constructors
-    protected override void InitNetFields()
+    protected override void initNetFields()
     {
-        base.InitNetFields();
+        base.initNetFields();
         NetFields
             .SetOwner(this)
             .AddField(grouseId, "grouseId")
@@ -193,12 +223,19 @@ public class NetGrouse : Projectile
             .AddField(launchedByFarmer, "launchedByFarmer")
             .AddField(state, "state")
             .AddField(flightHeight, "flightHeight")
-            .AddField(targetTreePosition, "targetTreePosition");
+            .AddField(targetTreePosition, "targetTreePosition")
+            .AddField(isHiding, "isHiding")
+            .AddField(hideSoundTimer, "hideSoundTimer");
     }
 
     public NetGrouse()
     {
-        InitNetFields();
+        initNetFields();
+        Reset();
+    }
+
+    public void Reset()
+    {
         Velocity = Vector2.Zero;
         State = GrouseState.Perched;
         StateTimer = 0f;
@@ -218,42 +255,19 @@ public class NetGrouse : Projectile
         IsTransitioning = false;
         TotalCycles = 0;
         TargetTreePosition = null;
-        HideSoundTimer = 0f;
-        HasPlayedHideSoundThisCycle = false;
+        HideSoundTimer = 0;
+        Health = 1;
     }
 
-    public void Reset()
-    {
-        State = GrouseState.Perched;
-        Scale = Constants.GrouseScale;
-        FlightTimer = 0f;
-        Velocity = Vector2.Zero;
-        FlightHeight = 0f;
-        TargetTreePosition = null;
-        HasPlayedFlushSound = false;
-        HasPlayedKnockedDownSound = false;
-        DamageFlashTimer = null;
-        Smoke = null;
-        HasDroppedEgg = false;
-        HideTransitionProgress = 0f;
-        IsTransitioning = false;
-        TotalCycles = 0;
-        Alpha = 1.0f;
-        FacingLeft = Utilities.DeterministicBool(TreePosition, GrouseId);
-        FallProgress = 0f;
-        HideSoundTimer = 0f;
-        HasPlayedHideSoundThisCycle = false;
-    }
-
-    public NetGrouse(int grouseId, string locationName, Vector2 treePosition, Vector2 position, bool facingLeft, bool launchedByFarmer) : this()
+    public NetGrouse(int grouseId, TexturePack textures, string locationName, Vector2 treePosition, Vector2 position, bool launchedByFarmer) : this()
     {
         GrouseId = grouseId;
         LocationName = locationName;
         TreePosition = treePosition;
         LaunchedByFarmer = launchedByFarmer;
         Position = position;
-        FacingLeft = facingLeft;
         FallProgress = 0f;
+        Textures = textures;
     }
 
     // Public functions
@@ -270,75 +284,99 @@ public class NetGrouse : Projectile
         AnimationFrame = 0;
     }
 
-    public void UpdateFacingDirection()
+    public override void draw(SpriteBatch b)
     {
-        if (Math.Abs(Velocity.X) > 10f)
+        DrawAGrouse(spriteBatch: b);
+    }
+
+    public override void DrawShadow(SpriteBatch b)
+    {
+        if (Alpha <= 0f)
+            return;
+
+        Vector2 shadowPosition = Game1.GlobalToLocal(Game1.viewport, Position + new Vector2(0, GetBoundingBox().Height / 2));
+        float shadowScale = Scale * 0.5f;
+        Color shadowColor = Color.Gray * Alpha * 0.5f;
+        b.Draw(
+            Game1.shadowTexture,
+            shadowPosition,
+            Game1.shadowTexture.Bounds,
+            shadowColor,
+            0f,
+            new Vector2(Game1.shadowTexture.Width / 2f, Game1.shadowTexture.Height / 2f),
+            shadowScale,
+            SpriteEffects.None,
+            Math.Max(0f, StandingPixel.Y / 10000f) - 1E-06f
+        );
+    }
+
+    public override void MovePosition(GameTime time, xTile.Dimensions.Rectangle viewport, GameLocation currentLocation)
+    { }
+
+    public override bool isInvincible()
+    {
+        // We will use our own damage handling.
+        return true;
+    }
+
+    public override int takeDamage(int damage, int xTrajectory, int yTrajectory, bool isBomb, double addedPrecision, Farmer who)
+    {
+        return 0;
+    }
+
+    public override bool ShouldMonsterBeRemoved()
+    {
+        return RemoveGrouse(this, Game1.currentLocation);
+    }
+
+    internal static bool RemoveGrouse(NetGrouse g, GameLocation location)
+    {
+        bool offLocation = (g.State == GrouseState.Flushing || g.State == GrouseState.Flying ||
+                               (g.State == GrouseState.Landing && g.StateTimer > 30f)) && IsGrouseOffLocation(g, location);
+        return offLocation || g.Health <= 0;
+    }
+
+    private static bool IsGrouseOffLocation(NetGrouse g, GameLocation location)
+    {
+        Rectangle locationBounds = new Rectangle(0, 0, location.Map.Layers[0].LayerWidth * Game1.tileSize, location.Map.Layers[0].LayerHeight * Game1.tileSize);
+        return !locationBounds.Contains(new Point((int)g.Position.X, (int)g.Position.Y));
+    }
+
+
+
+    public struct TexturePack
+    {
+        public Texture2D? GrouseTexture;
+        public Texture2D? DamageTexture;
+        public Texture2D? SurprisedTexture;
+
+        public TexturePack(Texture2D? grouseTexture, Texture2D? damageTexture, Texture2D? surprisedTexture)
         {
-            FacingLeft = Velocity.X < 0;
+            GrouseTexture = grouseTexture;
+            DamageTexture = damageTexture;
+            SurprisedTexture = surprisedTexture;
         }
     }
 
-    public float ComputeAnimationSpeed()
+    internal void DrawAGrouse(SpriteBatch spriteBatch)
     {
-        float animationSpeed = State switch
-        {
-            GrouseState.Perched => 0.5f,
-            GrouseState.Surprised => 3f,
-            GrouseState.Flushing => 36f,
-            GrouseState.Flying => 12f,
-            GrouseState.Landing => 36f,
-            GrouseState.KnockedDown => 0f,
-            _ => 1f
-        };
-        return animationSpeed;
-    }
+        float deltaSeconds = (float)Game1.currentGameTime.ElapsedGameTime.TotalSeconds;
+        UpdateGrouseAnimationState(deltaSeconds);
+        PlayGrouseNoise();
 
-    // Nerf the projectile built-in functions to make sure we have no side effects.
-    public override void behaviorOnCollisionWithPlayer(GameLocation location, Farmer player)
-    { }
+        if (!Utility.isOnScreen(Position, Game1.tileSize))
+            return;
 
-    public override void behaviorOnCollisionWithTerrainFeature(TerrainFeature t, Vector2 tileLocation, GameLocation location)
-    { }
-
-    public override void behaviorOnCollisionWithOther(GameLocation location)
-    { }
-
-    public override void behaviorOnCollisionWithMonster(NPC n, GameLocation location)
-    { }
-
-    public override void updatePosition(GameTime time)
-    { }
-
-    public override bool update(GameTime time, GameLocation location)
-    {
-        return FogMod.Instance?.RemoveGrouse(this, location) ?? false;
-    }
-
-    protected override bool ShouldApplyCollisionLocally(GameLocation location)
-    {
-        return false;
-    }
-
-    protected override void updateTail(GameTime time)
-    { }
-
-    public override bool isColliding(GameLocation location, out Character target, out TerrainFeature terrainFeature)
-    {
-        target = null!;
-        terrainFeature = null!;
-        return false;
-    }
-
-    public override void draw(SpriteBatch b)
-    {
-        FogMod.Instance?.DrawSingleGrouse(spriteBatch: b, g: this);
+        if (State == GrouseState.Perched)
+            DrawPerchedGrouse(spriteBatch, this);
+        else
+            DrawMovingGrouse(spriteBatch, this);
     }
 
     public void UpdateGrouseAnimationState(float deltaSeconds)
     {
         AnimationTimer += deltaSeconds;
-        float animationSpeed = ComputeAnimationSpeed();
-        if (animationSpeed > 0f && AnimationTimer >= 1f / animationSpeed)
+        if (AnimationSpeed > 0f && AnimationTimer >= 1f / AnimationSpeed)
         {
             AnimationTimer = 0f;
             switch (State)
@@ -346,23 +384,20 @@ public class NetGrouse : Projectile
                 case GrouseState.Perched:
                     // Cycle through top sitting: sitting left (0) → sitting left (1)
                     AnimationFrame = (AnimationFrame + 1) % 2;
-                    // Determine hiding state - vary per bird
+                    int exposedCycles = 4;
                     int hideCycle = (TotalCycles + GrouseId) % Constants.GrouseHidingCycles;
-                    bool wasHiding = IsHiding;
-                    bool shouldHide = hideCycle >= 4;
+                    bool shouldHide = hideCycle >= exposedCycles;
 
                     // Start transition if hiding state changed
-                    if (wasHiding != shouldHide)
+                    if (IsHiding != shouldHide)
                     {
                         IsTransitioning = true;
                         HideTransitionProgress = 0f;
-                        if (shouldHide)
-                        {
-                            HasPlayedHideSoundThisCycle = false;
-                            HideSoundTimer = FogMod.Random.Next(0, Constants.GrouseHidingCycles - 4);
-                        }
+                        HideSoundTimer = shouldHide ? FogMod.Random.Next(0, Constants.GrouseHidingCycles - exposedCycles) : 0;
+                        IsHiding = shouldHide;
                     }
-                    IsHiding = shouldHide;
+                    else
+                        HideSoundTimer--;
                     break;
                 case GrouseState.Surprised:
                     // Cycle through top row once: 0→1→2→3→4, then stay at 4
@@ -396,6 +431,194 @@ public class NetGrouse : Projectile
                     }
                     break;
             }
+        }
+    }
+
+    internal void PlayGrouseNoise()
+    {
+        if (Game1.currentLocation is GameLocation loc)
+        {
+            switch (State)
+            {
+                case GrouseState.Perched:
+                    if (IsTransitioning && NewAnimationFrame)
+                        loc.localSound("leafrustle", TilePosition);
+                    else if (IsHiding && HideSoundTimer == 0)
+                        loc.localSound(Constants.GrouseAudioCueId, TilePosition);
+                    break;
+                case GrouseState.Surprised:
+                    if (AnimationFrame == 4 && !HasPlayedFlushSound)
+                    {
+                        loc.localSound("crow", TilePosition);
+                        HasPlayedFlushSound = true;
+                    }
+                    else if (!LaunchedByFarmer && NewAnimationFrame && AnimationFrame < 2)
+                    {
+                        loc.localSound("leafrustle", TilePosition);
+                    }
+                    break;
+                case GrouseState.Flushing:
+                case GrouseState.Flying:
+                case GrouseState.Landing:
+                    if (AnimationFrame == 3 && NewAnimationFrame)
+                        loc.localSound("fishSlap", TilePosition);
+                    break;
+                case GrouseState.KnockedDown:
+                    if (!HasPlayedKnockedDownSound)
+                    {
+                        loc.localSound("hitEnemy", TilePosition);
+                        HasPlayedKnockedDownSound = true;
+                    }
+                    break;
+            }
+        }
+    }
+
+    private void DrawPerchedGrouse(SpriteBatch spriteBatch, NetGrouse g)
+    {
+        if (Textures.GrouseTexture == null || g.Alpha <= 0f)
+            return;
+
+        // Calculate hide/show animation
+        float hideProgress = g.IsHiding ? 1f : 0f;
+        if (g.IsTransitioning)
+        {
+            hideProgress = g.IsHiding ? g.HideTransitionProgress : (1f - g.HideTransitionProgress);
+        }
+
+        // If completely hidden, don't draw
+        if (hideProgress >= 1f)
+            return;
+
+        Vector2 screenPos = Game1.GlobalToLocal(Game1.viewport, g.Position);
+        screenPos.Y += g.FlightHeight;
+
+        // Calculate vertical offset and sprite height based on hide progress
+        const int maxSpriteHeight = 7;  // Full grouse sprite height
+        const float popUpDistance = 8f;  // How far up the grouse pops when appearing
+
+        // Interpolate sprite height and position
+        float currentSpriteHeight = MathHelper.Lerp(maxSpriteHeight, 0f, hideProgress);
+        float verticalOffset = MathHelper.Lerp(-popUpDistance, 0f, hideProgress);
+
+        // Apply vertical offset to screen position
+        screenPos.Y += verticalOffset;
+
+        SpriteEffects effects = g.FacingLeft ? SpriteEffects.None : SpriteEffects.FlipHorizontally;
+        int frameX = g.AnimationFrame % 2;
+        Rectangle sourceRect = new Rectangle(
+            frameX * Constants.GrouseSpriteWidth,
+            0,
+            Constants.GrouseSpriteWidth,
+            (int)Math.Max(1, currentSpriteHeight)
+        );
+        Vector2 origin = new Vector2(Constants.GrouseSpriteWidth / 2f, Constants.GrouseSpriteHeight);
+        spriteBatch.Draw(
+            Textures.GrouseTexture,
+            position: screenPos,
+            sourceRectangle: sourceRect,
+            color: Color.White * g.Alpha,
+            rotation: 0f,
+            origin: origin,
+            scale: g.Scale,
+            effects: effects,
+            layerDepth: 0.85f
+        );
+    }
+
+    private void DrawMovingGrouse(SpriteBatch spriteBatch, NetGrouse g)
+    {
+        if (Textures.GrouseTexture == null || g.Alpha <= 0f)
+            return;
+
+        Vector2 screenPos = Game1.GlobalToLocal(Game1.viewport, g.Position);
+        screenPos.Y += g.FlightHeight;
+
+        int frameX = 0;
+        int frameY = 0;
+        SpriteEffects effects = g.FacingLeft ? SpriteEffects.None : SpriteEffects.FlipHorizontally;
+        float scale = g.Scale;
+
+        switch (g.State)
+        {
+            case GrouseState.Surprised:
+                frameX = g.AnimationFrame;
+                frameY = 0;
+                break;
+            case GrouseState.Flushing:
+            case GrouseState.Flying:
+            case GrouseState.Landing:
+                frameX = NetGrouse.wingPattern[g.AnimationFrame % NetGrouse.wingPattern.Length];
+                frameY = 1;
+                scale *= 1.2f;
+                break;
+            case GrouseState.KnockedDown:
+                frameX = g.AnimationFrame;
+                frameY = 1;
+                scale *= 1.2f;
+                break;
+        }
+        Rectangle sourceRect = new Rectangle(
+            frameX * Constants.GrouseSpriteWidth,
+            frameY * Constants.GrouseSpriteHeight,
+            Constants.GrouseSpriteWidth,
+            Constants.GrouseSpriteHeight
+        );
+        Vector2 origin = new Vector2(Constants.GrouseSpriteWidth / 2f, Constants.GrouseSpriteHeight);
+        spriteBatch.Draw(
+            Textures.GrouseTexture,
+            position: screenPos,
+            sourceRectangle: sourceRect,
+            color: Color.White * g.Alpha,
+            rotation: 0f,
+            origin: origin,
+            scale: scale,
+            effects: effects,
+            layerDepth: 0.85f
+        );
+
+        if (Textures.DamageTexture is Texture2D damageTexture && g.DamageFlashTimer is float damageFlashTimer && damageFlashTimer > 0f && g.Smoke is Vector2 smoke)
+        {
+            float ratio = damageFlashTimer / Constants.GrouseDamageFlashDuration;
+            int damageFrameY = 0;
+            int damageFrameX = 0;
+            if (ratio < 0.33)
+                damageFrameX = 2;
+            else if (ratio > 0.33 && ratio < 0.66)
+                damageFrameX = 1;
+            Rectangle damageRect = new Rectangle(
+                damageFrameX * Constants.DamageSpriteWidth,
+                damageFrameY * Constants.DamageSpriteHeight,
+                Constants.DamageSpriteWidth,
+                Constants.DamageSpriteHeight
+            );
+            spriteBatch.Draw(
+                damageTexture,
+                position: smoke,
+                sourceRectangle: damageRect,
+                color: Color.White * ratio,
+                rotation: (float)Math.Sin(ratio * 2.0f * Math.PI),
+                origin: new Vector2(Constants.DamageSpriteWidth / 2f, Constants.DamageSpriteHeight / 2f),
+                scale: 1.5f,
+                effects: SpriteEffects.None,
+                layerDepth: 0.86f
+            );
+        }
+        if (Textures.SurprisedTexture is Texture2D surprisedTexture && g.State == GrouseState.Surprised && g.AnimationFrame == 4)
+        {
+            Vector2 surprisedPos = screenPos;
+            surprisedPos.Y -= Constants.GrouseSpriteHeight * scale * 1.02f;
+            spriteBatch.Draw(
+                surprisedTexture,
+                position: surprisedPos,
+                sourceRectangle: null,
+                color: Color.White,
+                rotation: 0f,
+                origin: new Vector2(surprisedTexture.Width / 2f, surprisedTexture.Height),
+                scale: Constants.SurprisedSpriteScale,
+                effects: SpriteEffects.None,
+                layerDepth: 0.86f
+            );
         }
     }
 }

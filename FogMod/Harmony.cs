@@ -105,9 +105,9 @@ public partial class FogMod : Mod
             projectilePos.X += 8f * 4f;
             projectilePos.Y += 8f * 4f;
 
-            if (FogMod.Instance.GetProjectilesAtCurrentLocation() is NetCollection<Projectile> projectiles)
+            if (FogMod.Instance.GetNPCsAtCurrentLocation() is NetCollection<NPC> npc)
             {
-                foreach (Projectile p in projectiles)
+                foreach (NPC p in npc)
                 {
                     if (p is NetGrouse g && (g.State == GrouseState.Flushing || g.State == GrouseState.Flying || g.State == GrouseState.Landing))
                     {
@@ -171,8 +171,8 @@ public partial class FogMod : Mod
             return;
 
         Vector2 position = TreeHelper.GetTreePosition(tree);
-        if (FogMod.Instance.GetProjectilesAtCurrentLocation() is NetCollection<Projectile> projectiles)
-            foreach (Projectile p in projectiles)
+        if (FogMod.Instance.GetNPCsAtCurrentLocation() is NetCollection<NPC> npc)
+            foreach (NPC p in npc)
             {
                 if (p is NetGrouse g && g.State == GrouseState.Perched)
                 {
