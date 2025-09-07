@@ -18,8 +18,8 @@ public partial class FogMod : Mod
         try
         {
             if (FogMod.Instance == null) return;
-            Vector2 center = tileLocation * 64f + new Vector2(32f, 32f);
-            float radiusPx = Math.Max(64f, radius * 64f * 2f);
+            Vector2 center = tileLocation * Game1.tileSize + new Vector2(32f, 32f);
+            float radiusPx = Math.Max(Game1.tileSize, radius * Game1.tileSize * 2f);
             string location = __instance?.NameOrUniqueName ?? "Unknown";
             ExplosionFlashInfo info = new ExplosionFlashInfo(
                 locationName: location,

@@ -19,14 +19,11 @@ public partial class FogMod : Mod
             foreach (var ls in dict.Values)
             {
                 if (ls == null) continue;
-                // position is NetVector2; use Value
                 Vector2 rawPos = ls.position.Value;
-                // Heuristic: small values (tile indices) need conversion to world pixels.
-                // Convert tile coords -> pixels and center inside tile (tile*64 + 32).
                 Vector2 pos = (rawPos.X < 100f && rawPos.Y < 100f)
-                    ? rawPos * 64f + new Vector2(32f, 32f)
+                    ? rawPos * Game1.tileSize + new Vector2(32f, 32f)
                     : rawPos;
-                float radiusPixels = ls.radius.Value * 64f; // tiles to pixels
+                float radiusPixels = ls.radius.Value * Game1.tileSize; // tiles to pixels
                 lightSources.Add(new LightInfo(position: pos, radiusPixels: radiusPixels));
             }
         }

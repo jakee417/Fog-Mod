@@ -91,7 +91,7 @@ public partial class FogMod : Mod
 
     internal void DrawSingleGrouse(SpriteBatch spriteBatch, NetGrouse g)
     {
-        if (!Utility.isOnScreen(g.Position, 64))
+        if (!Utility.isOnScreen(g.Position, Game1.tileSize))
             return;
 
         float deltaSeconds = (float)Game1.currentGameTime.ElapsedGameTime.TotalSeconds;

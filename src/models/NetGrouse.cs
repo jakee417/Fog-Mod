@@ -65,6 +65,11 @@ public class NetGrouse : Projectile
         set => position.Value = value;
     }
 
+    public Vector2 TilePosition
+    {
+        get => new Vector2((float)Math.Floor(Position.X / Game1.tileSize), (float)Math.Floor(Position.Y / Game1.tileSize));
+    }
+
     public Vector2 Velocity
     {
         get => new Vector2(xVelocity.Value, yVelocity.Value);

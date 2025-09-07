@@ -271,11 +271,11 @@ public partial class FogMod : Mod
         if (candidateTrees.Count == 0)
             return null;
 
-        Vector2 currentPos = g.TreePosition * 64f;
+        Vector2 currentPos = g.TreePosition * Game1.tileSize;
         var weightedTrees = candidateTrees
             .Select(tree =>
             {
-                Vector2 treePos = TreeHelper.GetTreePosition(tree) * 64f;
+                Vector2 treePos = TreeHelper.GetTreePosition(tree) * Game1.tileSize;
                 float distance = Vector2.Distance(currentPos, treePos);
                 float weight = distance * distance;
                 return (tree, weight);
@@ -342,58 +342,61 @@ public partial class FogMod : Mod
 
     private bool IsGrouseOffLocation(NetGrouse g, GameLocation location)
     {
-        Rectangle locationBounds = new Rectangle(0, 0, location.Map.Layers[0].LayerWidth * 64, location.Map.Layers[0].LayerHeight * 64);
+        Rectangle locationBounds = new Rectangle(0, 0, location.Map.Layers[0].LayerWidth * Game1.tileSize, location.Map.Layers[0].LayerHeight * Game1.tileSize);
         return !locationBounds.Contains(new Point((int)g.Position.X, (int)g.Position.Y));
     }
 
     private void PlayGrouseNoise(NetGrouse g)
     {
-        switch (g.State)
+        if (Game1.currentLocation is GameLocation loc)
         {
-            case GrouseState.Perched:
-                if (g.IsTransitioning && g.NewAnimationFrame)
-                    Game1.playSound("leafrustle");
-                if (g.IsHiding && !g.HasPlayedHideSoundThisCycle)
-                {
-                    if (g.NewAnimationFrame)
+            switch (g.State)
+            {
+                case GrouseState.Perched:
+                    if (g.IsTransitioning && g.NewAnimationFrame)
+                        loc.localSound("leafrustle", g.TilePosition);
+                    if (g.IsHiding && !g.HasPlayedHideSoundThisCycle)
                     {
-                        if (g.HideSoundTimer > 0)
+                        if (g.NewAnimationFrame)
                         {
-                            g.HideSoundTimer--;
-                        }
-                        else
-                        {
-                            // Use crow sound as a placeholder for grouse call
-                            Game1.playSound("crow");
-                            g.HasPlayedHideSoundThisCycle = true;
+                            if (g.HideSoundTimer > 0)
+                            {
+                                g.HideSoundTimer--;
+                            }
+                            else
+                            {
+                                // Use crow sound as a placeholder for grouse call
+                                loc.localSound("crow", g.TilePosition);
+                                g.HasPlayedHideSoundThisCycle = true;
+                            }
                         }
                     }
-                }
-                break;
-            case GrouseState.Surprised:
-                if (g.AnimationFrame == 4 && !g.HasPlayedFlushSound)
-                {
-                    Game1.playSound("crow");
-                    g.HasPlayedFlushSound = true;
-                }
-                else if (!g.LaunchedByFarmer && g.NewAnimationFrame && g.AnimationFrame < 2)
-                {
-                    Game1.playSound("leafrustle");
-                }
-                break;
-            case GrouseState.Flushing:
-            case GrouseState.Flying:
-            case GrouseState.Landing:
-                if (g.AnimationFrame == 3 && g.NewAnimationFrame)
-                    Game1.playSound("fishSlap");
-                break;
-            case GrouseState.KnockedDown:
-                if (!g.HasPlayedKnockedDownSound)
-                {
-                    Game1.playSound("hitEnemy");
-                    g.HasPlayedKnockedDownSound = true;
-                }
-                break;
+                    break;
+                case GrouseState.Surprised:
+                    if (g.AnimationFrame == 4 && !g.HasPlayedFlushSound)
+                    {
+                        loc.localSound("crow", g.TilePosition);
+                        g.HasPlayedFlushSound = true;
+                    }
+                    else if (!g.LaunchedByFarmer && g.NewAnimationFrame && g.AnimationFrame < 2)
+                    {
+                        loc.localSound("leafrustle", g.TilePosition);
+                    }
+                    break;
+                case GrouseState.Flushing:
+                case GrouseState.Flying:
+                case GrouseState.Landing:
+                    if (g.AnimationFrame == 3 && g.NewAnimationFrame)
+                        loc.localSound("fishSlap", g.TilePosition);
+                    break;
+                case GrouseState.KnockedDown:
+                    if (!g.HasPlayedKnockedDownSound)
+                    {
+                        loc.localSound("hitEnemy", g.TilePosition);
+                        g.HasPlayedKnockedDownSound = true;
+                    }
+                    break;
+            }
         }
     }
 
