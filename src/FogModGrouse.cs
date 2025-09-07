@@ -353,6 +353,22 @@ public partial class FogMod : Mod
             case GrouseState.Perched:
                 if (g.IsTransitioning && g.NewAnimationFrame)
                     Game1.playSound("leafrustle");
+                if (g.IsHiding && !g.HasPlayedHideSoundThisCycle)
+                {
+                    if (g.NewAnimationFrame)
+                    {
+                        if (g.HideSoundTimer > 0)
+                        {
+                            g.HideSoundTimer--;
+                        }
+                        else
+                        {
+                            // Use crow sound as a placeholder for grouse call
+                            Game1.playSound("crow");
+                            g.HasPlayedHideSoundThisCycle = true;
+                        }
+                    }
+                }
                 break;
             case GrouseState.Surprised:
                 if (g.AnimationFrame == 4 && !g.HasPlayedFlushSound)

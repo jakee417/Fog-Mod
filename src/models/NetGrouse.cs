@@ -164,6 +164,8 @@ public class NetGrouse : Projectile
     internal Vector2? Smoke;
     internal bool HasDroppedEgg;
     internal bool FacingLeft;
+    internal float HideSoundTimer;
+    internal bool HasPlayedHideSoundThisCycle;
 
 
     // Computed properties
@@ -210,6 +212,8 @@ public class NetGrouse : Projectile
         IsTransitioning = false;
         TotalCycles = 0;
         TargetTreePosition = null;
+        HideSoundTimer = 0f;
+        HasPlayedHideSoundThisCycle = false;
     }
 
     public void Reset()
@@ -231,6 +235,8 @@ public class NetGrouse : Projectile
         Alpha = 1.0f;
         FacingLeft = Utils.DeterministicBool(TreePosition, GrouseId);
         FallProgress = 0f;
+        HideSoundTimer = 0f;
+        HasPlayedHideSoundThisCycle = false;
     }
 
     public NetGrouse(int grouseId, string locationName, Vector2 treePosition, Vector2 position, bool facingLeft, bool launchedByFarmer) : this()
@@ -335,7 +341,7 @@ public class NetGrouse : Projectile
                     // Cycle through top sitting: sitting left (0) → sitting left (1)
                     AnimationFrame = (AnimationFrame + 1) % 2;
                     // Determine hiding state - vary per bird
-                    int hideCycle = (TotalCycles + GrouseId) % 10;
+                    int hideCycle = (TotalCycles + GrouseId) % Constants.GrouseHidingCycles;
                     bool wasHiding = IsHiding;
                     bool shouldHide = hideCycle >= 4;
 
@@ -344,6 +350,11 @@ public class NetGrouse : Projectile
                     {
                         IsTransitioning = true;
                         HideTransitionProgress = 0f;
+                        if (shouldHide)
+                        {
+                            HasPlayedHideSoundThisCycle = false;
+                            HideSoundTimer = FogMod.Random.Next(0, Constants.GrouseHidingCycles - 4);
+                        }
                     }
                     IsHiding = shouldHide;
                     break;
