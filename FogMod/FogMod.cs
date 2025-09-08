@@ -40,7 +40,6 @@ public partial class FogMod : Mod
     public Texture2D? whitePixel { get; set; }
     public Texture2D? grouseTexture { get; set; }
     public Texture2D? surprisedTexture { get; set; }
-    public Texture2D? damageTexture { get; set; }
     private FogGrid grid;
     private float time;
     private float breathBasePhase;
@@ -147,16 +146,6 @@ public partial class FogMod : Mod
         {
             surprisedTexture = Helper.ModContent.Load<Texture2D>("assets/surprised.png");
             Monitor.Log("Successfully loaded surprised texture", LogLevel.Trace);
-        }
-        catch (Exception ex)
-        {
-            Monitor.Log($"Failed to load surprised texture: {ex.Message}", LogLevel.Warn);
-        }
-
-        try
-        {
-            damageTexture = Helper.ModContent.Load<Texture2D>("assets/damage.png");
-            Monitor.Log("Successfully loaded damage texture", LogLevel.Trace);
         }
         catch (Exception ex)
         {

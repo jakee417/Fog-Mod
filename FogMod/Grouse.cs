@@ -162,11 +162,7 @@ public partial class FogMod : Mod
         g.Velocity = Vector2.Zero;
 
         if (g.StateTimer >= Constants.GrouseSurprisedDuration)
-        {
             g.State = GrouseState.Flushing;
-            if (TreeHelper.GetTreeFromId(Game1.currentLocation, g.TreePosition) is Tree tree)
-                tree.shake(tileLocation: g.TreePosition, doEvenIfStillShaking: true);
-        }
     }
 
     private void UpdateGrouseFlushing(NetGrouse g, float deltaSeconds)
@@ -221,8 +217,7 @@ public partial class FogMod : Mod
                 currentVelocity: g.Velocity,
                 turnFactor: 2f * deltaSeconds
             );
-            float currentDistance = Vector2.Distance(g.Position, targetPosition);
-            if (currentDistance <= Constants.GrouseLandingDistanceThreshold)
+            if (Vector2.Distance(g.Position, targetPosition) <= Constants.GrouseLandingDistanceThreshold)
                 g.State = GrouseState.Landing;
         }
     }
