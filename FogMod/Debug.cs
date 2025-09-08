@@ -30,8 +30,7 @@ namespace FogMod
                 int flyingGrouse = allGrouse?.Count(g => g.State == GrouseState.Flying) ?? 0;
                 int flushedGrouse = allGrouse?.Count(g => g.State == GrouseState.Flushing) ?? 0;
                 int landingGrouse = allGrouse?.Count(g => g.State == GrouseState.Landing) ?? 0;
-                int knockedDownGrouse = allGrouse?.Count(g => g.State == GrouseState.KnockedDown) ?? 0;
-                string stateText = $"Surprised: {surprisedGrouse}, Flying: {flyingGrouse}, Flushed: {flushedGrouse}, Landing: {landingGrouse}, Knocked Down: {knockedDownGrouse}";
+                string stateText = $"Surprised: {surprisedGrouse}, Flying: {flyingGrouse}, Flushed: {flushedGrouse}, Landing: {landingGrouse}";
                 grouseInfo = $"\n{grouseCountText}\n{grouseInLocation}\n{stateText}";
             }
 

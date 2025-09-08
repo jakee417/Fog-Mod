@@ -43,6 +43,16 @@ public static class Multiplayer
         return null;
     }
 
+    public static Farmer? GetFarmerFromUniqueId(long uniqueId)
+    {
+        foreach (Farmer farmer in Game1.getOnlineFarmers())
+        {
+            if (farmer.UniqueMultiplayerID == uniqueId)
+                return farmer;
+        }
+        return null;
+    }
+
     public static void SendMessage<T>(T message)
     {
         string messageType = "";
@@ -87,8 +97,7 @@ public static class Multiplayer
                     break;
                 case MessageType.GrouseEvent:
                     var grouseEventData = e.ReadAs<GrouseEventInfo>();
-                    if (Context.IsMainPlayer)
-                        HandleGrouseEventFromMessage(grouseEventData);
+                    HandleGrouseEventFromMessage(e.FromPlayerID, grouseEventData);
                     break;
                 default:
                     Instance?.Monitor.Log($"OnModMessageReceived: Unknown message type '{e.Type}' from mod '{e.FromModID}'", LogLevel.Warn);
@@ -113,26 +122,22 @@ public static class Multiplayer
         }
     }
 
-    private static void HandleGrouseEventFromMessage(GrouseEventInfo msg)
+    private static void HandleGrouseEventFromMessage(long fromPlayerId, GrouseEventInfo msg)
     {
         try
         {
-            if (Instance?.GetGrouseById(msg.GrouseId) is NetGrouse g)
+            switch (msg.Event)
             {
-                switch (msg.Event)
-                {
-                    case GrouseEventInfo.EventType.Flushed:
-                        if (g.State == GrouseState.Perched)
-                            g.State = GrouseState.Surprised;
-                        return;
-                    case GrouseEventInfo.EventType.KnockedDown:
-                        if (g.State != GrouseState.KnockedDown)
-                            g.State = GrouseState.KnockedDown;
-                        return;
-                }
-                Instance?.Monitor.Log($"🚀 Unknown grouse event: {msg.Event}", LogLevel.Warn);
+                case GrouseEventInfo.EventType.Flushed:
+                    if (Context.IsMainPlayer && Instance?.GetGrouseById(msg.GrouseId) is NetGrouse g && g.State == GrouseState.Perched)
+                        g.State = GrouseState.Surprised;
+                    return;
+                case GrouseEventInfo.EventType.Released:
+                    if (GetFarmerFromUniqueId(fromPlayerId) is Farmer farmer)
+                        FarmerHelper.raiseHands(farmer);
+                    return;
             }
-            Instance?.Monitor.Log($"🚀 Grouse not found: {msg.GrouseId}", LogLevel.Warn);
+            Instance?.Monitor.Log($"🚀 Unknown grouse event: {msg.Event}", LogLevel.Warn);
         }
         catch (Exception ex)
         {

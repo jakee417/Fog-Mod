@@ -17,7 +17,6 @@ public enum GrouseState
     Flushing,
     Flying,
     Landing,
-    KnockedDown
 }
 
 public class NetGrouse : Monster
@@ -94,17 +93,6 @@ public class NetGrouse : Monster
                 case GrouseState.Flying:
                 case GrouseState.Landing:
                     break;
-                case GrouseState.KnockedDown:
-                    Velocity = new Vector2(Velocity.X * 0.8f, Math.Max(Velocity.Y + 100f, 150f));
-                    FlightHeight = 0f;
-                    Alpha = 1.0f;
-                    Vector2 screenPosition = Game1.GlobalToLocal(Game1.viewport, Position);
-                    screenPosition.Y -= Constants.GrouseSpriteHeight * Scale / 2f;
-                    DamageFlashTimer = Constants.GrouseDamageFlashDuration;
-                    Smoke = screenPosition;
-                    AnimationFrame = 2;
-                    FogMod.DropFeatherAtImpact(Position, LocationName, GrouseId);
-                    break;
             }
 
         }
@@ -172,7 +160,6 @@ public class NetGrouse : Monster
                 GrouseState.Flushing => 36f,
                 GrouseState.Flying => 12f,
                 GrouseState.Landing => 36f,
-                GrouseState.KnockedDown => 0f,
                 _ => 1f
             };
         }
@@ -183,10 +170,23 @@ public class NetGrouse : Monster
     {
         get
         {
-            return Velocity.X < 0;
+            switch (FacingDirection)
+            {
+                case 1:
+                    lastDirection = 1;
+                    return false;
+                case 3:
+                    lastDirection = 3;
+                    return true;
+            }
+            return lastDirection == 3;
         }
         set { }
     }
+
+    public Vector2 GetExitDirection => FacingLeft ? new Vector2(-1, 0) : new Vector2(1, 0);
+
+    public bool NewAnimationFrame => AnimationTimer == 0f;
 
     // Non-synced fields
     internal float AnimationTimer;
@@ -199,17 +199,9 @@ public class NetGrouse : Monster
     internal float FallProgress;
     internal float? DamageFlashTimer;
     internal bool HasPlayedFlushSound;
-    internal bool HasPlayedKnockedDownSound;
     internal Vector2? Smoke;
-    internal bool HasDroppedEgg;
     internal float alpha;
-    internal TexturePack Textures;
-
-
-    // Computed properties
-    public Vector2 GetExitDirection => FacingLeft ? new Vector2(-1, 0) : new Vector2(1, 0);
-
-    public bool NewAnimationFrame => AnimationTimer == 0f;
+    private int lastDirection = 1;
 
     // Constructors
     protected override void initNetFields()
@@ -231,6 +223,8 @@ public class NetGrouse : Monster
     public NetGrouse()
     {
         initNetFields();
+        Name = Constants.GrouseName;
+        objectsToDrop.Add(GetItemToDrop());
         Reset();
     }
 
@@ -243,14 +237,12 @@ public class NetGrouse : Monster
         FlightHeight = 0f;
         FlightTimer = 0f;
         HasPlayedFlushSound = false;
-        HasPlayedKnockedDownSound = false;
         AnimationFrame = 0;
         AnimationTimer = 0f;
         IsHiding = false;
         Alpha = 1.0f;
         DamageFlashTimer = null;
         Smoke = null;
-        HasDroppedEgg = false;
         HideTransitionProgress = 0f;
         IsTransitioning = false;
         TotalCycles = 0;
@@ -259,7 +251,7 @@ public class NetGrouse : Monster
         Health = 1;
     }
 
-    public NetGrouse(int grouseId, TexturePack textures, string locationName, Vector2 treePosition, Vector2 position, bool launchedByFarmer) : this()
+    public NetGrouse(int grouseId, string locationName, Vector2 treePosition, Vector2 position, bool launchedByFarmer) : this()
     {
         GrouseId = grouseId;
         LocationName = locationName;
@@ -267,26 +259,88 @@ public class NetGrouse : Monster
         LaunchedByFarmer = launchedByFarmer;
         Position = position;
         FallProgress = 0f;
-        Textures = textures;
+        FacingDirection = Utilities.DeterministicBool(Position, GrouseId) ? 3 : 1;
     }
 
-    // Public functions
-    public static int GetDeterministicId(int locationSeed, int daySeed, Vector2 treePosition, int? salt)
+    // Monster Overrides
+    public override void update(GameTime time, GameLocation location)
+    { }
+
+    public override void reloadSprite(bool onlyAppearance = false)
+    { }
+
+    public override int takeDamage(int damage, int xTrajectory, int yTrajectory, bool isBomb, double addedPrecision, Farmer who)
     {
-        int baseId = (locationSeed.GetHashCode() ^ daySeed ^ (int)(treePosition.X * 1000 + treePosition.Y * 1000)) & 0x7FFFFFFF;
-        return salt.HasValue ? baseId ^ salt.Value : baseId;
+        Health -= damage;
+        setTrajectory(xTrajectory, yTrajectory);
+        if (Health <= 0)
+        {
+            if (currentLocation != null)
+            {
+                currentLocation?.playSound("hitEnemy", TilePosition);
+                Vector2 spriteCenter = Position - new Vector2(Constants.GrouseSpriteWidth * Scale / 2, Constants.GrouseSpriteHeight * Scale / 2);
+                TemporaryAnimatedSprite featherAnimation = new TemporaryAnimatedSprite(28, spriteCenter, Color.SaddleBrown, 6)
+                {
+                    interval = 50f
+                };
+                Utility.makeTemporarySpriteJuicier(featherAnimation, currentLocation, 2);
+            }
+        }
+        return damage;
     }
 
-    public void ResetStateAnimations()
+    public override void drawAboveAllLayers(SpriteBatch b)
+    { }
+
+    public override void drawAboveAlwaysFrontLayer(SpriteBatch b)
+    { }
+
+    protected override void updateAnimation(GameTime time)
+    { }
+
+    public override void behaviorAtGameTick(GameTime time)
+    { }
+
+    public override void MovePosition(GameTime time, xTile.Dimensions.Rectangle viewport, GameLocation currentLocation)
+    { }
+
+    public override void Removed()
     {
-        StateTimer = 0f;
-        AnimationTimer = 0f;
-        AnimationFrame = 0;
+        base.Removed();
+    }
+
+    public override bool isInvincible()
+    {
+        return false;
+    }
+
+    public override bool ShouldMonsterBeRemoved()
+    {
+        bool offLocation = (State == GrouseState.Flushing || State == GrouseState.Flying || (State == GrouseState.Landing && StateTimer > 30f)) && IsGrouseOffLocation(this, Game1.currentLocation);
+        return offLocation || Health <= 0;
+    }
+
+    public override Rectangle GetBoundingBox()
+    {
+        int scaledWidth = (int)(Constants.GrouseSpriteWidth * Scale);
+        int scaledHeight = (int)(Constants.GrouseSpriteHeight * Scale);
+        return new Rectangle(
+            (int)Position.X - scaledWidth / 2,
+            (int)Position.Y - scaledHeight,
+            scaledWidth,
+            scaledHeight
+        );
     }
 
     public override void draw(SpriteBatch b)
     {
-        DrawAGrouse(spriteBatch: b);
+        float deltaSeconds = (float)Game1.currentGameTime.ElapsedGameTime.TotalSeconds;
+        UpdateGrouseAnimationState(deltaSeconds);
+        PlayGrouseNoise();
+        if (State == GrouseState.Perched)
+            DrawPerchedGrouse(b, this);
+        else
+            DrawMovingGrouse(b, this);
     }
 
     public override void DrawShadow(SpriteBatch b)
@@ -310,67 +364,18 @@ public class NetGrouse : Monster
         );
     }
 
-    public override void MovePosition(GameTime time, xTile.Dimensions.Rectangle viewport, GameLocation currentLocation)
-    { }
-
-    public override bool isInvincible()
+    // Functions
+    public void ResetStateAnimations()
     {
-        // We will use our own damage handling.
-        return true;
-    }
-
-    public override int takeDamage(int damage, int xTrajectory, int yTrajectory, bool isBomb, double addedPrecision, Farmer who)
-    {
-        return 0;
-    }
-
-    public override bool ShouldMonsterBeRemoved()
-    {
-        return RemoveGrouse(this, Game1.currentLocation);
-    }
-
-    internal static bool RemoveGrouse(NetGrouse g, GameLocation location)
-    {
-        bool offLocation = (g.State == GrouseState.Flushing || g.State == GrouseState.Flying ||
-                               (g.State == GrouseState.Landing && g.StateTimer > 30f)) && IsGrouseOffLocation(g, location);
-        return offLocation || g.Health <= 0;
+        StateTimer = 0f;
+        AnimationTimer = 0f;
+        AnimationFrame = 0;
     }
 
     private static bool IsGrouseOffLocation(NetGrouse g, GameLocation location)
     {
         Rectangle locationBounds = new Rectangle(0, 0, location.Map.Layers[0].LayerWidth * Game1.tileSize, location.Map.Layers[0].LayerHeight * Game1.tileSize);
         return !locationBounds.Contains(new Point((int)g.Position.X, (int)g.Position.Y));
-    }
-
-
-
-    public struct TexturePack
-    {
-        public Texture2D? GrouseTexture;
-        public Texture2D? DamageTexture;
-        public Texture2D? SurprisedTexture;
-
-        public TexturePack(Texture2D? grouseTexture, Texture2D? damageTexture, Texture2D? surprisedTexture)
-        {
-            GrouseTexture = grouseTexture;
-            DamageTexture = damageTexture;
-            SurprisedTexture = surprisedTexture;
-        }
-    }
-
-    internal void DrawAGrouse(SpriteBatch spriteBatch)
-    {
-        float deltaSeconds = (float)Game1.currentGameTime.ElapsedGameTime.TotalSeconds;
-        UpdateGrouseAnimationState(deltaSeconds);
-        PlayGrouseNoise();
-
-        if (!Utility.isOnScreen(Position, Game1.tileSize))
-            return;
-
-        if (State == GrouseState.Perched)
-            DrawPerchedGrouse(spriteBatch, this);
-        else
-            DrawMovingGrouse(spriteBatch, this);
     }
 
     public void UpdateGrouseAnimationState(float deltaSeconds)
@@ -396,9 +401,6 @@ public class NetGrouse : Monster
                 case GrouseState.Landing:
                     // Smooth wing cycle: 0→1→2→3→2→1→0→1→2→3...
                     AnimationFrame = (AnimationFrame + 1) % NetGrouse.wingPattern.Length;
-                    break;
-                case GrouseState.KnockedDown:
-                    AnimationFrame = 2;
                     break;
             }
             TotalCycles++;
@@ -472,20 +474,13 @@ public class NetGrouse : Monster
                     if (AnimationFrame == 3 && NewAnimationFrame)
                         loc.localSound("fishSlap", TilePosition);
                     break;
-                case GrouseState.KnockedDown:
-                    if (!HasPlayedKnockedDownSound)
-                    {
-                        loc.localSound("hitEnemy", TilePosition);
-                        HasPlayedKnockedDownSound = true;
-                    }
-                    break;
             }
         }
     }
 
-    private void DrawPerchedGrouse(SpriteBatch spriteBatch, NetGrouse g)
+    private static void DrawPerchedGrouse(SpriteBatch spriteBatch, NetGrouse g)
     {
-        if (Textures.GrouseTexture == null || g.Alpha <= 0f)
+        if (FogMod.Instance?.grouseTexture == null || g.Alpha <= 0f)
             return;
 
         // Calculate hide/show animation
@@ -523,7 +518,7 @@ public class NetGrouse : Monster
         );
         Vector2 origin = new Vector2(Constants.GrouseSpriteWidth / 2f, Constants.GrouseSpriteHeight);
         spriteBatch.Draw(
-            Textures.GrouseTexture,
+            FogMod.Instance?.grouseTexture,
             position: screenPos,
             sourceRectangle: sourceRect,
             color: Color.White * g.Alpha,
@@ -535,9 +530,9 @@ public class NetGrouse : Monster
         );
     }
 
-    private void DrawMovingGrouse(SpriteBatch spriteBatch, NetGrouse g)
+    private static void DrawMovingGrouse(SpriteBatch spriteBatch, NetGrouse g)
     {
-        if (Textures.GrouseTexture == null || g.Alpha <= 0f)
+        if (FogMod.Instance?.grouseTexture == null || g.Alpha <= 0f)
             return;
 
         Vector2 screenPos = Game1.GlobalToLocal(Game1.viewport, g.Position);
@@ -561,11 +556,6 @@ public class NetGrouse : Monster
                 frameY = 1;
                 scale *= 1.2f;
                 break;
-            case GrouseState.KnockedDown:
-                frameX = g.AnimationFrame;
-                frameY = 1;
-                scale *= 1.2f;
-                break;
         }
         Rectangle sourceRect = new Rectangle(
             frameX * Constants.GrouseSpriteWidth,
@@ -575,7 +565,7 @@ public class NetGrouse : Monster
         );
         Vector2 origin = new Vector2(Constants.GrouseSpriteWidth / 2f, Constants.GrouseSpriteHeight);
         spriteBatch.Draw(
-            Textures.GrouseTexture,
+            FogMod.Instance?.grouseTexture,
             position: screenPos,
             sourceRectangle: sourceRect,
             color: Color.White * g.Alpha,
@@ -586,7 +576,7 @@ public class NetGrouse : Monster
             layerDepth: 0.85f
         );
 
-        if (Textures.DamageTexture is Texture2D damageTexture && g.DamageFlashTimer is float damageFlashTimer && damageFlashTimer > 0f && g.Smoke is Vector2 smoke)
+        if (FogMod.Instance?.damageTexture is Texture2D damageTexture && g.DamageFlashTimer is float damageFlashTimer && damageFlashTimer > 0f && g.Smoke is Vector2 smoke)
         {
             float ratio = damageFlashTimer / Constants.GrouseDamageFlashDuration;
             int damageFrameY = 0;
@@ -613,7 +603,12 @@ public class NetGrouse : Monster
                 layerDepth: 0.86f
             );
         }
-        if (Textures.SurprisedTexture is Texture2D surprisedTexture && g.State == GrouseState.Surprised && g.AnimationFrame == 4)
+        DrawGrouseEmote(spriteBatch, g, screenPos, scale);
+    }
+
+    private static void DrawGrouseEmote(SpriteBatch spriteBatch, NetGrouse g, Vector2 screenPos, float scale)
+    {
+        if (FogMod.Instance?.surprisedTexture is Texture2D surprisedTexture && g.State == GrouseState.Surprised && g.AnimationFrame == 4)
         {
             Vector2 surprisedPos = screenPos;
             surprisedPos.Y -= Constants.GrouseSpriteHeight * scale * 1.02f;
@@ -629,5 +624,20 @@ public class NetGrouse : Monster
                 layerDepth: 0.86f
             );
         }
+    }
+
+    internal string GetItemToDrop()
+    {
+        var deterministicRng = new Random(GrouseId);
+        double roll = deterministicRng.NextDouble();
+        // Basic brown egg
+        string eggItemId = "180";
+        // Golden egg
+        if (roll < 0.01)
+            eggItemId = "928";
+        // Large Brown egg
+        else if (roll >= 0.01 && roll < 0.1)
+            eggItemId = "182";
+        return eggItemId;
     }
 }

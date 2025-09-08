@@ -99,19 +99,14 @@ public partial class FogMod : Mod
 
     private NetGrouse SpawnGrouse(NetCollection<NPC> npc, Vector2 treePosition, Vector2 spawnPosition, string locationName, int? salt, bool launchedByFarmer)
     {
-        int grouseId = NetGrouse.GetDeterministicId(
+        int grouseId = Utilities.GetDeterministicId(
             locationSeed: locationName.GetHashCode(),
             daySeed: (int)Game1.stats.DaysPlayed,
-            treePosition: treePosition,
+            position: treePosition,
             salt: salt
         );
         NetGrouse newGrouse = new NetGrouse(
             grouseId: grouseId,
-            textures: new NetGrouse.TexturePack(
-                grouseTexture: grouseTexture,
-                surprisedTexture: surprisedTexture,
-                damageTexture: damageTexture
-            ),
             locationName: locationName,
             treePosition: treePosition,
             position: spawnPosition,
@@ -127,36 +122,39 @@ public partial class FogMod : Mod
         {
             foreach (var g in npc.OfType<NetGrouse>())
             {
-                g.StateTimer += deltaSeconds;
-
-                switch (g.State)
-                {
-                    case GrouseState.Perched:
-                        break;
-
-                    case GrouseState.Surprised:
-                        UpdateGrouseSurprised(g, deltaSeconds);
-                        break;
-
-                    case GrouseState.Flushing:
-                        UpdateGrouseFlushing(g, deltaSeconds);
-                        break;
-
-                    case GrouseState.Flying:
-                        UpdateGrouseFlying(g, deltaSeconds);
-                        break;
-
-                    case GrouseState.Landing:
-                        UpdateGrouseLanding(g, deltaSeconds);
-                        break;
-
-                    case GrouseState.KnockedDown:
-                        UpdateGrouseKnockedDown(g, deltaSeconds);
-                        break;
-                }
-                g.Position += g.Velocity * deltaSeconds;
+                UpdateGrouse(g, deltaSeconds);
             }
         }
+    }
+
+    internal void UpdateGrouse(NetGrouse g, float deltaSeconds)
+    {
+        g.StateTimer += deltaSeconds;
+
+        switch (g.State)
+        {
+            case GrouseState.Perched:
+                break;
+
+            case GrouseState.Surprised:
+                UpdateGrouseSurprised(g, deltaSeconds);
+                break;
+
+            case GrouseState.Flushing:
+                UpdateGrouseFlushing(g, deltaSeconds);
+                break;
+
+            case GrouseState.Flying:
+                UpdateGrouseFlying(g, deltaSeconds);
+                break;
+
+            case GrouseState.Landing:
+                UpdateGrouseLanding(g, deltaSeconds);
+                break;
+        }
+        g.Position += g.Velocity * deltaSeconds;
+        if (g.Velocity.X != 0f)
+            g.FacingDirection = g.Velocity.X > 0f ? 1 : 3;
     }
 
     private void UpdateGrouseSurprised(NetGrouse g, float deltaSeconds)
@@ -303,66 +301,5 @@ public partial class FogMod : Mod
         }
 
         return candidateTrees[0];
-    }
-
-    private void UpdateGrouseKnockedDown(NetGrouse g, float deltaSeconds)
-    {
-        g.StateTimer += deltaSeconds;
-        if (g.DamageFlashTimer > 0f)
-        {
-            g.DamageFlashTimer -= deltaSeconds;
-            if (g.DamageFlashTimer < 0f)
-                g.DamageFlashTimer = 0f;
-        }
-        g.FallProgress += deltaSeconds * g.Velocity.Y;
-        float fallProgress = g.FallProgress / Constants.GrouseFallDistance;
-        if (fallProgress < 1.0f)
-            g.Velocity = new Vector2(g.Velocity.X, g.Velocity.Y + 500f * deltaSeconds);
-        else
-        {
-            if (!g.HasDroppedEgg)
-            {
-                DropEggAtLanding(g.Position, g.LocationName, g.GrouseId);
-                g.HasDroppedEgg = true;
-            }
-            g.Velocity = Vector2.Zero;
-            if (g.StateTimer > Constants.GrouseFallDistance / 150f)
-            {
-                float timeSinceLanding = g.StateTimer - (Constants.GrouseFallDistance / 150f);
-                float fadeProgress = timeSinceLanding / Constants.GrouseFadeOutDuration;
-                g.Alpha = Math.Max(0f, 1.0f - fadeProgress);
-                if (fadeProgress >= 1.0f)
-                    g.Health = -1;
-            }
-        }
-    }
-
-    internal static void DropFeatherAtImpact(Vector2 impactPosition, string locationName, int grouseId)
-    {
-        var deterministicRng = new Random(grouseId);
-        bool shouldDropFeather = deterministicRng.NextDouble() < Constants.GrouseFeatherDropChance;
-        if (shouldDropFeather)
-        {
-            string featherItemId = "444";
-            Utilities.CreateItemDrop(impactPosition, locationName, featherItemId, 1);
-        }
-    }
-
-    internal static void DropEggAtLanding(Vector2 landingPosition, string locationName, int grouseId)
-    {
-        var deterministicRng = new Random(grouseId);
-        double roll = deterministicRng.NextDouble();
-        // Basic brown egg
-        string eggItemId = "180";
-        // Golden egg
-        if (roll < 0.01)
-            eggItemId = "928";
-        // Large Brown egg
-        else if (roll >= 0.01 && roll < 0.06)
-            eggItemId = "182";
-        // Fried egg
-        else if (roll >= 0.06 && roll < 0.1)
-            eggItemId = "194";
-        Utilities.CreateItemDrop(landingPosition, locationName, eggItemId, 1);
     }
 }

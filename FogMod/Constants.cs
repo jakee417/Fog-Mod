@@ -31,6 +31,7 @@ public static class Constants
     public const float DebugRingThickness = 2.0f;
 
     // Grouse constants
+    public const string GrouseName = "Grouse";
     public const string GrouseAudioCueId = "FogMod_Grouse";
     public const float GrouseFlushSpeed = 200f;
     public const float GrouseBobAmplitude = 10f;

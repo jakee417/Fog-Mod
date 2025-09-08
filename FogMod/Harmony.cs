@@ -92,54 +92,6 @@ public partial class FogMod : Mod
         catch { }
     }
 
-    // Projectile Update
-    private static void OnProjectileUpdatePostfix(Projectile __instance, GameTime time, GameLocation location)
-    {
-        try
-        {
-            if (FogMod.Instance == null || !FogMod.Config.EnableGrouseCritters || __instance.theOneWhoFiredMe.Get(location) != Game1.player)
-                return;
-
-            Vector2 projectilePos = __instance.position.Value;
-            // Adjust for projectile scale.
-            projectilePos.X += 8f * 4f;
-            projectilePos.Y += 8f * 4f;
-
-            if (FogMod.Instance.GetNPCsAtCurrentLocation() is NetCollection<NPC> npc)
-            {
-                foreach (NPC p in npc)
-                {
-                    if (p is NetGrouse g && (g.State == GrouseState.Flushing || g.State == GrouseState.Flying || g.State == GrouseState.Landing))
-                    {
-                        Vector2 grousePos = g.Position;
-                        grousePos.Y += g.FlightHeight;
-                        grousePos.Y -= Constants.GrouseSpriteHeight * g.Scale / 2f;
-                        float distance = Vector2.Distance(projectilePos, grousePos);
-                        if (distance < Constants.GrouseCollisionRadius)
-                        {
-                            if (Utils.Multiplayer.IsAbleToUpdateOwnWorld())
-                                g.State = GrouseState.KnockedDown;
-                            else
-                            {
-                                GrouseEventInfo info = new GrouseEventInfo(
-                                    grouseId: g.GrouseId,
-                                    _event: GrouseEventInfo.EventType.KnockedDown,
-                                    timestamp: DateTime.UtcNow.Ticks
-                                );
-                                Utils.Multiplayer.SendMessage(info);
-                            }
-                            break;
-                        }
-                    }
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            FogMod.Instance?.Monitor.Log($"OnProjectileUpdatePostfix failed: {ex.Message}", LogLevel.Error);
-        }
-    }
-
     // Grouse Surprising
     private static void OnTreePerformToolActionPostfix(Tree __instance, Tool t, int explosion, Vector2 tileLocation)
     {

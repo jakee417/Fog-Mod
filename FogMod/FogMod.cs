@@ -4,7 +4,6 @@ using Microsoft.Xna.Framework.Graphics;
 using StardewModdingAPI;
 using StardewModdingAPI.Events;
 using StardewValley;
-using StardewValley.Projectiles;
 using System;
 using System.Collections.Generic;
 using HarmonyLib;
@@ -78,10 +77,6 @@ public partial class FogMod : Mod
             original: AccessTools.Method(typeof(TV), nameof(TV.proceedToNextScene)),
             prefix: new HarmonyMethod(typeof(FogMod), nameof(ProceedToNextScenePrefix)),
             postfix: new HarmonyMethod(typeof(FogMod), nameof(ProceedToNextScenePostfix))
-        );
-        harmony.Patch(
-            original: AccessTools.Method(typeof(Projectile), nameof(Projectile.update), new Type[] { typeof(GameTime), typeof(GameLocation) }),
-            postfix: new HarmonyMethod(typeof(FogMod), nameof(OnProjectileUpdatePostfix))
         );
         harmony.Patch(
             original: AccessTools.Method(typeof(Tree), nameof(Tree.performToolAction), new Type[] { typeof(Tool), typeof(int), typeof(Vector2) }),
@@ -269,12 +264,16 @@ public partial class FogMod : Mod
 
     private void OnButtonPressed(object? sender, ButtonPressedEventArgs e)
     {
-        // Debug hotkey: G to spawn grouse at main player's location.
-        if (e.Button == SButton.G && Config.EnableGrouseCritters && Game1.currentLocation.IsOutdoors && Context.IsMainPlayer)
+        if (e.Button == SButton.G && Config.EnableGrouseCritters && Game1.currentLocation.IsOutdoors)
         {
             if (GetNPCsAtCurrentLocation() is NetCollection<NPC> npc)
             {
                 Vector2 playerPosition = Game1.player.getStandingPosition();
+                Utils.Multiplayer.SendMessage(new GrouseEventInfo(
+                    grouseId: -1,
+                    _event: GrouseEventInfo.EventType.Released,
+                    timestamp: DateTime.UtcNow.Ticks
+                ));
                 FarmerHelper.raiseHands(Game1.player);
                 Vector2 spawnPosition = playerPosition + new Vector2(0, -Game1.player.FarmerSprite.SpriteHeight * 2.5f);
                 int salt = (int)Random.NextInt64();
@@ -289,7 +288,6 @@ public partial class FogMod : Mod
                 g.State = GrouseState.Surprised;
                 Game1.addHUDMessage(new HUDMessage("Grouse Released!", 2));
             }
-
         }
     }
 }

@@ -37,26 +37,15 @@ public class Utilities
         return rng.NextDouble() < 0.5;
     }
 
-    internal static void CreateItemDrop(Vector2 position, string locationName, string itemId, int quantity)
-    {
-        var item = new StardewValley.Object(
-            itemId: itemId,
-            initialStack: quantity
-        );
-        try
-        {
-            GameLocation location = Game1.getLocationFromName(locationName);
-            Game1.createItemDebris(item, position, Game1.player.FacingDirection, location);
-        }
-        catch (Exception ex)
-        {
-            FogMod.Instance?.Monitor.Log($"Item drop failed: {ex.Message}", LogLevel.Error);
-        }
-    }
-
     internal static Vector2 ApplyMomentumThruTurn(Vector2 targetPosition, float targetSpeed, Vector2 currentPosition, Vector2 currentVelocity, float turnFactor)
     {
         Vector2 direction = Vector2.Normalize(targetPosition - currentPosition);
         return Vector2.Lerp(currentVelocity, direction * targetSpeed, turnFactor);
+    }
+
+    public static int GetDeterministicId(int locationSeed, int daySeed, Vector2 position, int? salt)
+    {
+        int baseId = (locationSeed.GetHashCode() ^ daySeed ^ (int)(position.X * 1000 + position.Y * 1000)) & 0x7FFFFFFF;
+        return salt.HasValue ? baseId ^ salt.Value : baseId;
     }
 }
