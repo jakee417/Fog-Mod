@@ -26,26 +26,16 @@ public class NetGrouse : Monster
 
     // MARK: Netcode variables
     public readonly NetInt grouseId = new NetInt();
-    public readonly NetString locationName = new NetString();
     public readonly NetVector2 treePosition = new NetVector2();
     public readonly NetBool launchedByFarmer = new NetBool();
     public readonly NetEnum<GrouseState> state = new NetEnum<GrouseState>();
-    public readonly NetFloat flightHeight = new NetFloat();
-    public readonly NetVector2 targetTreePosition = new NetVector2();
     public readonly NetBool isHiding = new NetBool();
-    public readonly NetInt hideSoundTimer = new NetInt();
 
     // MARK: Immutable Property Wrappers
     public int GrouseId
     {
         get => grouseId.Value;
         private set => grouseId.Value = value;
-    }
-
-    public string LocationName
-    {
-        get => locationName.Value;
-        private set => locationName.Value = value;
     }
 
     public bool LaunchedByFarmer
@@ -79,60 +69,13 @@ public class NetGrouse : Monster
     public GrouseState State
     {
         get => state.Value;
-        set
-        {
-            ResetStateAnimations();
-            state.Value = value;
-            switch (state.Value)
-            {
-                case GrouseState.Perched:
-                case GrouseState.Surprised:
-                    Velocity = Vector2.Zero;
-                    break;
-                case GrouseState.Flushing:
-                case GrouseState.Flying:
-                case GrouseState.Landing:
-                    break;
-            }
-
-        }
-    }
-
-    public float FlightHeight
-    {
-        get => flightHeight.Value;
-        set => flightHeight.Value = value;
+        set => state.Value = value;
     }
 
     internal bool IsHiding
     {
         get => isHiding.Value;
         set => isHiding.Value = value;
-    }
-
-    internal int HideSoundTimer
-    {
-        get => hideSoundTimer.Value;
-        set => hideSoundTimer.Value = value;
-    }
-
-    public Vector2? TargetTreePosition
-    {
-        get
-        {
-            return targetTreePosition.Value == Vector2.Zero ? null : targetTreePosition.Value;
-        }
-        set
-        {
-            if (value is Vector2 newValue)
-            {
-                targetTreePosition.Value = newValue;
-            }
-            else
-            {
-                targetTreePosition.Value = Vector2.Zero;
-            }
-        }
     }
 
     public float Alpha
@@ -208,32 +151,37 @@ public class NetGrouse : Monster
     internal int AnimationFrame;
     internal float HideTransitionProgress;
     internal bool IsTransitioning;
-    internal int TotalCycles = 0;
+    internal int TotalCycles;
     internal bool HasPlayedFlushSound;
     internal float alpha;
     private int lastDirection = 1;
+    internal int HideSoundTimer;
+    internal Vector2? TargetTreePosition;
 
     // MARK: Constructors
-    public NetGrouse()
+    public NetGrouse() : base()
     {
         initNetFields();
         Name = Constants.GrouseName;
         Slipperiness = 0;
         IsWalkingTowardPlayer = false;
         collidesWithOtherCharacters.Value = false;
+        farmerPassesThrough = true;
         DamageToFarmer = 0;
         MaxHealth = 1;
         Health = MaxHealth;
         missChance.Value = 0.02f;
         resilience.Value = 0;
         ObjectToDrop = GetItemToDrop();
+        ExperienceGained = 0;
+        mineMonster.Value = false;
         Reset();
     }
 
-    public NetGrouse(int grouseId, string locationName, Vector2 treePosition, Vector2 position, bool launchedByFarmer) : this()
+    public NetGrouse(int grouseId, GameLocation location, Vector2 treePosition, Vector2 position, bool launchedByFarmer) : this()
     {
         GrouseId = grouseId;
-        LocationName = locationName;
+        currentLocation = location;
         TreePosition = treePosition;
         LaunchedByFarmer = launchedByFarmer;
         Position = position;
@@ -247,14 +195,33 @@ public class NetGrouse : Monster
         NetFields
             .SetOwner(this)
             .AddField(grouseId, "grouseId")
-            .AddField(locationName, "locationName")
             .AddField(treePosition, "treePosition")
             .AddField(launchedByFarmer, "launchedByFarmer")
             .AddField(state, "state")
-            .AddField(flightHeight, "flightHeight")
-            .AddField(targetTreePosition, "targetTreePosition")
-            .AddField(isHiding, "isHiding")
-            .AddField(hideSoundTimer, "hideSoundTimer");
+            .AddField(isHiding, "isHiding");
+
+        state.fieldChangeEvent += (NetEnum<GrouseState> field, GrouseState oldValue, GrouseState newValue) =>
+        {
+            ResetStateAnimations();
+            switch (newValue)
+            {
+                case GrouseState.Perched:
+                case GrouseState.Surprised:
+                    Velocity = Vector2.Zero;
+                    break;
+                case GrouseState.Flushing:
+                case GrouseState.Flying:
+                case GrouseState.Landing:
+                    break;
+            }
+        };
+
+        isHiding.fieldChangeEvent += (NetBool field, bool oldValue, bool newValue) =>
+        {
+            IsTransitioning = true;
+            HideTransitionProgress = 0f;
+            HideSoundTimer = newValue ? FogMod.Random.Next(0, Constants.GrouseHidingCycles - 4) : 0;
+        };
     }
 
     public override void update(GameTime time, GameLocation location)
@@ -315,20 +282,7 @@ public class NetGrouse : Monster
     { }
 
     public override void behaviorAtGameTick(GameTime time)
-    {
-        // Handle any invalid state conditions
-        if (double.IsNaN(xVelocity) || double.IsNaN(yVelocity))
-        {
-            Health = -500;
-        }
-
-        // Handle going off-map
-        bool offLocation = (State == GrouseState.Flushing || State == GrouseState.Flying || (State == GrouseState.Landing && StateTimer > 30f)) && IsGrouseOffLocation(this, Game1.currentLocation);
-        if (offLocation)
-        {
-            Health = -500;
-        }
-    }
+    { }
 
     public override void MovePosition(GameTime time, xTile.Dimensions.Rectangle viewport, GameLocation currentLocation)
     { }
@@ -352,8 +306,20 @@ public class NetGrouse : Monster
         return false;
     }
 
+    public override void collisionWithFarmerBehavior()
+    { }
+
     public override bool ShouldMonsterBeRemoved()
     {
+        if (double.IsNaN(xVelocity) || double.IsNaN(yVelocity))
+            return true;
+
+        bool isLanding = State == GrouseState.Landing && StateTimer > 30f;
+        bool isFlying = State == GrouseState.Flushing || State == GrouseState.Flying || isLanding;
+        bool offLocation = isFlying && IsGrouseOffLocation(this, Game1.currentLocation);
+        if (offLocation)
+            return true;
+
         return Health <= 0;
     }
 
@@ -408,7 +374,6 @@ public class NetGrouse : Monster
         State = GrouseState.Perched;
         StateTimer = 0f;
         Scale = Constants.GrouseScale;
-        FlightHeight = 0f;
         FlightTimer = 0f;
         HasPlayedFlushSound = false;
         AnimationFrame = 0;
@@ -452,24 +417,23 @@ public class NetGrouse : Monster
             switch (State)
             {
                 case GrouseState.Perched:
-                    if (IsTransitioning && NewAnimationFrame)
-                        loc.localSound("leafrustle", TilePosition);
-                    else if (IsHiding && HideSoundTimer == 0)
+                    if (Utils.Multiplayer.IsAbleToUpdateOwnWorld())
                     {
-                        loc.localSound(Constants.GrouseAudioCueId, TilePosition);
-                        // This will push us past 0 which disables further sounds until next cycle
-                        HideSoundTimer--;
+                        if (IsTransitioning && NewAnimationFrame)
+                            loc.playSound("leafrustle", TilePosition);
+                        else if (IsHiding && HideSoundTimer == 0)
+                        {
+                            loc.playSound(Constants.GrouseAudioCueId, TilePosition);
+                            // This will push us past 0 which disables further sounds until next cycle
+                            HideSoundTimer--;
+                        }
                     }
                     break;
                 case GrouseState.Surprised:
-                    if (AnimationFrame == 4 && !HasPlayedFlushSound)
+                    if (Utils.Multiplayer.IsAbleToUpdateOwnWorld() && AnimationFrame == 4 && !HasPlayedFlushSound)
                     {
-                        loc.localSound("crow", TilePosition);
+                        loc.playSound("crow", TilePosition);
                         HasPlayedFlushSound = true;
-                    }
-                    else if (!LaunchedByFarmer && NewAnimationFrame && AnimationFrame < 2)
-                    {
-                        loc.localSound("leafrustle", TilePosition);
                     }
                     break;
                 case GrouseState.Flushing:
@@ -518,19 +482,13 @@ public class NetGrouse : Monster
             TotalCycles++;
         }
 
-        // Update hide/show transition if needed
         if (IsTransitioning)
         {
-            switch (State)
+            HideTransitionProgress += deltaSeconds / Constants.GrouseTransitionDuration;
+            if (HideTransitionProgress >= 1f)
             {
-                case GrouseState.Perched:
-                    HideTransitionProgress += deltaSeconds / Constants.GrouseTransitionDuration;
-                    if (HideTransitionProgress >= 1f)
-                    {
-                        HideTransitionProgress = 1f;
-                        IsTransitioning = false;
-                    }
-                    break;
+                HideTransitionProgress = 1f;
+                IsTransitioning = false;
             }
         }
     }
@@ -538,17 +496,11 @@ public class NetGrouse : Monster
     internal void UpdateGrouseHidingLogic()
     {
         int exposedCycles = 4;
-        int hideCycle = (TotalCycles + GrouseId) % Constants.GrouseHidingCycles;
+        uint hideCycle = (uint)Math.Abs(TotalCycles + GrouseId) % Constants.GrouseHidingCycles;
         bool shouldHide = hideCycle >= exposedCycles;
 
-        // Start transition if hiding state changed
-        if (IsHiding != shouldHide)
-        {
-            IsTransitioning = true;
-            HideTransitionProgress = 0f;
-            HideSoundTimer = shouldHide ? FogMod.Random.Next(0, Constants.GrouseHidingCycles - exposedCycles) : 0;
+        if (Utils.Multiplayer.IsAbleToUpdateOwnWorld() && IsHiding != shouldHide)
             IsHiding = shouldHide;
-        }
         else
             HideSoundTimer--;
     }
@@ -583,7 +535,6 @@ public class NetGrouse : Monster
             return;
 
         Vector2 screenPos = Game1.GlobalToLocal(Game1.viewport, g.Position);
-        screenPos.Y += g.FlightHeight;
 
         // Calculate vertical offset and sprite height based on hide progress
         const int maxSpriteHeight = 7;  // Full grouse sprite height
@@ -624,7 +575,6 @@ public class NetGrouse : Monster
             return;
 
         Vector2 screenPos = Game1.GlobalToLocal(Game1.viewport, g.Position);
-        screenPos.Y += g.FlightHeight;
 
         int frameX = 0;
         int frameY = 0;

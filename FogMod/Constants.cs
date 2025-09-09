@@ -46,12 +46,5 @@ public static class Constants
     public const int GrouseSpriteHeight = 16;
     public const float GrouseTransitionDuration = 0.3f;
     public const float SurprisedSpriteScale = 4f;
-    public const float GrouseCollisionRadius = 32f;
-    public const float GrouseFallDistance = 128f;
-    public const float GrouseFadeOutDuration = 1.0f;
-    public const float GrouseDamageFlashDuration = 0.3f;
-    public const float GrouseFeatherDropChance = 0.3f;
     public const float GrouseLandingDistanceThreshold = 512f;
-    public const int DamageSpriteWidth = 32;
-    public const int DamageSpriteHeight = 28;
 }

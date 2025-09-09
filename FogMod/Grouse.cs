@@ -63,15 +63,15 @@ public partial class FogMod : Mod
         {
             if (loc.IsOutdoors && GetNPCsForLocation(loc) is NetCollection<NPC> npc)
             {
-                SpawnGrouseForTrees(npc, TreeHelper.GetAvailableTreePositions(loc), loc.NameOrUniqueName);
+                SpawnGrouseForTrees(npc, TreeHelper.GetAvailableTreePositions(loc), loc);
                 numLocations++;
             }
         }
     }
 
-    private void SpawnGrouseForTrees(NetCollection<NPC> npc, List<Tree> availableTrees, string locationName)
+    private void SpawnGrouseForTrees(NetCollection<NPC> npc, List<Tree> availableTrees, GameLocation location)
     {
-        int locationSeed = locationName.GetHashCode();
+        int locationSeed = location.NameOrUniqueName.GetHashCode();
         int daySeed = (int)Game1.stats.DaysPlayed;
         var locationRng = new Random(locationSeed ^ daySeed);
         int grouseCount = npc.Count(c => c is NetGrouse);
@@ -88,7 +88,7 @@ public partial class FogMod : Mod
                     npc: npc,
                     treePosition: treePosition,
                     spawnPosition: spawnPosition,
-                    locationName: locationName,
+                    location: location,
                     salt: null,
                     launchedByFarmer: false
                 );
@@ -97,17 +97,17 @@ public partial class FogMod : Mod
         }
     }
 
-    private NetGrouse SpawnGrouse(NetCollection<NPC> npc, Vector2 treePosition, Vector2 spawnPosition, string locationName, int? salt, bool launchedByFarmer)
+    private NetGrouse SpawnGrouse(NetCollection<NPC> npc, Vector2 treePosition, Vector2 spawnPosition, GameLocation location, int? salt, bool launchedByFarmer)
     {
         int grouseId = Utilities.GetDeterministicId(
-            locationSeed: locationName.GetHashCode(),
+            locationSeed: location.NameOrUniqueName.GetHashCode(),
             daySeed: (int)Game1.stats.DaysPlayed,
             position: treePosition,
             salt: salt
         );
         NetGrouse newGrouse = new NetGrouse(
             grouseId: grouseId,
-            locationName: locationName,
+            location: location,
             treePosition: treePosition,
             position: spawnPosition,
             launchedByFarmer: launchedByFarmer
@@ -180,7 +180,7 @@ public partial class FogMod : Mod
         {
             float currentSpeed = MathHelper.Lerp(Constants.GrouseFlushSpeed * 0.3f, Constants.GrouseFlushSpeed, flushProgress);
             float bobX = (float)Math.Sin(g.StateTimer * 15f) * 0.15f;
-            float bobY = (float)Math.Sin(g.StateTimer * 12f) * Constants.GrouseBobAmplitude;
+            float bobY = (float)Math.Sin(g.StateTimer * 12f) * Constants.GrouseBobAmplitude * 4;
             Vector2 baseVelocity = g.GetExitDirection * currentSpeed;
             g.Velocity = new Vector2(
                 baseVelocity.X * (1f + bobX),
@@ -192,8 +192,8 @@ public partial class FogMod : Mod
     private void UpdateGrouseFlying(NetGrouse g, float deltaSeconds)
     {
         g.FlightTimer += deltaSeconds;
-        float bobAmount = (float)Math.Sin(g.FlightTimer * 4f) * Constants.GrouseBobAmplitude;
-        g.FlightHeight = bobAmount;
+        float bobY = (float)Math.Sin(g.StateTimer * 12f) * Constants.GrouseBobAmplitude;
+        g.yVelocity += bobY;
 
         if (g.TargetTreePosition == null && SelectNewTree(g) is Tree targetTree)
         {
@@ -224,9 +224,6 @@ public partial class FogMod : Mod
 
     private void UpdateGrouseLanding(NetGrouse g, float deltaSeconds)
     {
-        float bobAmount = (float)Math.Sin(g.FlightTimer * 4f) * Constants.GrouseBobAmplitude;
-        g.FlightHeight = bobAmount;
-
         if (g.TargetTreePosition is Vector2 target && TreeHelper.GetTreeFromId(Game1.currentLocation, target) is Tree targetTree)
         {
             Vector2 targetPosition = TreeHelper.GetGrouseSpawnPosition(targetTree);
@@ -241,7 +238,6 @@ public partial class FogMod : Mod
                 g.Position = targetPosition;
                 targetTree.shake(tileLocation: g.TreePosition, doEvenIfStillShaking: true);
                 g.Reset();
-                g.UpdateGrouseHidingLogic();
             }
         }
         else

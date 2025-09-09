@@ -224,7 +224,10 @@ public partial class FogMod : Mod
 
         // Update grouse
         if (Config.EnableGrouseCritters && Utils.Multiplayer.IsAbleToUpdateOwnWorld())
+        {
+            TreeHelper.UpdateLeaves();
             UpdateGrouse(deltaSeconds);
+        }
     }
 
     private void ResetAllParticlesOnLocationChange()
@@ -245,6 +248,7 @@ public partial class FogMod : Mod
 
         Color fogColor = GetEffectiveFogColor();
 
+        TreeHelper.DrawLeaves(e.SpriteBatch);
         DrawExplosionFlashes(e.SpriteBatch);
         DrawExplosionSmokeParticles(e.SpriteBatch, fogColor);
         if (isFogDay && Game1.currentLocation.IsOutdoors)
@@ -270,7 +274,7 @@ public partial class FogMod : Mod
                     npc: npc,
                     treePosition: spawnPosition,
                     spawnPosition: spawnPosition,
-                    locationName: Game1.currentLocation.NameOrUniqueName,
+                    location: Game1.currentLocation,
                     salt: salt,
                     launchedByFarmer: true
                 );
