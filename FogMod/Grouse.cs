@@ -18,7 +18,7 @@ public partial class FogMod : Mod
     {
         foreach (GameLocation loc in outdoorLocations)
         {
-            loc.characters.RemoveWhere(p => p is NetGrouse);
+            loc.characters.RemoveWhere(p => p is Grouse);
         }
         SpawnGrouseInTrees(outdoorLocations);
     }
@@ -41,17 +41,17 @@ public partial class FogMod : Mod
         return null;
     }
 
-    private List<NetGrouse> GetAllGrouse()
+    private List<Grouse> GetAllGrouse()
     {
-        List<NetGrouse> allGrouse = new List<NetGrouse>();
+        List<Grouse> allGrouse = new List<Grouse>();
         foreach (GameLocation loc in outdoorLocations)
         {
-            allGrouse.AddRange(loc.characters.Where(c => c is NetGrouse).Cast<NetGrouse>());
+            allGrouse.AddRange(loc.characters.Where(c => c is Grouse).Cast<Grouse>());
         }
         return allGrouse;
     }
 
-    internal NetGrouse? GetGrouseById(int grouseId)
+    internal Grouse? GetGrouseById(int grouseId)
     {
         return GetAllGrouse().FirstOrDefault(g => g.GrouseId == grouseId);
     }
@@ -74,7 +74,7 @@ public partial class FogMod : Mod
         int locationSeed = location.NameOrUniqueName.GetHashCode();
         int daySeed = (int)Game1.stats.DaysPlayed;
         var locationRng = new Random(locationSeed ^ daySeed);
-        int grouseCount = npc.Count(c => c is NetGrouse);
+        int grouseCount = npc.Count(c => c is Grouse);
         foreach (var tree in availableTrees)
         {
             if (grouseCount >= Constants.GrouseMaxPerLocation)
@@ -97,7 +97,7 @@ public partial class FogMod : Mod
         }
     }
 
-    private NetGrouse SpawnGrouse(NetCollection<NPC> npc, Vector2 treePosition, Vector2 spawnPosition, GameLocation location, int? salt, bool launchedByFarmer)
+    private Grouse SpawnGrouse(NetCollection<NPC> npc, Vector2 treePosition, Vector2 spawnPosition, GameLocation location, int? salt, bool launchedByFarmer)
     {
         int grouseId = Utilities.GetDeterministicId(
             locationSeed: location.NameOrUniqueName.GetHashCode(),
@@ -105,7 +105,7 @@ public partial class FogMod : Mod
             position: treePosition,
             salt: salt
         );
-        NetGrouse newGrouse = new NetGrouse(
+        Grouse newGrouse = new Grouse(
             grouseId: grouseId,
             location: location,
             treePosition: treePosition,
@@ -120,14 +120,14 @@ public partial class FogMod : Mod
     {
         if (GetNPCsAtCurrentLocation() is NetCollection<NPC> npc)
         {
-            foreach (var g in npc.OfType<NetGrouse>())
+            foreach (var g in npc.OfType<Grouse>())
             {
                 UpdateGrouse(g, deltaSeconds);
             }
         }
     }
 
-    internal void UpdateGrouse(NetGrouse g, float deltaSeconds)
+    internal void UpdateGrouse(Grouse g, float deltaSeconds)
     {
         g.StateTimer += deltaSeconds;
 
@@ -157,7 +157,7 @@ public partial class FogMod : Mod
             g.FacingDirection = g.Velocity.X > 0f ? 1 : 3;
     }
 
-    private void UpdateGrouseSurprised(NetGrouse g, float deltaSeconds)
+    private void UpdateGrouseSurprised(Grouse g, float deltaSeconds)
     {
         g.Velocity = Vector2.Zero;
 
@@ -165,7 +165,7 @@ public partial class FogMod : Mod
             g.State = GrouseState.Flushing;
     }
 
-    private void UpdateGrouseFlushing(NetGrouse g, float deltaSeconds)
+    private void UpdateGrouseFlushing(Grouse g, float deltaSeconds)
     {
         float flushProgress = g.StateTimer / Constants.GrouseFlushDuration;
 
@@ -189,7 +189,7 @@ public partial class FogMod : Mod
         }
     }
 
-    private void UpdateGrouseFlying(NetGrouse g, float deltaSeconds)
+    private void UpdateGrouseFlying(Grouse g, float deltaSeconds)
     {
         g.FlightTimer += deltaSeconds;
         float bobY = (float)Math.Sin(g.StateTimer * 12f) * Constants.GrouseBobAmplitude;
@@ -222,7 +222,7 @@ public partial class FogMod : Mod
         }
     }
 
-    private void UpdateGrouseLanding(NetGrouse g, float deltaSeconds)
+    private void UpdateGrouseLanding(Grouse g, float deltaSeconds)
     {
         if (g.TargetTreePosition is Vector2 target && TreeHelper.GetTreeFromId(Game1.currentLocation, target) is Tree targetTree)
         {
@@ -247,7 +247,7 @@ public partial class FogMod : Mod
         }
     }
 
-    private Tree? SelectNewTree(NetGrouse g)
+    private Tree? SelectNewTree(Grouse g)
     {
         Tree? currentTree = TreeHelper.GetTreeFromId(Game1.currentLocation, g.TreePosition);
         List<Tree> availableTrees = TreeHelper.GetAvailableTreePositions(Game1.currentLocation);

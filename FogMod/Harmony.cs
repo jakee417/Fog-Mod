@@ -126,21 +126,13 @@ public partial class FogMod : Mod
         if (FogMod.Instance.GetNPCsAtCurrentLocation() is NetCollection<NPC> npc)
             foreach (NPC p in npc)
             {
-                if (p is NetGrouse g && g.State == GrouseState.Perched)
+                if (p is Grouse g && g.State == GrouseState.Perched)
                 {
                     if (g.TreePosition == position)
                     {
                         if (Utils.Multiplayer.IsAbleToUpdateOwnWorld())
                         {
                             g.State = GrouseState.Surprised;
-                            tree.Location.playSound("leafrustle", tree.Tile);
-                            TreeHelper.TriggerFallingLeaves(tree, g.Position, numLeaves: 5);
-                            GrouseEventInfo info = new GrouseEventInfo(
-                                grouseId: g.GrouseId,
-                                _event: GrouseEventInfo.EventType.LeafShake,
-                                timestamp: DateTime.UtcNow.Ticks
-                            );
-                            Utils.Multiplayer.SendMessage(info);
                         }
                         else
                         {

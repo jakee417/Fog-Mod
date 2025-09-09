@@ -270,7 +270,7 @@ public partial class FogMod : Mod
                 FarmerHelper.raiseHands(Game1.player);
                 Vector2 spawnPosition = playerPosition + new Vector2(0, -Game1.player.FarmerSprite.SpriteHeight * 2.5f);
                 int salt = (int)Random.NextInt64();
-                NetGrouse g = SpawnGrouse(
+                Grouse g = SpawnGrouse(
                     npc: npc,
                     treePosition: spawnPosition,
                     spawnPosition: spawnPosition,

@@ -19,7 +19,7 @@ public enum GrouseState
     Landing,
 }
 
-public class NetGrouse : Monster
+public class Grouse : Monster
 {
     // MARK: Static variables
     public static readonly int[] wingPattern = { 0, 1, 2, 3, 4, 3, 2, 1 };
@@ -159,7 +159,7 @@ public class NetGrouse : Monster
     internal Vector2? TargetTreePosition;
 
     // MARK: Constructors
-    public NetGrouse() : base()
+    public Grouse() : base()
     {
         initNetFields();
         Name = Constants.GrouseName;
@@ -178,7 +178,7 @@ public class NetGrouse : Monster
         Reset();
     }
 
-    public NetGrouse(int grouseId, GameLocation location, Vector2 treePosition, Vector2 position, bool launchedByFarmer) : this()
+    public Grouse(int grouseId, GameLocation location, Vector2 treePosition, Vector2 position, bool launchedByFarmer) : this()
     {
         GrouseId = grouseId;
         currentLocation = location;
@@ -208,6 +208,11 @@ public class NetGrouse : Monster
                 case GrouseState.Perched:
                 case GrouseState.Surprised:
                     Velocity = Vector2.Zero;
+                    if (TreeHelper.GetTreeFromId(currentLocation, TreePosition) is Tree tree)
+                    {
+                        tree.Location.localSound("leafrustle", tree.Tile);
+                        TreeHelper.TriggerFallingLeaves(tree, Position, numLeaves: 5);
+                    }
                     break;
                 case GrouseState.Flushing:
                 case GrouseState.Flying:
@@ -389,7 +394,7 @@ public class NetGrouse : Monster
         invincibleCountdown = 0;
     }
 
-    private static bool IsGrouseOffLocation(NetGrouse g, GameLocation location)
+    private static bool IsGrouseOffLocation(Grouse g, GameLocation location)
     {
         Rectangle locationBounds = new Rectangle(0, 0, location.Map.Layers[0].LayerWidth * Game1.tileSize, location.Map.Layers[0].LayerHeight * Game1.tileSize);
         return !locationBounds.Contains(new Point((int)g.Position.X, (int)g.Position.Y));
@@ -518,7 +523,7 @@ public class NetGrouse : Monster
         Utility.addSmokePuff(currentLocation, position + new Vector2(0f, 32f), 250, 3f, 0.01f, 1f, 0.01f);
     }
 
-    private static void DrawPerchedGrouse(SpriteBatch spriteBatch, NetGrouse g)
+    private static void DrawPerchedGrouse(SpriteBatch spriteBatch, Grouse g)
     {
         if (FogMod.Instance?.grouseTexture == null || g.Alpha <= 0f)
             return;
@@ -569,7 +574,7 @@ public class NetGrouse : Monster
         );
     }
 
-    private static void DrawMovingGrouse(SpriteBatch spriteBatch, NetGrouse g)
+    private static void DrawMovingGrouse(SpriteBatch spriteBatch, Grouse g)
     {
         if (FogMod.Instance?.grouseTexture == null || g.Alpha <= 0f)
             return;
@@ -616,7 +621,7 @@ public class NetGrouse : Monster
         DrawGrouseEmote(spriteBatch, g, screenPos, scale);
     }
 
-    private static void DrawGrouseEmote(SpriteBatch spriteBatch, NetGrouse g, Vector2 screenPos, float scale)
+    private static void DrawGrouseEmote(SpriteBatch spriteBatch, Grouse g, Vector2 screenPos, float scale)
     {
         if (FogMod.Instance?.surprisedTexture is Texture2D surprisedTexture && g.State == GrouseState.Surprised && g.AnimationFrame == 4)
         {
