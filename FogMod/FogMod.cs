@@ -6,6 +6,7 @@ using StardewModdingAPI.Events;
 using StardewValley;
 using System;
 using System.Collections.Generic;
+using System.Reflection;
 using HarmonyLib;
 using StardewValley.Objects;
 using System.Linq;
@@ -15,6 +16,7 @@ using System.IO;
 using StardewValley.GameData;
 using FogMod.Models;
 using FogMod.Utils;
+using StardewValley.Tools;
 
 namespace FogMod;
 
@@ -69,6 +71,23 @@ public partial class FogMod : Mod
         harmony.Patch(
             original: AccessTools.Method(typeof(Tree), nameof(Tree.shake), new Type[] { typeof(Vector2), typeof(bool) }),
             postfix: new HarmonyMethod(typeof(FogMod), nameof(OnTreeShakePostfix))
+        );
+        // Need to disambiguate the overloaded Create methods
+        var createMethods = typeof(ItemRegistry).GetMethods(BindingFlags.Public | BindingFlags.Static)
+            .Where(m => m.Name == nameof(ItemRegistry.Create) && !m.IsGenericMethod)
+            .Where(m =>
+            {
+                var parameters = m.GetParameters();
+                return parameters.Length == 4 &&
+                       parameters[0].ParameterType == typeof(string) &&
+                       parameters[1].ParameterType == typeof(int) &&
+                       parameters[2].ParameterType == typeof(int) &&
+                       parameters[3].ParameterType == typeof(bool);
+            }).ToArray();
+
+        harmony.Patch(
+            original: createMethods[0],
+            prefix: new HarmonyMethod(typeof(FogMod), nameof(OnItemRegistryCreatePrefix))
         );
     }
 
@@ -180,8 +199,8 @@ public partial class FogMod : Mod
                     DisplayName = "Grouse",
                     Targets = new List<string> { Constants.GrouseName },
                     Count = Constants.GrouseQuestGoal,
-                    RewardItemId = "(O)174", // Large egg as reward for the effort
-                    RewardDialogue = "Well done! You've proven yourself quite the grouse hunter. These elusive birds hide among the trees in the fog. Your persistence has paid off - here's a large egg!",
+                    RewardItemId = Constants.GrouseRewardItemName,
+                    RewardDialogue = "Well done! You've proven yourself quite the grouse hunter. These elusive birds hide among the trees in the fog. Your persistence has paid off - here's a special multi-shot slingshot for your efforts!",
                     RewardFlag = "FogMod_GrouseSlayerComplete"
                 };
             });
@@ -272,6 +291,22 @@ public partial class FogMod : Mod
                 );
                 g.State = GrouseState.Surprised;
                 Game1.addHUDMessage(new HUDMessage("Grouse Released!", 2));
+            }
+        }
+
+        // Debug: Add MultiSlingshot to inventory
+        if (e.Button == SButton.H && Config.DebugShowInfo && Context.IsWorldReady)
+        {
+            var multiSlingshot = new MultiSlingshot();
+            if (Game1.player.addItemToInventoryBool(multiSlingshot))
+            {
+                Game1.addHUDMessage(new HUDMessage("MultiSlingshot added to inventory!", 2));
+                Monitor.Log("MultiSlingshot added to player inventory for debugging", LogLevel.Info);
+            }
+            else
+            {
+                Game1.addHUDMessage(new HUDMessage("Inventory full! Cannot add MultiSlingshot.", 1));
+                Monitor.Log("Failed to add MultiSlingshot - inventory full", LogLevel.Warn);
             }
         }
     }

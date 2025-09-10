@@ -144,4 +144,32 @@ public partial class FogMod : Mod
                 }
             }
     }
+
+    private static bool OnItemRegistryCreatePrefix(string itemId, int amount, int quality, bool allowNull, ref Item __result)
+    {
+        try
+        {
+            if (itemId == Constants.GrouseRewardItemName)
+            {
+                var multiSlingshot = new MultiSlingshot();
+                if (amount != 1)
+                {
+                    multiSlingshot.Stack = amount;
+                    multiSlingshot.FixStackSize();
+                }
+                if (quality != 0)
+                {
+                    multiSlingshot.Quality = quality;
+                    multiSlingshot.FixQuality();
+                }
+                __result = multiSlingshot;
+                return false;
+            }
+        }
+        catch (Exception ex)
+        {
+            FogMod.Instance?.Monitor.Log($"OnItemRegistryCreatePrefix failed for item {itemId}: {ex.Message}", LogLevel.Error);
+        }
+        return true; // Continue with original method
+    }
 }

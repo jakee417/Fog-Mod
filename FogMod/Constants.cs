@@ -33,6 +33,7 @@ public static class Constants
     // Grouse constants
     public const string GrouseName = "Grouse";
     public const string GrouseAudioCueId = "FogMod_Grouse";
+    public const string GrouseRewardItemName = "FogMod_MultiSlingshot";
     public const int GrouseQuestGoal = 200;
     public const float GrouseFlushSpeed = 200f;
     public const float GrouseBobAmplitude = 10f;
