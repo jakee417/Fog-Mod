@@ -176,67 +176,58 @@ public partial class FogMod : Mod
     {
         InitializeDailyFogStrength();
         TreeHelper.ClearCache();
-        if (Context.IsMainPlayer)
+        if (Context.IsMainPlayer && Config.EnableGrouseCritters)
             InitializeGrouse();
     }
 
     private void OnWarped(object? sender, WarpedEventArgs e)
     {
-        if (!Context.IsWorldReady) return;
+        if (!Context.IsWorldReady)
+            return;
+
         if (e.IsLocalPlayer)
             ResetAllParticlesOnLocationChange();
     }
 
     private void OnUpdateTicked(object? sender, UpdateTickedEventArgs e)
     {
-        if (!Context.IsWorldReady) return;
+        if (!Context.IsWorldReady)
+            return;
 
-        // Update grid snapshot
         grid = new Grid(
             cellSize: Constants.FogTileSize,
             bufferCells: Constants.DefaultFogGridBufferCells
         );
-
         float deltaSeconds = (float)Game1.currentGameTime.ElapsedGameTime.TotalSeconds;
         time += deltaSeconds;
         breathBasePhase = time * (MathHelper.TwoPi / Constants.BreathPeriodSeconds);
-
         RefreshLightSources();
         UpdateExplosionSmokeParticles(deltaSeconds);
         if (isFogDay && Game1.currentLocation != null && Game1.currentLocation.IsOutdoors)
             UpdateFloatingFogParticles(deltaSeconds);
-        UpdateExplosionFlashInfos(deltaSeconds);
-
-        // Update grouse
-        if (Config.EnableGrouseCritters && Utils.Multiplayer.IsAbleToUpdateOwnWorld())
-        {
-            TreeHelper.UpdateLeaves();
+        TreeHelper.UpdateLeaves();
+        if (Utils.Multiplayer.IsAbleToUpdateOwnWorld())
             UpdateGrouse(deltaSeconds);
-        }
     }
 
     private void ResetAllParticlesOnLocationChange()
     {
         ResetFogParticles();
         ResetExplosionSmokeParticles();
+        TreeHelper.ResetLeaves();
     }
 
     private void OnRendered(object? sender, RenderedEventArgs e)
     {
         if (!Context.IsWorldReady || Game1.currentLocation == null)
             return;
-
-        // DrawDebugFogGrid(e.SpriteBatch);
-
         if (Config.DebugShowInfo)
             DrawDebugInfo(e.SpriteBatch);
-
         Color fogColor = GetEffectiveFogColor();
-
         TreeHelper.DrawLeaves(e.SpriteBatch);
-        DrawExplosionFlashes(e.SpriteBatch);
-        DrawExplosionSmokeParticles(e.SpriteBatch, fogColor);
-        if (isFogDay && Game1.currentLocation.IsOutdoors)
+        if (Config.EnableExplosionSmoke)
+            DrawExplosionSmokeParticles(e.SpriteBatch, fogColor);
+        if (Config.EnableFog && isFogDay && Game1.currentLocation.IsOutdoors)
             DrawFloatingFogParticles(e.SpriteBatch, fogColor);
     }
 

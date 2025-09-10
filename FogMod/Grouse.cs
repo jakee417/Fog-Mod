@@ -239,10 +239,9 @@ public partial class FogMod : Mod
             g.Velocity = direction * Math.Max(targetSpeed, 20f);
             if (distanceToTarget < 32f)
             {
-                g.TreePosition = TreeHelper.GetTreePosition(targetTree);
                 g.Position = targetPosition;
-                targetTree.shake(tileLocation: g.TreePosition, doEvenIfStillShaking: true);
-                g.Reset();
+                targetTree.shake(tileLocation: targetTree.Tile, doEvenIfStillShaking: true);
+                g.TreePosition = TreeHelper.GetTreePosition(targetTree);
             }
         }
         else

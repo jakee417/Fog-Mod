@@ -25,6 +25,15 @@ public partial class FogMod : Mod
         if (!Context.IsWorldReady)
             return;
 
+        if (!Config.EnableFog)
+        {
+            isFogDay = false;
+            dailyFogStrength = 0f;
+            probabilityOfFogForADay = 1f;
+            probabilityOfFogRoll = 0f;
+            return;
+        }
+
         if (!Config.EnableDailyRandomFog)
         {
             isFogDay = true;

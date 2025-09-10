@@ -127,16 +127,14 @@ public class Grouse : Monster
         set { }
     }
 
-    public string ObjectToDrop
+    public string? ObjectToDrop
     {
-        get
-        {
-            return objectsToDrop.Count > 0 ? objectsToDrop[0] : string.Empty;
-        }
+        get => objectsToDrop.Count > 0 ? objectsToDrop[0] : null;
         set
         {
             objectsToDrop.Clear();
-            objectsToDrop.Add(value);
+            if (value is string item)
+                objectsToDrop.Add(item);
         }
     }
 
@@ -199,6 +197,11 @@ public class Grouse : Monster
             .AddField(launchedByFarmer, "launchedByFarmer")
             .AddField(state, "state")
             .AddField(isHiding, "isHiding");
+
+        treePosition.fieldChangeEvent += (NetVector2 field, Vector2 oldValue, Vector2 newValue) =>
+        {
+            Reset();
+        };
 
         state.fieldChangeEvent += (NetEnum<GrouseState> field, GrouseState oldValue, GrouseState newValue) =>
         {
@@ -267,8 +270,8 @@ public class Grouse : Monster
                     if (isBomb)
                     {
                         AddSmokePuffs(spriteCenter);
-                        // Fry the egg
-                        if (ObjectToDrop == "180")
+                        // Fry the whatever item we had
+                        if (ObjectToDrop != null)
                             ObjectToDrop = "194";
                     }
                 }
@@ -400,18 +403,26 @@ public class Grouse : Monster
         return !locationBounds.Contains(new Point((int)g.Position.X, (int)g.Position.Y));
     }
 
-    internal string GetItemToDrop()
+    internal string? GetItemToDrop()
     {
-        var deterministicRng = new Random(GrouseId);
-        double roll = deterministicRng.NextDouble();
-        // Basic brown egg
-        string eggItemId = "180";
+        // No spamming grouse to get eggs
+        if (LaunchedByFarmer)
+            return null;
+
+        double roll = FogMod.Random.NextDouble();
+        string? eggItemId = null;
+        // Daily luck
+        float luck = (float)Game1.player.DailyLuck;
+        // https://mateusaquino.github.io/stardewids/
         // Golden egg
-        if (roll < 0.01)
+        if (roll < luck + 0.01)
             eggItemId = "928";
-        // Large Brown egg
-        else if (roll >= 0.01 && roll < 0.1)
-            eggItemId = "182";
+        // Large egg
+        else if (roll < luck + 0.1)
+            eggItemId = "174";
+        // Basic egg
+        else if (roll < luck + 0.8)
+            eggItemId = "176";
         return eggItemId;
     }
 

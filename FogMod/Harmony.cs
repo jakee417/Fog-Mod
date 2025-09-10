@@ -4,7 +4,6 @@ using Netcode;
 using StardewModdingAPI;
 using StardewValley;
 using StardewValley.Objects;
-using StardewValley.Projectiles;
 using StardewValley.TerrainFeatures;
 using System;
 using FogMod.Models;
@@ -40,9 +39,9 @@ public partial class FogMod : Mod
 
     public static void HandleExplosion(ExplosionFlashInfo info)
     {
-
         FogMod.Instance?.explosionFlashInfos.Add(info);
-        FogMod.Instance?.SpawnExplosionSmoke(info.CenterWorld, info.RadiusPixels);
+        if (Config.EnableExplosionSmoke)
+            FogMod.Instance?.SpawnExplosionSmoke(info.CenterWorld, info.RadiusPixels);
     }
 
     // TV Weather Report
@@ -133,14 +132,13 @@ public partial class FogMod : Mod
                         if (Utils.Multiplayer.IsAbleToUpdateOwnWorld())
                             g.State = GrouseState.Surprised;
                         else
-                        {
-                            GrouseEventInfo info = new GrouseEventInfo(
-                                grouseId: g.GrouseId,
-                                _event: GrouseEventInfo.EventType.Flushed,
-                                timestamp: DateTime.UtcNow.Ticks
+                            Utils.Multiplayer.SendMessage(
+                                new GrouseEventInfo(
+                                    grouseId: g.GrouseId,
+                                    _event: GrouseEventInfo.EventType.Flushed,
+                                    timestamp: DateTime.UtcNow.Ticks
+                                )
                             );
-                            Utils.Multiplayer.SendMessage(info);
-                        }
                         break;
                     }
                 }

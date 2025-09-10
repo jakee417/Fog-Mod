@@ -13,11 +13,13 @@ public static class GMCM
 
     public class ModConfig
     {
+        public bool EnableFog { get; set; } = true;
         public bool EnableDailyRandomFog { get; set; } = true;
         public bool EnableWeatherBasedFog { get; set; } = true;
         public bool EnableTimeOfDayFog { get; set; } = true;
+        public bool EnableExplosionSmoke { get; set; } = true;
+        public bool EnableGrouseCritters { get; set; } = true;
         public bool DebugShowInfo { get; set; } = false;
-        public bool EnableGrouseCritters { get; set; } = false;
     }
 
     public static void RegisterModConfig(IGenericModConfigMenuApi configMenu)
@@ -38,6 +40,14 @@ public static class GMCM
                 ModManifest,
                 () => "Fog Clouds",
                 () => "Configure fog cloud settings"
+            );
+
+            configMenu.AddBoolOption(
+                ModManifest,
+                () => Config.EnableFog,
+                value => Config.EnableFog = value,
+                () => "Enable Fog",
+                () => "Show fog effects in the game."
             );
 
             configMenu.AddBoolOption(
@@ -67,6 +77,20 @@ public static class GMCM
                 value => Config.EnableTimeOfDayFog = value,
                 () => "Time of Day Fog Effect",
                 () => "Enable or disable time of day fog effect (daylight, night, etc.)"
+            );
+
+            configMenu.AddSectionTitle(
+                ModManifest,
+                () => "Explosions",
+                () => "Configure explosion smoke settings"
+            );
+
+            configMenu.AddBoolOption(
+                ModManifest,
+                () => Config.EnableExplosionSmoke,
+                value => Config.EnableExplosionSmoke = value,
+                () => "Enable Explosion Smoke",
+                () => "Show smoke particles when explosions occur."
             );
 
             configMenu.AddSectionTitle(

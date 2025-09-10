@@ -27,10 +27,15 @@ public static class TreeHelper
         }
     }
 
+    public static void ResetLeaves()
+    {
+        leaves.Clear();
+    }
+
     public static void ClearCache()
     {
         cache.Clear();
-        leaves.Clear();
+        ResetLeaves();
     }
 
     public static Vector2 GetGrouseSpawnPosition(Tree tree)

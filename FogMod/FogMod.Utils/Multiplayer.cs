@@ -4,7 +4,6 @@ using StardewValley;
 using System;
 using FogMod.Models;
 using StardewModdingAPI.Events;
-using StardewValley.TerrainFeatures;
 
 
 namespace FogMod.Utils;
