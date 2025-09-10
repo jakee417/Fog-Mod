@@ -87,7 +87,7 @@ public partial class FogMod : Mod
     private void InitializeFloatingFogParticles()
     {
         floatingParticles = new List<FogParticle>();
-        grid = new FogGrid(
+        grid = new Grid(
             cellSize: Constants.FogTileSize,
             bufferCells: Constants.DefaultFogGridBufferCells
         );

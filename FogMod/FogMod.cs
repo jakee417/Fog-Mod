@@ -29,7 +29,7 @@ public partial class FogMod : Mod
     private static readonly Color DefaultFogColor = Color.LightGray;
     private float lastWeatherFogIntensityFactor = 1f;
     internal static FogMod? Instance;
-    private FogGrid grid;
+    private Grid grid;
     private float time;
 
     public override void Entry(IModHelper helper)
@@ -192,7 +192,7 @@ public partial class FogMod : Mod
         if (!Context.IsWorldReady) return;
 
         // Update grid snapshot
-        grid = new FogGrid(
+        grid = new Grid(
             cellSize: Constants.FogTileSize,
             bufferCells: Constants.DefaultFogGridBufferCells
         );

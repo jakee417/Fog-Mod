@@ -5,7 +5,7 @@ using StardewValley;
 
 namespace FogMod.Models;
 
-public readonly struct FogGrid
+public readonly struct Grid
 {
     public int Cols { get; }
     public int Rows { get; }
@@ -15,7 +15,7 @@ public readonly struct FogGrid
     public float CellSize { get; }
     public int BufferCells { get; }
 
-    public FogGrid(float cellSize, int bufferCells)
+    public Grid(float cellSize, int bufferCells)
     {
         CellSize = Math.Max(1f, cellSize);
         BufferCells = Math.Max(0, bufferCells);
