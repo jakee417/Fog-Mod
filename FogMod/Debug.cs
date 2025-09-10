@@ -13,6 +13,7 @@ namespace FogMod
 {
     public partial class FogMod : Mod
     {
+
         private void DrawDebugInfo(Microsoft.Xna.Framework.Graphics.SpriteBatch spriteBatch)
         {
             // Print things like time of day multiplier, weather multiplier,

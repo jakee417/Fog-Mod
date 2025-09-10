@@ -18,7 +18,6 @@ public struct GrouseEventInfo
     public class EventType
     {
         public const string Flushed = "Flushed";
-        public const string LeafShake = "LeafShake";
         public const string Released = "Released";
     }
 }

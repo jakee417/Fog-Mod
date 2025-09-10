@@ -131,9 +131,7 @@ public partial class FogMod : Mod
                     if (g.TreePosition == position)
                     {
                         if (Utils.Multiplayer.IsAbleToUpdateOwnWorld())
-                        {
                             g.State = GrouseState.Surprised;
-                        }
                         else
                         {
                             GrouseEventInfo info = new GrouseEventInfo(

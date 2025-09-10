@@ -1,5 +1,6 @@
 #nullable enable
 using Microsoft.Xna.Framework;
+using System.Collections.Generic;
 using StardewModdingAPI;
 using StardewValley;
 using FogMod.Models;
@@ -8,6 +9,8 @@ namespace FogMod;
 
 public partial class FogMod : Mod
 {
+    private List<LightInfo> lightSources = new List<LightInfo>();
+
     private void RefreshLightSources()
     {
         lightSources.Clear();

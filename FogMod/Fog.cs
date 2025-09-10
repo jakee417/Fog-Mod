@@ -11,6 +11,15 @@ namespace FogMod;
 
 public partial class FogMod : Mod
 {
+    private bool isFogDay = false;
+    private float probabilityOfFogForADay = 0.05f;
+    private float probabilityOfFogRoll = 0.0f;
+    private float breathBasePhase;
+    private float dailyFogStrength = 0f;
+    public List<Texture2D>? cloudTextures { get; set; }
+    private List<FogParticle> floatingParticles = new List<FogParticle>();
+    private CellOccupancy fogCellOccupancy;
+
     internal void InitializeDailyFogStrength()
     {
         if (!Context.IsWorldReady)

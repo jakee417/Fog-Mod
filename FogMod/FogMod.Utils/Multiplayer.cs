@@ -141,12 +141,6 @@ public static class Multiplayer
                     else
                         Instance?.Monitor.Log($"🚀 Could not find farmer for player {fromPlayerId}", LogLevel.Warn);
                     return;
-                case GrouseEventInfo.EventType.LeafShake:
-                    if (Instance?.GetGrouseById(msg.GrouseId) is Grouse gr && TreeHelper.GetTreeFromId(Game1.currentLocation, gr.TreePosition) is Tree tree)
-                        TreeHelper.TriggerFallingLeaves(tree, gr.Position, numLeaves: 5);
-                    else
-                        Instance?.Monitor.Log($"🚀 Could not find tree for grouse {msg.GrouseId} in location {Game1.currentLocation.NameOrUniqueName}", LogLevel.Warn);
-                    return;
             }
             Instance?.Monitor.Log($"🚀 Unknown grouse event: {msg.Event}", LogLevel.Warn);
         }

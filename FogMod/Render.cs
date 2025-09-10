@@ -11,6 +11,8 @@ namespace FogMod;
 
 public partial class FogMod : Mod
 {
+    public Texture2D? whitePixel { get; set; }
+
     private void DrawFloatingFogParticles(SpriteBatch spriteBatch, Color fogColor)
     {
         Vector2 playerWorldCenter = Utilities.GetPlayerWorldCenter();

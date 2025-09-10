@@ -24,34 +24,19 @@ public partial class FogMod : Mod
     public static GMCM.GMCM.ModConfig Config { get; set; }
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
     public static Random Random = new Random();
+    private readonly IEnumerable<GameLocation> outdoorLocations = Game1.locations.Where(loc => loc.IsOutdoors);
     private static readonly Vector2 globalWindDirection = new Vector2(WeatherDebris.globalWind, 0f);
     private static readonly Color DefaultFogColor = Color.LightGray;
+    private float lastWeatherFogIntensityFactor = 1f;
     internal static FogMod? Instance;
-    private bool isFogDay = false;
-    private float probabilityOfFogForADay = 0.05f;
-    private float probabilityOfFogRoll = 0.0f;
-    private List<FogParticle> floatingParticles = new List<FogParticle>();
-    private CellOccupancy fogCellOccupancy;
-    private List<ExplosionFlashInfo> explosionFlashInfos = new List<ExplosionFlashInfo>();
-    private List<FogParticle> explosionSmokeParticles = new List<FogParticle>();
-    private CellOccupancy smokeCellOccupancy;
-    private List<LightInfo> lightSources = new List<LightInfo>();
-    public List<Texture2D>? cloudTextures { get; set; }
-    public Texture2D? whitePixel { get; set; }
-    public Texture2D? grouseTexture { get; set; }
-    public Texture2D? surprisedTexture { get; set; }
     private FogGrid grid;
     private float time;
-    private float breathBasePhase;
-    private float dailyFogStrength = 0f;
-    private float lastWeatherFogIntensityFactor = 1f;
-    private readonly IEnumerable<GameLocation> outdoorLocations = Game1.locations.Where(loc => loc.IsOutdoors);
 
     public override void Entry(IModHelper helper)
     {
         Instance = this;
         // Test log that should definitely appear
-        Monitor.Log($"🌫️ Fog Mod (v{this.ModManifest.Version}) is loading! 🌫️", LogLevel.Alert);
+        Monitor.Log($"🌫️ Fog Mod (v{ModManifest.Version}) is loading! 🌫️", LogLevel.Alert);
 
         // Load config
         Config = Helper.ReadConfig<GMCM.GMCM.ModConfig>();
@@ -67,7 +52,7 @@ public partial class FogMod : Mod
         helper.Events.Display.Rendered += OnRendered;
 
         // Harmony patches
-        var harmony = new Harmony(this.ModManifest.UniqueID);
+        var harmony = new Harmony(ModManifest.UniqueID);
         harmony.Patch(
             original: AccessTools.Method(typeof(GameLocation), nameof(GameLocation.explode), new Type[] { typeof(Vector2), typeof(int), typeof(Farmer), typeof(bool), typeof(int), typeof(bool) }),
             postfix: new HarmonyMethod(typeof(FogMod), nameof(OnBombExplodedPostfix))

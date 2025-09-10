@@ -1,4 +1,5 @@
 #nullable enable
+using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework;
 using StardewModdingAPI;
 using StardewValley.TerrainFeatures;
@@ -10,10 +11,14 @@ using System.Linq;
 using FogMod.Models;
 using FogMod.Utils;
 
+
 namespace FogMod;
 
 public partial class FogMod : Mod
 {
+    public Texture2D? grouseTexture { get; set; }
+    public Texture2D? surprisedTexture { get; set; }
+
     private void InitializeGrouse()
     {
         foreach (GameLocation loc in outdoorLocations)
