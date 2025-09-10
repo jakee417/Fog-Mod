@@ -160,7 +160,6 @@ public class Grouse : Monster
     public Grouse() : base()
     {
         initNetFields();
-        Name = Constants.GrouseName;
         Slipperiness = 0;
         IsWalkingTowardPlayer = false;
         collidesWithOtherCharacters.Value = false;
@@ -178,6 +177,8 @@ public class Grouse : Monster
 
     public Grouse(int grouseId, GameLocation location, Vector2 treePosition, Vector2 position, bool launchedByFarmer) : this()
     {
+        // Do not count launched grouse towards kill count
+        Name = launchedByFarmer ? Constants.GrouseName + "_launched" : Constants.GrouseName;
         GrouseId = grouseId;
         currentLocation = location;
         TreePosition = treePosition;

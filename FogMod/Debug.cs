@@ -22,19 +22,16 @@ namespace FogMod
             string smokeCountText = $"Smoke: {explosionSmokeParticles?.Count ?? 0}";
 
             string grouseInfo = "";
-            if (Config.EnableGrouseCritters)
-            {
-                List<Grouse>? allGrouse = GetAllGrouse();
-                string grouseCountText = $"Grouse: {allGrouse?.Count ?? 0} in {outdoorLocations.Count()} locations";
-                string grouseInLocation = $"Grouse In {Game1.currentLocation?.NameOrUniqueName ?? "Unknown"}: {GetNPCsAtCurrentLocation()?.Count(p => p is Grouse)}";
-                int surprisedGrouse = allGrouse?.Count(g => g.State == GrouseState.Surprised) ?? 0;
-                int flyingGrouse = allGrouse?.Count(g => g.State == GrouseState.Flying) ?? 0;
-                int flushedGrouse = allGrouse?.Count(g => g.State == GrouseState.Flushing) ?? 0;
-                int landingGrouse = allGrouse?.Count(g => g.State == GrouseState.Landing) ?? 0;
-                string stateText = $"Surprised: {surprisedGrouse}, Flying: {flyingGrouse}, Flushed: {flushedGrouse}, Landing: {landingGrouse}";
-                grouseInfo = $"\n{grouseCountText}\n{grouseInLocation}\n{stateText}";
-            }
-
+            List<Grouse>? allGrouse = GetAllGrouse();
+            string grouseCountText = $"Grouse: {allGrouse?.Count ?? 0} in {outdoorLocations.Count()} locations";
+            string grouseInLocation = $"Grouse In {Game1.currentLocation?.NameOrUniqueName ?? "Unknown"}: {GetNPCsAtCurrentLocation()?.Count(p => p is Grouse)}";
+            int surprisedGrouse = allGrouse?.Count(g => g.State == GrouseState.Surprised) ?? 0;
+            int flyingGrouse = allGrouse?.Count(g => g.State == GrouseState.Flying || g.State == GrouseState.Flushing) ?? 0;
+            int landingGrouse = allGrouse?.Count(g => g.State == GrouseState.Landing) ?? 0;
+            string stateText = $"Surprised: {surprisedGrouse}, Flying: {flyingGrouse}, Landing: {landingGrouse}";
+            int grouseKilled = Game1.stats.getMonstersKilled(Constants.GrouseName);
+            string grouseKilledText = $"Grouse Killed: {grouseKilled}/{Constants.GrouseQuestGoal}";
+            grouseInfo = $"\n{grouseCountText}\n{grouseInLocation}\n{stateText}\n{grouseKilledText}";
             string timeOfDayMultiplierText = $"Time of day multiplier: {ComputeTimeOfDayOpacityMultiplier():F2}";
             string weatherMultiplierText = $"Weather multiplier: {lastWeatherFogIntensityFactor:F2}";
             string dailyFogMultiplierText = $"Daily fog multiplier: {dailyFogStrength:F2}";

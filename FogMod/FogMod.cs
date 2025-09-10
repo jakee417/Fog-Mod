@@ -170,6 +170,22 @@ public partial class FogMod : Mod
                 AssetLoadPriority.Medium
             );
         }
+        else if (e.NameWithoutLocale.IsEquivalentTo("Data/MonsterSlayerQuests"))
+        {
+            e.Edit(asset =>
+            {
+                var data = asset.AsDictionary<string, MonsterSlayerQuestData>().Data;
+                data["FogMod_GrouseSlayer"] = new MonsterSlayerQuestData
+                {
+                    DisplayName = "Grouse",
+                    Targets = new List<string> { Constants.GrouseName },
+                    Count = Constants.GrouseQuestGoal,
+                    RewardItemId = "(O)174", // Large egg as reward for the effort
+                    RewardDialogue = "Well done! You've proven yourself quite the grouse hunter. These elusive birds hide among the trees in the fog. Your persistence has paid off - here's a large egg!",
+                    RewardFlag = "FogMod_GrouseSlayerComplete"
+                };
+            });
+        }
     }
 
     private void OnDayStarted(object? sender, DayStartedEventArgs e)
