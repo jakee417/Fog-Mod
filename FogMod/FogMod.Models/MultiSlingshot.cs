@@ -8,6 +8,7 @@ using StardewValley.Projectiles;
 using System;
 using System.Collections.Generic;
 
+namespace FogMod.Models;
 
 public class MultiSlingshot : Slingshot
 {

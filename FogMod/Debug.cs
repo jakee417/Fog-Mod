@@ -23,7 +23,7 @@ namespace FogMod
 
             string grouseInfo = "";
             List<Grouse>? allGrouse = GetAllGrouse();
-            string grouseCountText = $"Grouse: {allGrouse?.Count ?? 0} in {outdoorLocations.Count()} locations";
+            string grouseCountText = $"Grouse: {allGrouse?.Count ?? 0} in {outdoorLocations.Count()} locations w/ {TreeHelper.GetAvailableTrees(outdoorLocations).Count} trees";
             string grouseInLocation = $"Grouse In {Game1.currentLocation?.NameOrUniqueName ?? "Unknown"}: {GetNPCsAtCurrentLocation()?.Count(p => p is Grouse)}";
             int surprisedGrouse = allGrouse?.Count(g => g.State == GrouseState.Surprised) ?? 0;
             int flyingGrouse = allGrouse?.Count(g => g.State == GrouseState.Flying || g.State == GrouseState.Flushing) ?? 0;

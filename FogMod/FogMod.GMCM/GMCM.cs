@@ -19,6 +19,7 @@ public static class GMCM
         public bool EnableTimeOfDayFog { get; set; } = true;
         public bool EnableExplosionSmoke { get; set; } = true;
         public bool EnableGrouseCritters { get; set; } = true;
+        public SButton GrouseToggleKey { get; set; } = SButton.G;
         public bool DebugShowInfo { get; set; } = false;
     }
 
@@ -105,6 +106,15 @@ public static class GMCM
                 value => Config.EnableGrouseCritters = value,
                 () => "Enable Grouse Critters",
                 () => "Spawn grouse birds in trees that flush when you get close. Requires restart to take full effect."
+            );
+
+
+            configMenu.AddKeybind(
+                ModManifest,
+                () => Config.GrouseToggleKey,
+                value => Config.GrouseToggleKey = value,
+                () => "Grouse Spawn Hotkey",
+                () => "The key used to spawn a grouse."
             );
 
             configMenu.AddSectionTitle(

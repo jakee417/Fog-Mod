@@ -16,7 +16,6 @@ using System.IO;
 using StardewValley.GameData;
 using FogMod.Models;
 using FogMod.Utils;
-using StardewValley.Tools;
 
 namespace FogMod;
 
@@ -52,6 +51,7 @@ public partial class FogMod : Mod
         helper.Events.Player.Warped += OnWarped;
         helper.Events.GameLoop.UpdateTicked += OnUpdateTicked;
         helper.Events.Display.Rendered += OnRendered;
+        helper.Events.GameLoop.DayEnding += OnDayEnding;
 
         // Harmony patches
         var harmony = new Harmony(ModManifest.UniqueID);
@@ -215,6 +215,12 @@ public partial class FogMod : Mod
             InitializeGrouse();
     }
 
+    private void OnDayEnding(object? sender, DayEndingEventArgs e)
+    {
+        ClearGrouseFromAllLocations();
+        ResetAllParticlesOnLocationChange();
+    }
+
     private void OnWarped(object? sender, WarpedEventArgs e)
     {
         if (!Context.IsWorldReady)
@@ -237,6 +243,7 @@ public partial class FogMod : Mod
         time += deltaSeconds;
         breathBasePhase = time * (MathHelper.TwoPi / Constants.BreathPeriodSeconds);
         RefreshLightSources();
+        UpdateExplosionFlashInfos(deltaSeconds);
         UpdateExplosionSmokeParticles(deltaSeconds);
         if (isFogDay && Game1.currentLocation != null && Game1.currentLocation.IsOutdoors)
             UpdateFloatingFogParticles(deltaSeconds);
@@ -268,7 +275,7 @@ public partial class FogMod : Mod
 
     private void OnButtonPressed(object? sender, ButtonPressedEventArgs e)
     {
-        if (e.Button == SButton.G && Config.EnableGrouseCritters && Game1.currentLocation.IsOutdoors)
+        if (e.Button == Config.GrouseToggleKey && Config.EnableGrouseCritters && Game1.currentLocation.IsOutdoors)
         {
             if (GetNPCsAtCurrentLocation() is NetCollection<NPC> npc)
             {
@@ -291,22 +298,6 @@ public partial class FogMod : Mod
                 );
                 g.State = GrouseState.Surprised;
                 Game1.addHUDMessage(new HUDMessage("Grouse Released!", 2));
-            }
-        }
-
-        // Debug: Add MultiSlingshot to inventory
-        if (e.Button == SButton.H && Config.DebugShowInfo && Context.IsWorldReady)
-        {
-            var multiSlingshot = new MultiSlingshot();
-            if (Game1.player.addItemToInventoryBool(multiSlingshot))
-            {
-                Game1.addHUDMessage(new HUDMessage("MultiSlingshot added to inventory!", 2));
-                Monitor.Log("MultiSlingshot added to player inventory for debugging", LogLevel.Info);
-            }
-            else
-            {
-                Game1.addHUDMessage(new HUDMessage("Inventory full! Cannot add MultiSlingshot.", 1));
-                Monitor.Log("Failed to add MultiSlingshot - inventory full", LogLevel.Warn);
             }
         }
     }

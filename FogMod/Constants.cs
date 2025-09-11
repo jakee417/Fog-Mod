@@ -34,7 +34,7 @@ public static class Constants
     public const string GrouseName = "Grouse";
     public const string GrouseAudioCueId = "FogMod_Grouse";
     public const string GrouseRewardItemName = "FogMod_MultiSlingshot";
-    public const int GrouseQuestGoal = 200;
+    public const int GrouseQuestGoal = 100;
     public const float GrouseFlushSpeed = 200f;
     public const float GrouseBobAmplitude = 10f;
     public const float GrouseExitSpeed = 400f;
@@ -43,10 +43,12 @@ public static class Constants
     public const float GrouseSpawnChance = 0.1f;
     public const float GrouseScale = 4f;
     public const int GrouseHidingCycles = 40;
-    public const int GrouseMaxPerLocation = 3;
+    public const int GrouseMaxPerLocation = 1;
     public const int GrouseSpriteWidth = 16;
     public const int GrouseSpriteHeight = 16;
     public const float GrouseTransitionDuration = 0.3f;
     public const float SurprisedSpriteScale = 4f;
     public const float GrouseLandingDistanceThreshold = 512f;
+    public const float GrouseMissRate = 0.1f;
+    public const int GrouseMaxHealth = 30;
 }

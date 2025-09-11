@@ -7,6 +7,8 @@ using StardewValley.TerrainFeatures;
 using StardewValley;
 using FogMod.Utils;
 using StardewValley.Monsters;
+using StardewValley.Tools;
+using StardewModdingAPI;
 
 namespace FogMod.Models;
 
@@ -165,11 +167,10 @@ public class Grouse : Monster
         collidesWithOtherCharacters.Value = false;
         farmerPassesThrough = true;
         DamageToFarmer = 0;
-        MaxHealth = 1;
+        MaxHealth = Constants.GrouseMaxHealth;
         Health = MaxHealth;
-        missChance.Value = 0.02f;
+        missChance.Value = Constants.GrouseMissRate;
         resilience.Value = 0;
-        ObjectToDrop = GetItemToDrop();
         ExperienceGained = 0;
         mineMonster.Value = false;
         Reset();
@@ -185,6 +186,7 @@ public class Grouse : Monster
         LaunchedByFarmer = launchedByFarmer;
         Position = position;
         FacingDirection = Utilities.DeterministicBool(Position, GrouseId) ? 3 : 1;
+        ObjectToDrop = GetItemToDrop();
     }
 
     // MARK: Monster Overrides
@@ -245,16 +247,21 @@ public class Grouse : Monster
     public override int takeDamage(int damage, int xTrajectory, int yTrajectory, bool isBomb, double addedPrecision, Farmer who)
     {
         int actualDamage = Math.Max(1, damage - (int)resilience.Value);
-
         // No cherry picking...
-        if (State == GrouseState.Perched || State == GrouseState.Surprised)
+        bool legalWeapons = (who.CurrentTool is Slingshot) || isBomb;
+        if (State == GrouseState.Perched || State == GrouseState.Surprised || !legalWeapons)
             actualDamage = -1;
         else if (Game1.random.NextDouble() < missChance.Value - missChance.Value * addedPrecision)
             actualDamage = -1;
         else
         {
+            Vector2 spriteCenter = Position - new Vector2(
+                Constants.GrouseSpriteWidth * Scale / 2,
+                Constants.GrouseSpriteHeight * Scale / 2
+            );
+
             Health -= actualDamage;
-            setTrajectory(xTrajectory / 4, yTrajectory / 4);
+            setTrajectory(xTrajectory / 2, yTrajectory / 2);
 
             // Death effects
             if (Health <= 0)
@@ -262,19 +269,30 @@ public class Grouse : Monster
                 if (currentLocation is GameLocation loc)
                 {
                     loc.playSound("magma_sprite_hit", TilePosition);
-                    Vector2 spriteCenter = Position - new Vector2(Constants.GrouseSpriteWidth * Scale / 2, Constants.GrouseSpriteHeight * Scale / 2);
                     TemporaryAnimatedSprite featherAnimation = new TemporaryAnimatedSprite(28, spriteCenter, Color.SaddleBrown, 6)
                     {
                         interval = 50f
                     };
                     Utility.makeTemporarySpriteJuicier(featherAnimation, loc, 2);
-                    if (isBomb)
+                }
+                if (isBomb)
+                {
+                    AddSmokePuffs(spriteCenter);
+                    // Fry the whatever item we had
+                    if (ObjectToDrop != null)
+                        ObjectToDrop = "194";
+                }
+            }
+            else
+            {
+                if (currentLocation is GameLocation loc)
+                {
+                    loc.playSound("hitEnemy", TilePosition);
+                    TemporaryAnimatedSprite featherAnimation = new TemporaryAnimatedSprite(28, spriteCenter, Color.SaddleBrown, 3)
                     {
-                        AddSmokePuffs(spriteCenter);
-                        // Fry the whatever item we had
-                        if (ObjectToDrop != null)
-                            ObjectToDrop = "194";
-                    }
+                        interval = 50f
+                    };
+                    Utility.makeTemporarySpriteJuicier(featherAnimation, loc, 1);
                 }
             }
         }
@@ -296,11 +314,6 @@ public class Grouse : Monster
     public override void MovePosition(GameTime time, xTile.Dimensions.Rectangle viewport, GameLocation currentLocation)
     { }
 
-    public override void Removed()
-    {
-        base.Removed();
-    }
-
     protected override void localDeathAnimation()
     { }
 
@@ -320,16 +333,12 @@ public class Grouse : Monster
 
     public override bool ShouldMonsterBeRemoved()
     {
-        if (double.IsNaN(xVelocity) || double.IsNaN(yVelocity))
+        if (Health <= 0)
+        {
+            FogMod.Instance?.Monitor.Log($"Grouse {GrouseId} health <= 0 and will be removed.", LogLevel.Trace);
             return true;
-
-        bool isLanding = State == GrouseState.Landing && StateTimer > 30f;
-        bool isFlying = State == GrouseState.Flushing || State == GrouseState.Flying || isLanding;
-        bool offLocation = isFlying && IsGrouseOffLocation(this, Game1.currentLocation);
-        if (offLocation)
-            return true;
-
-        return Health <= 0;
+        }
+        return false;
     }
 
     public override Rectangle GetBoundingBox()
@@ -376,6 +385,9 @@ public class Grouse : Monster
         );
     }
 
+    public override void resetForNewDay(int dayOfMonth)
+    { }
+
     // MARK: Functions
     public void Reset()
     {
@@ -394,8 +406,20 @@ public class Grouse : Monster
         TotalCycles = 0;
         TargetTreePosition = null;
         HideSoundTimer = 0;
-        Health = 1;
         invincibleCountdown = 0;
+    }
+
+    public bool RemoveGrouseForPosition()
+    {
+        bool isLanding = State == GrouseState.Landing && StateTimer > 30f;
+        bool isFlying = State == GrouseState.Flushing || State == GrouseState.Flying || isLanding;
+        bool offLocation = isFlying && IsGrouseOffLocation(this, Game1.currentLocation);
+        if (offLocation)
+        {
+            FogMod.Instance?.Monitor.Log($"Grouse {GrouseId} is off location and will be removed.", LogLevel.Trace);
+            return true;
+        }
+        return false;
     }
 
     private static bool IsGrouseOffLocation(Grouse g, GameLocation location)
@@ -457,7 +481,7 @@ public class Grouse : Monster
                 case GrouseState.Flying:
                 case GrouseState.Landing:
                     if (AnimationFrame == 3 && NewAnimationFrame)
-                        loc.localSound("fishSlap", TilePosition);
+                        loc.localSound("batFlap", TilePosition);
                     break;
             }
         }

@@ -21,11 +21,16 @@ public partial class FogMod : Mod
 
     private void InitializeGrouse()
     {
+        ClearGrouseFromAllLocations();
+        SpawnGrouseInTrees(outdoorLocations);
+    }
+
+    private void ClearGrouseFromAllLocations()
+    {
         foreach (GameLocation loc in outdoorLocations)
         {
             loc.characters.RemoveWhere(p => p is Grouse);
         }
-        SpawnGrouseInTrees(outdoorLocations);
     }
 
     public NetCollection<NPC>? GetNPCsAtCurrentLocation()
@@ -85,7 +90,9 @@ public partial class FogMod : Mod
             if (grouseCount >= Constants.GrouseMaxPerLocation)
                 break;
 
-            if (locationRng.NextDouble() < Constants.GrouseSpawnChance)
+            // More fog, more grouse!
+            float probabilityOfGrouse = Constants.GrouseSpawnChance * (isFogDay ? 2f : 1f);
+            if (locationRng.NextDouble() < probabilityOfGrouse)
             {
                 Vector2 treePosition = TreeHelper.GetTreePosition(tree);
                 Vector2 spawnPosition = TreeHelper.GetGrouseSpawnPosition(tree);
@@ -129,6 +136,7 @@ public partial class FogMod : Mod
             {
                 UpdateGrouse(g, deltaSeconds);
             }
+            npc.RemoveWhere(p => p is Grouse g && g.RemoveGrouseForPosition());
         }
     }
 

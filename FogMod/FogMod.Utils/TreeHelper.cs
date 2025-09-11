@@ -63,6 +63,16 @@ public static class TreeHelper
         return tree.growthStage.Value >= Tree.treeStage && tree.stump.Value == false && tree.IsLeafy();
     }
 
+    public static List<Tree> GetAvailableTrees(IEnumerable<GameLocation> locations)
+    {
+        var availableTrees = new List<Tree>();
+        foreach (var location in locations)
+        {
+            availableTrees.AddRange(GetAvailableTreePositions(location));
+        }
+        return availableTrees;
+    }
+
     public static List<Tree> GetAvailableTreePositions(GameLocation location)
     {
         string locationKey = location.NameOrUniqueName;

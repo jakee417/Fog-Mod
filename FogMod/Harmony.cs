@@ -145,6 +145,7 @@ public partial class FogMod : Mod
             }
     }
 
+    // Grouse Reward
     private static bool OnItemRegistryCreatePrefix(string itemId, int amount, int quality, bool allowNull, ref Item __result)
     {
         try
@@ -170,6 +171,6 @@ public partial class FogMod : Mod
         {
             FogMod.Instance?.Monitor.Log($"OnItemRegistryCreatePrefix failed for item {itemId}: {ex.Message}", LogLevel.Error);
         }
-        return true; // Continue with original method
+        return true;
     }
 }
