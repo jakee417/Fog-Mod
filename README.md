@@ -1,6 +1,6 @@
 # Fog Mod for Stardew Valley
 
-A mod that adds atmospheric fog effects to Stardew Valley, making the game world feel more immersive and mysterious.
+A mod that adds grouse, fog, and explosion smoke to Stardew Valley.
 
 <img src="demo/demo_image.png" alt="A foggy day at the lake" width="480"/>
 
@@ -35,6 +35,10 @@ A mod that adds atmospheric fog effects to Stardew Valley, making the game world
 This mod is provided as-is for personal use. Please respect the original game's terms of service.
 
 ## Demo
+
+<img src="demo/grouse_demo.gif" alt="Chasing a grouse" width="480"/>
+
+Chasing a grouse
 
 <img src="demo/beach_demo.gif" alt="A foggy day at the beach" width="480"/>
 

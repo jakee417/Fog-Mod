@@ -411,8 +411,8 @@ public class Grouse : Monster
 
     public bool RemoveGrouseForPosition()
     {
-        bool isLanding = State == GrouseState.Landing && StateTimer > 30f;
-        bool isFlying = State == GrouseState.Flushing || State == GrouseState.Flying || isLanding;
+        bool isTargeting = TargetTreePosition is Vector2;
+        bool isFlying = (State == GrouseState.Flushing || State == GrouseState.Flying || State == GrouseState.Landing) && !isTargeting;
         bool offLocation = isFlying && IsGrouseOffLocation(this, Game1.currentLocation);
         if (offLocation)
         {
@@ -654,12 +654,13 @@ public class Grouse : Monster
             effects: effects,
             layerDepth: 0.85f
         );
-        DrawGrouseEmote(spriteBatch, g, screenPos, scale);
+        if (g.State == GrouseState.Surprised && g.AnimationFrame == 4)
+            DrawGrouseEmote(spriteBatch, screenPos, scale);
     }
 
-    private static void DrawGrouseEmote(SpriteBatch spriteBatch, Grouse g, Vector2 screenPos, float scale)
+    private static void DrawGrouseEmote(SpriteBatch spriteBatch, Vector2 screenPos, float scale)
     {
-        if (FogMod.Instance?.surprisedTexture is Texture2D surprisedTexture && g.State == GrouseState.Surprised && g.AnimationFrame == 4)
+        if (FogMod.Instance?.surprisedTexture is Texture2D surprisedTexture)
         {
             Vector2 surprisedPos = screenPos;
             surprisedPos.Y -= Constants.GrouseSpriteHeight * scale * 1.02f;

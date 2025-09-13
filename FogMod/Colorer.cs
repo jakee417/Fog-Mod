@@ -28,25 +28,23 @@ public partial class FogMod : Mod
 
             if (loc == null) return target;
 
-            string lname = (loc.NameOrUniqueName ?? loc.Name ?? string.Empty).ToLowerInvariant();
-
             // Desert
-            if (loc is StardewValley.Locations.Desert || lname.Contains("desert"))
+            if (loc is StardewValley.Locations.Desert)
             {
                 target = Color.SaddleBrown;
             }
             // Deep forest (Secret Woods)
-            else if (loc is StardewValley.Locations.Woods || lname.Contains("woods"))
+            else if (loc is StardewValley.Locations.Woods)
             {
                 target = Color.ForestGreen;
             }
             // Town / Railroad tend to stone/urban
-            else if (loc is StardewValley.Locations.Town || lname.Contains("town") || lname.Contains("railroad"))
+            else if (loc is StardewValley.Locations.Town || loc is StardewValley.Locations.Railroad)
             {
                 target = Color.DarkGray;
             }
             // High elevation areas become white
-            else if (loc is StardewValley.Locations.Mountain || lname.Contains("mountain"))
+            else if (loc is StardewValley.Locations.Mountain)
             {
                 target = Color.White;
             }
