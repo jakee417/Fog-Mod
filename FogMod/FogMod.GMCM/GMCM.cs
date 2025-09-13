@@ -14,6 +14,7 @@ public static class GMCM
     public class ModConfig
     {
         public bool EnableFog { get; set; } = true;
+        public bool EnableFogBank { get; set; } = true;
         public bool EnableDailyRandomFog { get; set; } = true;
         public bool EnableWeatherBasedFog { get; set; } = true;
         public bool EnableTimeOfDayFog { get; set; } = true;
@@ -39,16 +40,24 @@ public static class GMCM
 
             configMenu.AddSectionTitle(
                 ModManifest,
-                () => "Fog Clouds",
-                () => "Configure fog cloud settings"
+                () => "Fog",
+                () => "Configure fog settings"
             );
 
             configMenu.AddBoolOption(
                 ModManifest,
                 () => Config.EnableFog,
                 value => Config.EnableFog = value,
-                () => "Enable Fog",
-                () => "Show fog effects in the game."
+                () => "Enable Fog Clouds",
+                () => "Show fog cloud effects (individual fog particles)"
+            );
+
+            configMenu.AddBoolOption(
+                ModManifest,
+                () => Config.EnableFogBank,
+                value => Config.EnableFogBank = value,
+                () => "Enable Fog Bank",
+                () => "Show fog bank effect (same as fog in infested mine level)."
             );
 
             configMenu.AddBoolOption(

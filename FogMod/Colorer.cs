@@ -95,7 +95,7 @@ public partial class FogMod : Mod
         return new Color(r, g, bl, a.A);
     }
 
-    private Color ComposeParticleColor(FogParticle p, Color baseColor, Vector2 playerWorldCenter)
+    private Color ComposeParticleColor(FogParticle p, Color baseColor)
     {
         float fadeIn = MathHelper.Clamp(p.AgeSeconds / Constants.ParticleFadeInSeconds, 0f, 1f);
         float fadeOut = p.IsFadingOut
@@ -111,7 +111,7 @@ public partial class FogMod : Mod
         return ApplyExplosionTintPerBlasts(baseColor, p.Position) * a;
     }
 
-    private Color ComposeSmokeColor(FogParticle p, Color baseColor, Vector2 playerWorldCenter)
+    private Color ComposeSmokeColor(FogParticle p, Color baseColor)
     {
         float fadeIn = MathHelper.Clamp(p.AgeSeconds / Constants.SmokeFadeInSeconds, 0f, 1f);
         fadeIn = fadeIn * fadeIn * (3f - 2f * fadeIn);

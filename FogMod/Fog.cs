@@ -18,6 +18,9 @@ public partial class FogMod : Mod
     private float dailyFogStrength = 0f;
     public List<Texture2D>? cloudTextures { get; set; }
     private List<FogParticle> floatingParticles = new List<FogParticle>();
+    public int numFogBankChunks = 0;
+    public Vector2 fogPos;
+    private Rectangle fogSource = new Rectangle(640, 0, 64, 64);
     private CellOccupancy fogCellOccupancy;
 
     internal void InitializeDailyFogStrength()
@@ -25,7 +28,7 @@ public partial class FogMod : Mod
         if (!Context.IsWorldReady)
             return;
 
-        if (!Config.EnableFog)
+        if (!Config.EnableFog && !Config.EnableFogBank)
         {
             isFogDay = false;
             dailyFogStrength = 0f;
@@ -226,5 +229,12 @@ public partial class FogMod : Mod
                 }
             }
         }
+    }
+
+    private void UpdateFogBank()
+    {
+        fogPos = Game1.updateFloatingObjectPositionForMovement(current: new Vector2(Game1.viewport.X, Game1.viewport.Y), w: fogPos, previous: Game1.previousViewportPosition, speed: -1f);
+        fogPos.X = (fogPos.X + globalWindDirection.X) % 256f;
+        fogPos.Y = (fogPos.Y + globalWindDirection.Y) % 256f;
     }
 }

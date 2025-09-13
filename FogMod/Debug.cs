@@ -20,6 +20,7 @@ namespace FogMod
             // cloud count, etc.
             string cloudCountText = $"Clouds: {floatingParticles?.Count ?? 0}";
             string smokeCountText = $"Smoke: {explosionSmokeParticles?.Count ?? 0}";
+            string fogCountText = $"Banks: {numFogBankChunks}";
 
             string grouseInfo = "";
             List<Grouse>? allGrouse = GetAllGrouse();
@@ -39,7 +40,7 @@ namespace FogMod
             string fogGridSizeText = $"Fog grid size: {grid.ExtCols}x{grid.ExtRows} = {grid.ExtCols * grid.ExtRows}";
             string fogDayText = $"Fog day: {isFogDay} w/ prob {probabilityOfFogRoll:F2} <? {probabilityOfFogForADay:F2}";
             string needsSync = $"Needs Sync: {!Utils.Multiplayer.IsAbleToUpdateOwnWorld()}";
-            string text = $"{fogDayText}\n{fogGridSizeText}\n{cloudCountText}\n{smokeCountText}{grouseInfo}\n{dailyFogMultiplierText}\n{timeOfDayMultiplierText}\n{weatherMultiplierText}\n{locationText}\n{needsSync}";
+            string text = $"{fogDayText}\n{fogGridSizeText}\n{cloudCountText}\n{fogCountText}\n{smokeCountText}{grouseInfo}\n{dailyFogMultiplierText}\n{timeOfDayMultiplierText}\n{weatherMultiplierText}\n{locationText}\n{needsSync}";
             var font = Game1.smallFont;
             int margin = 8;
             // Put text in upper-left corner

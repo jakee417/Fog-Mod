@@ -246,6 +246,8 @@ public partial class FogMod : Mod
         UpdateExplosionFlashInfos(deltaSeconds);
         UpdateExplosionSmokeParticles(deltaSeconds);
         if (isFogDay && Game1.currentLocation != null && Game1.currentLocation.IsOutdoors)
+            UpdateFogBank();
+        if (isFogDay && Game1.currentLocation != null && Game1.currentLocation.IsOutdoors)
             UpdateFloatingFogParticles(deltaSeconds);
         TreeHelper.UpdateLeaves();
         if (Utils.Multiplayer.IsAbleToUpdateOwnWorld())
@@ -269,6 +271,8 @@ public partial class FogMod : Mod
         TreeHelper.DrawLeaves(e.SpriteBatch);
         if (Config.EnableExplosionSmoke)
             DrawExplosionSmokeParticles(e.SpriteBatch, fogColor);
+        if (Config.EnableFogBank && isFogDay && Game1.currentLocation.IsOutdoors)
+            DrawFogBank(e.SpriteBatch, fogColor);
         if (Config.EnableFog && isFogDay && Game1.currentLocation.IsOutdoors)
             DrawFloatingFogParticles(e.SpriteBatch, fogColor);
     }
