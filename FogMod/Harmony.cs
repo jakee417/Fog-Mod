@@ -14,7 +14,7 @@ namespace FogMod;
 public partial class FogMod : Mod
 {
     // Bomb
-    private static void OnBombExplodedPostfix(GameLocation __instance, Vector2 tileLocation, int radius, Farmer who, bool damageFarmers, int damage_amount, bool destroyObjects)
+    public static void OnBombExplodedPostfix(GameLocation __instance, Vector2 tileLocation, int radius, Farmer who, bool damageFarmers, int damage_amount, bool destroyObjects)
     {
         try
         {
@@ -45,7 +45,7 @@ public partial class FogMod : Mod
     }
 
     // TV Weather Report
-    private static void ProceedToNextScenePrefix(TV __instance, out int __state)
+    public static void ProceedToNextScenePrefix(TV __instance, out int __state)
     {
         try
         {
@@ -57,7 +57,7 @@ public partial class FogMod : Mod
         }
     }
 
-    private static void ProceedToNextScenePostfix(TV __instance, int __state)
+    public static void ProceedToNextScenePostfix(TV __instance, int __state)
     {
         try
         {
@@ -73,7 +73,7 @@ public partial class FogMod : Mod
         catch { }
     }
 
-    private static void OnWeatherForecastPostfix()
+    public static void OnWeatherForecastPostfix()
     {
         try
         {
@@ -92,7 +92,7 @@ public partial class FogMod : Mod
     }
 
     // Grouse Surprising
-    private static void OnTreePerformToolActionPostfix(Tree __instance, Tool t, int explosion, Vector2 tileLocation)
+    public static void OnTreePerformToolActionPostfix(Tree __instance, Tool t, int explosion, Vector2 tileLocation)
     {
         try
         {
@@ -104,7 +104,7 @@ public partial class FogMod : Mod
         }
     }
 
-    private static void OnTreeShakePostfix(Tree __instance, Vector2 tileLocation, bool doEvenIfStillShaking)
+    public static void OnTreeShakePostfix(Tree __instance, Vector2 tileLocation, bool doEvenIfStillShaking)
     {
         try
         {
@@ -116,7 +116,7 @@ public partial class FogMod : Mod
         }
     }
 
-    private static void HandleGrouseSurprise(Tree tree)
+    public static void HandleGrouseSurprise(Tree tree)
     {
         if (FogMod.Instance == null || !FogMod.Config.EnableGrouseCritters)
             return;
@@ -146,7 +146,7 @@ public partial class FogMod : Mod
     }
 
     // Grouse Reward
-    private static bool OnItemRegistryCreatePrefix(string itemId, int amount, int quality, bool allowNull, ref Item __result)
+    public static bool OnItemRegistryCreatePrefix(string itemId, int amount, int quality, bool allowNull, ref Item __result)
     {
         try
         {

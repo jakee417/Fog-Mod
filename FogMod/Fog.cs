@@ -11,17 +11,17 @@ namespace FogMod;
 
 public partial class FogMod : Mod
 {
-    private bool isFogDay = false;
-    private float probabilityOfFogForADay = 0.05f;
-    private float probabilityOfFogRoll = 0.0f;
-    private float breathBasePhase;
-    private float dailyFogStrength = 0f;
+    public bool isFogDay = false;
+    public float probabilityOfFogForADay = 0.05f;
+    public float probabilityOfFogRoll = 0.0f;
+    public float breathBasePhase;
+    public float dailyFogStrength = 0f;
     public List<Texture2D>? cloudTextures { get; set; }
-    private List<FogParticle> floatingParticles = new List<FogParticle>();
+    public List<FogParticle> floatingParticles = new List<FogParticle>();
     public int numFogBankChunks = 0;
     public Vector2 fogPos;
-    private Rectangle fogSource = new Rectangle(640, 0, 64, 64);
-    private CellOccupancy fogCellOccupancy;
+    public Rectangle fogSource = new Rectangle(640, 0, 64, 64);
+    public CellOccupancy fogCellOccupancy;
 
     internal void InitializeDailyFogStrength()
     {
@@ -54,7 +54,7 @@ public partial class FogMod : Mod
         probabilityOfFogRoll = forecast.ProbabilityOfFogRoll;
     }
 
-    private static FogForecast ComputeFogForecast(int daysPlayed)
+    public static FogForecast ComputeFogForecast(int daysPlayed)
     {
         int seed = daysPlayed ^ (int)(Game1.uniqueIDForThisGame & 0x7FFFFFFF);
         var rng = new Random(seed);
@@ -71,7 +71,7 @@ public partial class FogMod : Mod
         );
     }
 
-    private static float ComputeProbabilityOfFogForADay()
+    public static float ComputeProbabilityOfFogForADay()
     {
         string season = Game1.currentSeason;
         float seasonalProbability;
@@ -116,7 +116,7 @@ public partial class FogMod : Mod
         }
     }
 
-    public void ResetFogParticles()
+    internal void ResetFogParticles()
     {
         floatingParticles.Clear();
     }

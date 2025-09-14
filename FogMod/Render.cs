@@ -11,7 +11,7 @@ public partial class FogMod : Mod
 {
     public Texture2D? whitePixel { get; set; }
 
-    private void DrawFloatingFogParticles(SpriteBatch spriteBatch, Color fogColor)
+    public void DrawFloatingFogParticles(SpriteBatch spriteBatch, Color fogColor)
     {
         foreach (var p in floatingParticles)
         {
@@ -36,7 +36,7 @@ public partial class FogMod : Mod
         }
     }
 
-    private void DrawFogBank(SpriteBatch spriteBatch, Color fogColor)
+    public void DrawFogBank(SpriteBatch spriteBatch, Color fogColor)
     {
         int i = 0;
         Vector2 v = default(Vector2);
@@ -57,7 +57,7 @@ public partial class FogMod : Mod
         numFogBankChunks = i;
     }
 
-    private void DrawExplosionSmokeParticles(SpriteBatch spriteBatch, Color fogColor)
+    public void DrawExplosionSmokeParticles(SpriteBatch spriteBatch, Color fogColor)
     {
         foreach (var p in explosionSmokeParticles)
         {

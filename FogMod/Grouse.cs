@@ -42,7 +42,7 @@ public partial class FogMod : Mod
         return null;
     }
 
-    private NetCollection<NPC>? GetNPCsForLocation(GameLocation? location)
+    public NetCollection<NPC>? GetNPCsForLocation(GameLocation? location)
     {
         if (location is GameLocation loc && loc.characters is NetCollection<NPC> npc)
         {
@@ -51,7 +51,7 @@ public partial class FogMod : Mod
         return null;
     }
 
-    private List<Grouse> GetAllGrouse()
+    public static List<Grouse> GetAllGrouse()
     {
         List<Grouse> allGrouse = new List<Grouse>();
         foreach (GameLocation loc in outdoorLocations)
@@ -61,7 +61,7 @@ public partial class FogMod : Mod
         return allGrouse;
     }
 
-    internal Grouse? GetGrouseById(int grouseId)
+    public Grouse? GetGrouseById(int grouseId)
     {
         return GetAllGrouse().FirstOrDefault(g => g.GrouseId == grouseId);
     }
@@ -140,7 +140,7 @@ public partial class FogMod : Mod
         }
     }
 
-    internal void UpdateGrouse(Grouse g, float deltaSeconds)
+    private void UpdateGrouse(Grouse g, float deltaSeconds)
     {
         g.StateTimer += deltaSeconds;
 
@@ -259,7 +259,7 @@ public partial class FogMod : Mod
         }
     }
 
-    private Tree? SelectNewTree(Grouse g)
+    public static Tree? SelectNewTree(Grouse g)
     {
         Tree? currentTree = TreeHelper.GetTreeFromId(Game1.currentLocation, g.TreePosition);
         List<Tree> availableTrees = TreeHelper.GetAvailableTreePositions(Game1.currentLocation);

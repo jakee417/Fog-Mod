@@ -25,13 +25,12 @@ public partial class FogMod : Mod
     public static GMCM.GMCM.ModConfig Config { get; set; }
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
     public static Random Random = new Random();
-    private readonly IEnumerable<GameLocation> outdoorLocations = Game1.locations.Where(loc => loc.IsOutdoors);
-    private static readonly Vector2 globalWindDirection = new Vector2(WeatherDebris.globalWind, 0f);
-    private static readonly Color DefaultFogColor = Color.LightGray;
-    private float lastWeatherFogIntensityFactor = 1f;
+    public static readonly IEnumerable<GameLocation> outdoorLocations = Game1.locations.Where(loc => loc.IsOutdoors);
+    public static readonly Vector2 globalWindDirection = new Vector2(WeatherDebris.globalWind, 0f);
+    public static readonly Color DefaultFogColor = Color.LightGray;
     internal static FogMod? Instance;
-    private Grid grid;
-    private float time;
+    public Grid grid;
+    public float time;
 
     public override void Entry(IModHelper helper)
     {

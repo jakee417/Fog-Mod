@@ -11,13 +11,13 @@ namespace FogMod.Utils;
 
 public static class TreeHelper
 {
-    private static Dictionary<string, Dictionary<Tuple<float, float>, Tree>> cache = new();
-    private static List<_Leaf> leaves = new();
+    public static Dictionary<string, Dictionary<Tuple<float, float>, Tree>> cache = new();
+    public static List<_Leaf> leaves = new();
 
-    private class _Leaf : Leaf
+    public class _Leaf : Leaf
     {
-        internal float initialY;
-        internal Texture2D texture;
+        public float initialY;
+        public Texture2D texture;
 
         public _Leaf(Vector2 position, float rotationRate, int type, float yVelocity, float initialY, Texture2D texture)
             : base(position, rotationRate, type, yVelocity)
@@ -58,7 +58,7 @@ public static class TreeHelper
         return tree.Tile;
     }
 
-    private static bool GetLegalTree(Tree tree)
+    public static bool GetLegalTree(Tree tree)
     {
         return tree.growthStage.Value >= Tree.treeStage && tree.stump.Value == false && tree.IsLeafy();
     }

@@ -10,10 +10,10 @@ namespace FogMod;
 
 public partial class FogMod : Mod
 {
-    private List<ExplosionFlashInfo> explosionFlashInfos = new List<ExplosionFlashInfo>();
-    private List<FogParticle> explosionSmokeParticles = new List<FogParticle>();
-    private CellOccupancy smokeCellOccupancy;
-    
+    public List<ExplosionFlashInfo> explosionFlashInfos = new List<ExplosionFlashInfo>();
+    public List<FogParticle> explosionSmokeParticles = new List<FogParticle>();
+    public CellOccupancy smokeCellOccupancy;
+
     private void SpawnExplosionSmoke(Vector2 centerWorld, float radiusPixels)
     {
         try

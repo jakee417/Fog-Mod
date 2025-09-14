@@ -14,7 +14,7 @@ namespace FogMod
     public partial class FogMod : Mod
     {
 
-        private void DrawDebugInfo(Microsoft.Xna.Framework.Graphics.SpriteBatch spriteBatch)
+        public void DrawDebugInfo(Microsoft.Xna.Framework.Graphics.SpriteBatch spriteBatch)
         {
             // Print things like time of day multiplier, weather multiplier,
             // cloud count, etc.
@@ -34,7 +34,7 @@ namespace FogMod
             string grouseKilledText = $"Grouse Killed: {grouseKilled}/{Constants.GrouseQuestGoal}";
             grouseInfo = $"\n{grouseCountText}\n{grouseInLocation}\n{stateText}\n{grouseKilledText}";
             string timeOfDayMultiplierText = $"Time of day multiplier: {ComputeTimeOfDayOpacityMultiplier():F2}";
-            string weatherMultiplierText = $"Weather multiplier: {lastWeatherFogIntensityFactor:F2}";
+            string weatherMultiplierText = $"Weather multiplier: {GetWeatherIntensityFactor():F2}";
             string dailyFogMultiplierText = $"Daily fog multiplier: {dailyFogStrength:F2}";
             string locationText = $"Location: {Game1.currentLocation?.NameOrUniqueName ?? "None"}";
             string fogGridSizeText = $"Fog grid size: {grid.ExtCols}x{grid.ExtRows} = {grid.ExtCols * grid.ExtRows}";
@@ -48,7 +48,7 @@ namespace FogMod
             spriteBatch.DrawString(font, text, pos, Color.Red);
         }
 
-        private static void DrawLine(Microsoft.Xna.Framework.Graphics.SpriteBatch spriteBatch, Texture2D texture, Vector2 a, Vector2 b, Color color, float thickness)
+        public static void DrawLine(Microsoft.Xna.Framework.Graphics.SpriteBatch spriteBatch, Texture2D texture, Vector2 a, Vector2 b, Color color, float thickness)
         {
             Vector2 delta = b - a;
             float length = delta.Length();
@@ -57,7 +57,7 @@ namespace FogMod
             spriteBatch.Draw(texture, a, null, color, rotation, new Vector2(0f, 0.5f), new Vector2(length, thickness), SpriteEffects.None, 0.99f);
         }
 
-        private void DrawDebugFogGrid(Microsoft.Xna.Framework.Graphics.SpriteBatch spriteBatch)
+        public void DrawDebugFogGrid(Microsoft.Xna.Framework.Graphics.SpriteBatch spriteBatch)
         {
             Texture2D squareFogTexture = new Texture2D(Game1.graphics.GraphicsDevice, 1, 1);
             squareFogTexture.SetData(new[] { Color.White });

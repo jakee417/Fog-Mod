@@ -12,7 +12,7 @@ public static class Multiplayer
 {
     static FogMod? Instance = FogMod.Instance;
 
-    private class MessageType
+    public class MessageType
     {
         public const string Explosion = "Explosion";
         public const string GrouseEvent = "GrouseEvent";
@@ -30,7 +30,7 @@ public static class Multiplayer
         return true;
     }
 
-    private static Farmer? GetHost()
+    public static Farmer? GetHost()
     {
         foreach (Farmer farmer in Game1.getOnlineFarmers())
         {
@@ -110,7 +110,7 @@ public static class Multiplayer
         }
     }
 
-    private static void HandleExplosionFromMessage(ExplosionFlashInfo msg)
+    public static void HandleExplosionFromMessage(ExplosionFlashInfo msg)
     {
         try
         {
@@ -122,7 +122,7 @@ public static class Multiplayer
         }
     }
 
-    private static void HandleGrouseEventFromMessage(long fromPlayerId, GrouseEventInfo msg)
+    public static void HandleGrouseEventFromMessage(long fromPlayerId, GrouseEventInfo msg)
     {
         try
         {

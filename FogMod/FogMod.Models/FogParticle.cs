@@ -40,7 +40,7 @@ public struct FogParticle
         FadeOutSecondsLeft = fadeOutSecondsLeft;
     }
 
-    internal static List<FogParticle> RemoveUnusedParticles(List<FogParticle> particles, Grid grid, float deltaSeconds, bool removeOffscreen)
+    public static List<FogParticle> RemoveUnusedParticles(List<FogParticle> particles, Grid grid, float deltaSeconds, bool removeOffscreen)
     {
         for (int i = particles.Count - 1; i >= 0; i--)
         {

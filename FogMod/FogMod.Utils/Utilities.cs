@@ -8,13 +8,13 @@ namespace FogMod.Utils;
 
 public class Utilities
 {
-    internal static Vector2 GetPlayerWorldCenter()
+    public static Vector2 GetPlayerWorldCenter()
     {
         var c = Game1.player.GetBoundingBox().Center;
         return new Vector2(c.X, c.Y);
     }
 
-    internal static float Hash01(int v)
+    public static float Hash01(int v)
     {
         unchecked
         {
@@ -30,14 +30,14 @@ public class Utilities
         }
     }
 
-    internal static bool DeterministicBool(Vector2 position, int variant)
+    public static bool DeterministicBool(Vector2 position, int variant)
     {
         int seed = (int)(position.X * 1000 + position.Y * 1000 + variant);
         var rng = new Random(seed);
         return rng.NextDouble() < 0.5;
     }
 
-    internal static Vector2 ApplyMomentumThruTurn(Vector2 targetPosition, float targetSpeed, Vector2 currentPosition, Vector2 currentVelocity, float turnFactor)
+    public static Vector2 ApplyMomentumThruTurn(Vector2 targetPosition, float targetSpeed, Vector2 currentPosition, Vector2 currentVelocity, float turnFactor)
     {
         Vector2 direction = Vector2.Normalize(targetPosition - currentPosition);
         return Vector2.Lerp(currentVelocity, direction * targetSpeed, turnFactor);

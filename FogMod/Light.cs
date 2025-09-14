@@ -9,9 +9,9 @@ namespace FogMod;
 
 public partial class FogMod : Mod
 {
-    private List<LightInfo> lightSources = new List<LightInfo>();
+    public List<LightInfo> lightSources = new List<LightInfo>();
 
-    private void RefreshLightSources()
+    public void RefreshLightSources()
     {
         lightSources.Clear();
         try

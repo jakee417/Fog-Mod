@@ -12,9 +12,9 @@ namespace FogMod.Models;
 
 public class MultiSlingshot : Slingshot
 {
-    private static readonly List<int> directions = new List<int> { 0, 1, -1, 2, -2 };
+    public static readonly List<int> directions = new List<int> { 0, 1, -1, 2, -2 };
 
-    private struct MultiShot
+    public struct MultiShot
     {
         public StardewValley.Object obj2;
         public float spreadAngle;
@@ -126,7 +126,7 @@ public class MultiSlingshot : Slingshot
         canPlaySound = true;
     }
 
-    private void updateAimPos()
+    protected void updateAimPos()
     {
         if (lastUser == null || !lastUser.IsLocalPlayer)
         {

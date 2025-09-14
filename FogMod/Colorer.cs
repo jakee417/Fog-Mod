@@ -10,7 +10,7 @@ namespace FogMod;
 
 public partial class FogMod : Mod
 {
-    private Color GetEffectiveFogColor()
+    public static Color GetEffectiveFogColor()
     {
         Color fog = FogAtLocation();
         if (Config.EnableWeatherBasedFog)
@@ -19,7 +19,7 @@ public partial class FogMod : Mod
         return fog;
     }
 
-    private Color FogAtLocation()
+    public static Color FogAtLocation()
     {
         try
         {
@@ -56,22 +56,12 @@ public partial class FogMod : Mod
         }
     }
 
-    private Color AdjustFogForWeather(Color currentFogColor)
+    public static Color AdjustFogForWeather(Color currentFogColor)
     {
         try
         {
-            float intensityFactor = 1f;
-            if (Game1.isRaining)
-                intensityFactor += 0.25f;
-            if (Game1.isLightning)
-                intensityFactor += 0.15f;
-            if (Game1.isSnowing)
-                intensityFactor += 0.20f;
-            if (Game1.isDebrisWeather)
-                intensityFactor += 0.05f;
 
-            intensityFactor = MathHelper.Clamp(intensityFactor, 0.4f, 1.6f);
-            lastWeatherFogIntensityFactor = intensityFactor;
+            float intensityFactor = GetWeatherIntensityFactor();
             byte r = (byte)Math.Min(255, (int)(currentFogColor.R * intensityFactor));
             byte g = (byte)Math.Min(255, (int)(currentFogColor.G * intensityFactor));
             byte b = (byte)Math.Min(255, (int)(currentFogColor.B * intensityFactor));
@@ -84,7 +74,22 @@ public partial class FogMod : Mod
         }
     }
 
-    private static Color LerpColor(Color a, Color b, float t)
+    public static float GetWeatherIntensityFactor()
+    {
+        float intensityFactor = 1f;
+        if (Game1.isRaining)
+            intensityFactor += 0.25f;
+        if (Game1.isLightning)
+            intensityFactor += 0.15f;
+        if (Game1.isSnowing)
+            intensityFactor += 0.20f;
+        if (Game1.isDebrisWeather)
+            intensityFactor += 0.05f;
+
+        return MathHelper.Clamp(intensityFactor, 0.4f, 1.6f);
+    }
+
+    public static Color LerpColor(Color a, Color b, float t)
     {
         t = MathHelper.Clamp(t, 0f, 1f);
         byte r = (byte)MathHelper.Lerp(a.R, b.R, t);
@@ -93,7 +98,7 @@ public partial class FogMod : Mod
         return new Color(r, g, bl, a.A);
     }
 
-    private Color ComposeParticleColor(FogParticle p, Color baseColor)
+    public Color ComposeParticleColor(FogParticle p, Color baseColor)
     {
         float fadeIn = MathHelper.Clamp(p.AgeSeconds / Constants.ParticleFadeInSeconds, 0f, 1f);
         float fadeOut = p.IsFadingOut
@@ -109,7 +114,7 @@ public partial class FogMod : Mod
         return ApplyExplosionTintPerBlasts(baseColor, p.Position) * a;
     }
 
-    private Color ComposeSmokeColor(FogParticle p, Color baseColor)
+    public Color ComposeSmokeColor(FogParticle p, Color baseColor)
     {
         float fadeIn = MathHelper.Clamp(p.AgeSeconds / Constants.SmokeFadeInSeconds, 0f, 1f);
         fadeIn = fadeIn * fadeIn * (3f - 2f * fadeIn);
@@ -123,18 +128,18 @@ public partial class FogMod : Mod
         return ApplyExplosionTintPerBlasts(smokeTone, p.Position) * a;
     }
 
-    private float GetDailyFogAlphaMultiplier()
+    public float GetDailyFogAlphaMultiplier()
     {
         return Config.EnableDailyRandomFog ? MathHelper.Clamp(dailyFogStrength, 0f, 4f) : 1f;
     }
 
-    private float ComputeLightThinningMultiplier(Vector2 worldPosition)
+    public float ComputeLightThinningMultiplier(Vector2 worldPosition)
     {
         float warmth = ComputeLightWarmth(worldPosition);
         return MathHelper.Clamp(1f - warmth * Constants.LightThinningStrength, 0f, 1f);
     }
 
-    private float ComputeLightWarmth(Vector2 worldPosition)
+    public float ComputeLightWarmth(Vector2 worldPosition)
     {
         if (lightSources == null || lightSources.Count == 0) return 0f;
         float brighten = 0f;
@@ -155,7 +160,7 @@ public partial class FogMod : Mod
     }
 
     // Global opacity multiplier based on time of day
-    private float ComputeTimeOfDayOpacityMultiplier()
+    public static float ComputeTimeOfDayOpacityMultiplier()
     {
         try
         {
@@ -183,7 +188,7 @@ public partial class FogMod : Mod
     }
 
     // Breathing opacity per cell (based on world position)
-    private float ComputeCellBreathOpacity(Vector2 worldPosition)
+    public float ComputeCellBreathOpacity(Vector2 worldPosition)
     {
         float cellSize = Math.Max(1f, Constants.FogTileSize);
         // Derive a stable cell id by quantizing world position
@@ -199,7 +204,7 @@ public partial class FogMod : Mod
         return MathHelper.Clamp(mult, 0f, 1f);
     }
 
-    private Color ApplyExplosionTintPerBlasts(Color inputColor, Vector2 worldPosition)
+    public Color ApplyExplosionTintPerBlasts(Color inputColor, Vector2 worldPosition)
     {
         if (explosionFlashInfos == null || explosionFlashInfos.Count == 0)
             return inputColor;

@@ -17,7 +17,7 @@ public struct CellOccupancy
 
     public bool IsValid => Counts != null && Indices != null;
 
-    internal static CellOccupancy ComputeCellOccupancy(List<FogParticle> particles, Grid grid)
+    public static CellOccupancy ComputeCellOccupancy(List<FogParticle> particles, Grid grid)
     {
         int[,] counts = new int[grid.ExtCols, grid.ExtRows];
         List<int>[,] indices = new List<int>[grid.ExtCols, grid.ExtRows];
