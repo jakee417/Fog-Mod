@@ -13,39 +13,42 @@ namespace FogMod
 {
     public partial class FogMod : Mod
     {
+        private int debugFrameGuard = 0;
+        private string debugText = "";
 
         public void DrawDebugInfo(Microsoft.Xna.Framework.Graphics.SpriteBatch spriteBatch)
         {
-            // Print things like time of day multiplier, weather multiplier,
-            // cloud count, etc.
-            string cloudCountText = $"Clouds: {floatingParticles?.Count ?? 0}";
-            string smokeCountText = $"Smoke: {explosionSmokeParticles?.Count ?? 0}";
-            string fogCountText = $"Banks: {numFogBankChunks}";
+            debugFrameGuard++;
+            if (debugFrameGuard % 8 != 0)
+            {
+                // Print things like time of day multiplier, weather multiplier,
+                // cloud count, etc.
+                string cloudCountText = $"Clouds: {floatingParticles?.Count ?? 0}";
+                string smokeCountText = $"Smoke: {explosionSmokeParticles?.Count ?? 0}";
+                string fogCountText = $"Banks: {numFogBankChunks}";
 
-            string grouseInfo = "";
-            List<Grouse>? allGrouse = GetAllGrouse();
-            string grouseCountText = $"Grouse: {allGrouse?.Count ?? 0} in {outdoorLocations.Count()} locations w/ {TreeHelper.GetAvailableTrees(outdoorLocations).Count} trees";
-            string grouseInLocation = $"Grouse In {Game1.currentLocation?.NameOrUniqueName ?? "Unknown"}: {GetNPCsAtCurrentLocation()?.Count(p => p is Grouse)}";
-            int surprisedGrouse = allGrouse?.Count(g => g.State == GrouseState.Surprised) ?? 0;
-            int flyingGrouse = allGrouse?.Count(g => g.State == GrouseState.Flying || g.State == GrouseState.Flushing) ?? 0;
-            int landingGrouse = allGrouse?.Count(g => g.State == GrouseState.Landing) ?? 0;
-            string stateText = $"Surprised: {surprisedGrouse}, Flying: {flyingGrouse}, Landing: {landingGrouse}";
-            int grouseKilled = Game1.stats.getMonstersKilled(Constants.GrouseName);
-            string grouseKilledText = $"Grouse Killed: {grouseKilled}/{Constants.GrouseQuestGoal}";
-            grouseInfo = $"\n{grouseCountText}\n{grouseInLocation}\n{stateText}\n{grouseKilledText}";
-            string timeOfDayMultiplierText = $"Time of day multiplier: {ComputeTimeOfDayOpacityMultiplier():F2}";
-            string weatherMultiplierText = $"Weather multiplier: {GetWeatherIntensityFactor():F2}";
-            string dailyFogMultiplierText = $"Daily fog multiplier: {dailyFogStrength:F2}";
-            string locationText = $"Location: {Game1.currentLocation?.NameOrUniqueName ?? "None"}";
-            string fogGridSizeText = $"Fog grid size: {grid.ExtCols}x{grid.ExtRows} = {grid.ExtCols * grid.ExtRows}";
-            string fogDayText = $"Fog day: {isFogDay} w/ prob {probabilityOfFogRoll:F2} <? {probabilityOfFogForADay:F2}";
-            string needsSync = $"Needs Sync: {!Utils.Multiplayer.IsAbleToUpdateOwnWorld()}";
-            string text = $"{fogDayText}\n{fogGridSizeText}\n{cloudCountText}\n{fogCountText}\n{smokeCountText}{grouseInfo}\n{dailyFogMultiplierText}\n{timeOfDayMultiplierText}\n{weatherMultiplierText}\n{locationText}\n{needsSync}";
-            var font = Game1.smallFont;
-            int margin = 8;
-            // Put text in upper-left corner
-            Vector2 pos = new Vector2(margin, margin);
-            spriteBatch.DrawString(font, text, pos, Color.Red);
+                string grouseInfo = "";
+                List<Grouse>? allGrouse = GetAllGrouse();
+                string grouseCountText = $"Grouse: {allGrouse?.Count ?? 0} in {outdoorLocations.Count()} locations w/ {TreeHelper.GetAvailableTrees(outdoorLocations).Count} trees";
+                string grouseInLocation = $"Grouse In {Game1.currentLocation?.NameOrUniqueName ?? "Unknown"}: {GetNPCsAtCurrentLocation()?.Count(p => p is Grouse)}";
+                int surprisedGrouse = allGrouse?.Count(g => g.State == GrouseState.Surprised) ?? 0;
+                int flyingGrouse = allGrouse?.Count(g => g.State == GrouseState.Flying || g.State == GrouseState.Flushing) ?? 0;
+                int landingGrouse = allGrouse?.Count(g => g.State == GrouseState.Landing) ?? 0;
+                string stateText = $"Surprised: {surprisedGrouse}, Flying: {flyingGrouse}, Landing: {landingGrouse}";
+                int grouseKilled = Game1.stats.getMonstersKilled(Constants.GrouseName);
+                string grouseKilledText = $"Grouse Killed: {grouseKilled}/{Constants.GrouseQuestGoal}";
+                grouseInfo = $"\n{grouseCountText}\n{grouseInLocation}\n{stateText}\n{grouseKilledText}";
+                string timeOfDayMultiplierText = $"Time of day multiplier: {ComputeTimeOfDayOpacityMultiplier():F2}";
+                string weatherMultiplierText = $"Weather multiplier: {GetWeatherIntensityFactor():F2}";
+                string dailyFogMultiplierText = $"Daily fog multiplier: {dailyFogStrength:F2}";
+                string locationText = $"Location: {Game1.currentLocation?.NameOrUniqueName ?? "None"}";
+                string fogGridSizeText = $"Fog grid size: {grid.ExtCols}x{grid.ExtRows} = {grid.ExtCols * grid.ExtRows}";
+                string fogDayText = $"Fog day: {isFogDay} w/ prob {probabilityOfFogRoll:F2} <? {probabilityOfFogForADay:F2}";
+                string needsSync = $"Needs Sync: {!Utils.Multiplayer.IsAbleToUpdateOwnWorld()}";
+                debugText = $"{fogDayText}\n{fogGridSizeText}\n{cloudCountText}\n{fogCountText}\n{smokeCountText}{grouseInfo}\n{dailyFogMultiplierText}\n{timeOfDayMultiplierText}\n{weatherMultiplierText}\n{locationText}\n{needsSync}";
+            }
+            ;
+            spriteBatch.DrawString(Game1.smallFont, debugText, new Vector2(8, 8), Color.Red);
         }
 
         public static void DrawLine(Microsoft.Xna.Framework.Graphics.SpriteBatch spriteBatch, Texture2D texture, Vector2 a, Vector2 b, Color color, float thickness)
