@@ -35,9 +35,7 @@ public partial class FogMod : Mod
     public override void Entry(IModHelper helper)
     {
         Instance = this;
-        // Test log that should definitely appear
-        Monitor.Log($"🌫️ Fog Mod (v{ModManifest.Version}) is loading! 🌫️", LogLevel.Alert);
-
+        
         // Load config
         Config = Helper.ReadConfig<GMCM.GMCM.ModConfig>();
 
