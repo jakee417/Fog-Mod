@@ -12,7 +12,7 @@ namespace FogMod.Models;
 
 public class MultiSlingshot : Slingshot
 {
-    public static readonly List<int> directions = new List<int> { 0, 1, -1, 2, -2 };
+    public static readonly List<int> directions = new List<int> { 0, 1, -1 };
 
     public struct MultiShot
     {
