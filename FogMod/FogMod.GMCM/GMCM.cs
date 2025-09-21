@@ -49,7 +49,7 @@ public static class GMCM
                 () => Config.EnableFog,
                 value => Config.EnableFog = value,
                 () => "Enable Fog Clouds",
-                () => "Show fog cloud effects (individual fog particles)"
+                () => "Show top-layer fog cloud effects (individual fog particles on top of fog bank)"
             );
 
             configMenu.AddBoolOption(
@@ -57,7 +57,7 @@ public static class GMCM
                 () => Config.EnableFogBank,
                 value => Config.EnableFogBank = value,
                 () => "Enable Fog Bank",
-                () => "Show fog bank effect (same as fog in infested mine level)."
+                () => "Show bottom-layer fog bank effect (same as fog in infested mine level - underneath fog clouds)."
             );
 
             configMenu.AddBoolOption(
@@ -70,7 +70,7 @@ public static class GMCM
                     FogMod.Instance?.ResetFogParticles();
                 },
                 () => "Daily Random Fog Strength",
-                () => "Enable or disable daily random fog strength based on the season."
+                () => "Enable or disable daily random fog strength modifier based on the season (spring, summer, fall, winter)."
             );
 
             configMenu.AddBoolOption(
@@ -78,7 +78,7 @@ public static class GMCM
                 () => Config.EnableWeatherBasedFog,
                 value => Config.EnableWeatherBasedFog = value,
                 () => "Weather Based Fog Effect",
-                () => "Enable or disable weather-based fog effect (rain, storms, snow, etc.)"
+                () => "Enable or disable weather-based fog strength modifier (rain, storms, snow)"
             );
 
             configMenu.AddBoolOption(
@@ -86,7 +86,7 @@ public static class GMCM
                 () => Config.EnableTimeOfDayFog,
                 value => Config.EnableTimeOfDayFog = value,
                 () => "Time of Day Fog Effect",
-                () => "Enable or disable time of day fog effect (daylight, night, etc.)"
+                () => "Enable or disable time of day fog strength modifier (morning, daylight, night)"
             );
 
             configMenu.AddSectionTitle(

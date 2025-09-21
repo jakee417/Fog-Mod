@@ -179,6 +179,12 @@ public class Grouse : Monster
                     case GrouseState.Perched:
                         if (Utils.Multiplayer.IsAbleToUpdateOwnWorld() && value)
                             loc.playSound("leafrustle", TilePosition);
+                        if (TreeHelper.GetTreeFromId(currentLocation, TreePosition) is Tree tree)
+                            TreeHelper.TriggerFallingLeaves(
+                                tree,
+                                Position + new Vector2(0, Constants.GrouseSpriteHeight * (7 / 8)) * Scale,
+                                numLeaves: 3
+                            );
                         break;
                     case GrouseState.Surprised:
                         break;
