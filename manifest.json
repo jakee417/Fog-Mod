@@ -1,9 +1,9 @@
 {
-    "Name": "Fog Mod",
+    "Name": "Foggy Grouse",
     "Author": "jakeetaylor",
-    "Version": "1.0.0",
-    "Description": "A mod that adds fog effects to Stardew Valley",
-    "UniqueID": "jakeetaylor.FogMod",
+    "Version": "0.3",
+    "Description": "A mod that adds grouse & fog effects to Stardew Valley",
+    "UniqueID": "jakeetaylor.FoggyGrouse",
     "EntryDll": "FogMod.dll",
     "MinimumApiVersion": "3.0.0",
     "UpdateKeys": [],
