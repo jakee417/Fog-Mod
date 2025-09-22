@@ -48,4 +48,16 @@ public class Utilities
         int baseId = (locationSeed.GetHashCode() ^ daySeed ^ (int)(position.X * 1000 + position.Y * 1000)) & 0x7FFFFFFF;
         return salt.HasValue ? baseId ^ salt.Value : baseId;
     }
+
+    public static bool IsColocatedWithPlayer(Farmer who, GameLocation location)
+    {
+        bool result = who?.currentLocation?.NameOrUniqueName is string playerLocationName && location?.NameOrUniqueName is string locationName && playerLocationName == locationName;
+        return result;
+    }
+
+    public static bool IsColocatedWithPlayer(Farmer who, string locationName)
+    {
+        bool result = who?.currentLocation?.NameOrUniqueName is string playerLocationName && playerLocationName == locationName;
+        return result;
+    }
 }

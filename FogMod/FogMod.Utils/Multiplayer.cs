@@ -87,12 +87,11 @@ public static class Multiplayer
             if (e.FromPlayerID == Game1.player.UniqueMultiplayerID)
                 return;
 
-            string? currentLocation = Game1.currentLocation?.NameOrUniqueName;
             switch (e.Type)
             {
                 case MessageType.Explosion:
                     var explosionData = e.ReadAs<ExplosionFlashInfo>();
-                    if (explosionData.LocationName == currentLocation)
+                    if (Utilities.IsColocatedWithPlayer(Game1.player, explosionData.LocationName))
                         HandleExplosionFromMessage(explosionData);
                     break;
                 case MessageType.GrouseEvent:

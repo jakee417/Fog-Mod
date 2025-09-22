@@ -172,7 +172,7 @@ public class Grouse : Monster
         get => isTransitioning;
         set
         {
-            if (Game1.currentLocation is GameLocation loc && value != isTransitioning)
+            if (Utilities.IsColocatedWithPlayer(Game1.player, Game1.currentLocation) && Game1.currentLocation is GameLocation loc && value != isTransitioning)
             {
                 switch (State)
                 {
@@ -305,7 +305,7 @@ public class Grouse : Monster
                 case GrouseState.Perched:
                 case GrouseState.Surprised:
                     Velocity = Vector2.Zero;
-                    if (TreeHelper.GetTreeFromId(currentLocation, TreePosition) is Tree tree)
+                    if (Utilities.IsColocatedWithPlayer(Game1.player, currentLocation) && TreeHelper.GetTreeFromId(currentLocation, TreePosition) is Tree tree)
                     {
                         tree.Location.localSound("leafrustle", tree.Tile);
                         TreeHelper.TriggerFallingLeaves(tree, Position, numLeaves: 5);
