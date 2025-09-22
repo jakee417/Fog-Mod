@@ -262,6 +262,7 @@ public class Grouse : Monster
         resilience.Value = 0;
         ExperienceGained = 0;
         mineMonster.Value = false;
+        reloadSprite();
         Reset();
     }
 
@@ -332,7 +333,11 @@ public class Grouse : Monster
 
     public override void reloadSprite(bool onlyAppearance = false)
     {
-        Sprite = null;
+        Sprite = new AnimatedSprite();
+        Sprite.spriteTexture = FogMod.Instance?.grouseTexture;
+        Sprite.SpriteHeight = Constants.GrouseSpriteHeight;
+        Sprite.SpriteWidth = Constants.GrouseSpriteWidth;
+        Sprite.SourceRect = new Rectangle(0, 0, Sprite.SpriteWidth, Sprite.SpriteHeight);
         HideShadow = false;
     }
 
