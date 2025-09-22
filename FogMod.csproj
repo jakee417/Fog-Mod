@@ -5,7 +5,7 @@
     <OutputType>Library</OutputType>
     <AssemblyName>FogMod</AssemblyName>
     <RootNamespace>FogMod</RootNamespace>
-    <Version>0.2</Version>
+    <Version>0.3</Version>
     <Authors>jakeetaylor</Authors>
     <Company>jakeetaylor</Company>
     <Product>Fog Mod</Product>
