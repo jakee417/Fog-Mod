@@ -17,6 +17,7 @@ namespace FogMod;
 public partial class FogMod : Mod
 {
     public Texture2D? grouseTexture { get; set; }
+    public Texture2D? grouseVoidTexture { get; set; }
     public Texture2D? surprisedTexture { get; set; }
 
     private void InitializeGrouse()
@@ -119,6 +120,7 @@ public partial class FogMod : Mod
         );
         Grouse newGrouse = new Grouse(
             grouseId: grouseId,
+            textureName: Game1.random.NextDouble() < Constants.GrouseVoidSpawnChance ? Constants.GrouseVoidTextureName : Constants.GrouseTextureName,
             location: location,
             treePosition: treePosition,
             position: spawnPosition,

@@ -35,7 +35,7 @@ public partial class FogMod : Mod
     public override void Entry(IModHelper helper)
     {
         Instance = this;
-        
+
         // Load config
         Config = Helper.ReadConfig<GMCM.GMCM.ModConfig>();
 
@@ -135,12 +135,12 @@ public partial class FogMod : Mod
 
         try
         {
-            grouseTexture = Helper.ModContent.Load<Texture2D>("assets/grouse.png");
-            Monitor.Log("Successfully loaded grouse texture", LogLevel.Trace);
+            grouseVoidTexture = Helper.ModContent.Load<Texture2D>("assets/grouse_void.png");
+            Monitor.Log("Successfully loaded grouse alt texture", LogLevel.Trace);
         }
         catch (Exception ex)
         {
-            Monitor.Log($"Failed to load grouse texture: {ex.Message}", LogLevel.Warn);
+            Monitor.Log($"Failed to load grouse alt texture: {ex.Message}", LogLevel.Warn);
         }
 
         try

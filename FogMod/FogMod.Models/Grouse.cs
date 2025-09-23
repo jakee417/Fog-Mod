@@ -32,6 +32,7 @@ public class Grouse : Monster
     public readonly NetBool launchedByFarmer = new NetBool();
     public readonly NetEnum<GrouseState> state = new NetEnum<GrouseState>();
     public readonly NetBool isHiding = new NetBool();
+    public readonly NetString textureName = new NetString();
 
     // MARK: Immutable Property Wrappers
     public int GrouseId
@@ -44,6 +45,33 @@ public class Grouse : Monster
     {
         get => launchedByFarmer.Value;
         protected set => launchedByFarmer.Value = value;
+    }
+
+    public string TextureName
+    {
+        get => textureName.Value;
+        protected set => textureName.Value = value;
+    }
+
+    public Texture2D? Texture
+    {
+        get
+        {
+            switch (TextureName)
+            {
+                case Constants.GrouseTextureName:
+                    return FogMod.Instance?.grouseTexture;
+                case Constants.GrouseVoidTextureName:
+                    return FogMod.Instance?.grouseVoidTexture;
+                default:
+                    return FogMod.Instance?.grouseTexture;
+            }
+        }
+    }
+
+    public bool IsVoid
+    {
+        get => TextureName == Constants.GrouseVoidTextureName;
     }
 
     // MARK: Mutable Property wrappers
@@ -231,7 +259,6 @@ public class Grouse : Monster
 
     public Vector2 GetExitDirection => FacingLeft ? new Vector2(-1, 0) : new Vector2(1, 0);
 
-
     // MARK: Non-synced fields
     public float AnimationTimer;
     public float StateTimer;
@@ -248,6 +275,7 @@ public class Grouse : Monster
     protected int totalCycles;
 
     // MARK: Constructors
+
     public Grouse() : base()
     {
         initNetFields();
@@ -266,7 +294,8 @@ public class Grouse : Monster
         Reset();
     }
 
-    public Grouse(int grouseId, GameLocation location, Vector2 treePosition, Vector2 position, bool launchedByFarmer) : this()
+
+    public Grouse(int grouseId, string textureName, GameLocation location, Vector2 treePosition, Vector2 position, bool launchedByFarmer) : this()
     {
         // Do not count launched grouse towards kill count
         Name = launchedByFarmer ? Constants.GrouseName + "_launched" : Constants.GrouseName;
@@ -276,9 +305,9 @@ public class Grouse : Monster
         LaunchedByFarmer = launchedByFarmer;
         Position = position;
         FacingDirection = Utilities.DeterministicBool(Position, GrouseId) ? 3 : 1;
-        ObjectToDrop = GetItemToDrop(launchedByFarmer);
-        // Start on a random cycle to desync multiple grouse
         CyclesInState = (uint)GrouseId;
+        TextureName = textureName;
+        ObjectToDrop = GetItemToDrop(launchedByFarmer, IsVoid);
     }
 
     // MARK: Monster Overrides
@@ -291,7 +320,8 @@ public class Grouse : Monster
             .AddField(treePosition, "treePosition")
             .AddField(launchedByFarmer, "launchedByFarmer")
             .AddField(state, "state")
-            .AddField(isHiding, "isHiding");
+            .AddField(isHiding, "isHiding")
+            .AddField(textureName, "textureName");
 
         treePosition.fieldChangeEvent += (NetVector2 field, Vector2 oldValue, Vector2 newValue) =>
         {
@@ -334,7 +364,7 @@ public class Grouse : Monster
     public override void reloadSprite(bool onlyAppearance = false)
     {
         Sprite = new AnimatedSprite();
-        Sprite.spriteTexture = FogMod.Instance?.grouseTexture;
+        Sprite.spriteTexture = Texture;
         Sprite.SpriteHeight = Constants.GrouseSpriteHeight;
         Sprite.SpriteWidth = Constants.GrouseSpriteWidth;
         Sprite.SourceRect = new Rectangle(0, 0, Sprite.SpriteWidth, Sprite.SpriteHeight);
@@ -359,6 +389,7 @@ public class Grouse : Monster
 
             Health -= actualDamage;
             setTrajectory(xTrajectory / 2, yTrajectory / 2);
+            Color featherColor = IsVoid ? Color.Gray : Color.SaddleBrown;
 
             // Death effects
             if (Health <= 0)
@@ -366,7 +397,7 @@ public class Grouse : Monster
                 if (currentLocation is GameLocation loc)
                 {
                     loc.playSound("magma_sprite_hit", TilePosition);
-                    TemporaryAnimatedSprite featherAnimation = new TemporaryAnimatedSprite(28, spriteCenter, Color.SaddleBrown, 6)
+                    TemporaryAnimatedSprite featherAnimation = new TemporaryAnimatedSprite(28, spriteCenter, featherColor, 6)
                     {
                         interval = 50f
                     };
@@ -385,7 +416,7 @@ public class Grouse : Monster
                 if (currentLocation is GameLocation loc)
                 {
                     loc.playSound("hitEnemy", TilePosition);
-                    TemporaryAnimatedSprite featherAnimation = new TemporaryAnimatedSprite(28, spriteCenter, Color.SaddleBrown, 3)
+                    TemporaryAnimatedSprite featherAnimation = new TemporaryAnimatedSprite(28, spriteCenter, featherColor, 3)
                     {
                         interval = 50f
                     };
@@ -522,7 +553,7 @@ public class Grouse : Monster
         return !locationBounds.Contains(new Point((int)g.Position.X, (int)g.Position.Y));
     }
 
-    protected static string? GetItemToDrop(bool launchedByFarmer)
+    protected static string? GetItemToDrop(bool launchedByFarmer, bool voidGrouse)
     {
         // No spamming grouse to get eggs
         if (launchedByFarmer)
@@ -542,7 +573,7 @@ public class Grouse : Monster
         // Basic egg
         else if (roll < luck + 0.8)
             eggItemId = "176";
-        return eggItemId;
+        return eggItemId != null ? (voidGrouse ? "305" : eggItemId) : null;
     }
 
     // MARK: Update Animation Functions
@@ -617,7 +648,7 @@ public class Grouse : Monster
 
     public static void DrawPerchedGrouse(SpriteBatch spriteBatch, Grouse g)
     {
-        if (FogMod.Instance?.grouseTexture == null || g.Alpha <= 0f)
+        if (g.Alpha <= 0f)
             return;
 
         float hideProgress = g.IsHiding ? 1f : 0f;
@@ -644,7 +675,7 @@ public class Grouse : Monster
         );
         Vector2 origin = new Vector2(Constants.GrouseSpriteWidth / 2f, Constants.GrouseSpriteHeight);
         spriteBatch.Draw(
-            FogMod.Instance?.grouseTexture,
+            g.Texture,
             position: screenPos,
             sourceRectangle: sourceRect,
             color: Color.White * g.Alpha,
@@ -658,7 +689,7 @@ public class Grouse : Monster
 
     public static void DrawMovingGrouse(SpriteBatch spriteBatch, Grouse g)
     {
-        if (FogMod.Instance?.grouseTexture == null || g.Alpha <= 0f)
+        if (g.Alpha <= 0f)
             return;
 
         Vector2 screenPos = Game1.GlobalToLocal(Game1.viewport, g.Position);
@@ -690,7 +721,7 @@ public class Grouse : Monster
         );
         Vector2 origin = new Vector2(Constants.GrouseSpriteWidth / 2f, Constants.GrouseSpriteHeight);
         spriteBatch.Draw(
-            FogMod.Instance?.grouseTexture,
+            g.Texture,
             position: screenPos,
             sourceRectangle: sourceRect,
             color: Color.White * g.Alpha,
