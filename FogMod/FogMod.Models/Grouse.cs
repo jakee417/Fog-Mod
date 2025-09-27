@@ -9,6 +9,7 @@ using FogMod.Utils;
 using StardewValley.Monsters;
 using StardewValley.Tools;
 using StardewModdingAPI;
+using System.Collections.Generic;
 
 namespace FogMod.Models;
 
@@ -257,6 +258,20 @@ public class Grouse : Monster
         set => totalCycles = (int)value;
     }
 
+    public override bool IsVillager => false;
+
+    public override Stack<Dialogue> CurrentDialogue
+    {
+        get
+        {
+            // Disable all dialogue since the grouse is not a villager
+            Stack<Dialogue> currentDialogue = new Stack<Dialogue>();
+            return currentDialogue;
+        }
+        set
+        { }
+    }
+
     public Vector2 GetExitDirection => FacingLeft ? new Vector2(-1, 0) : new Vector2(1, 0);
 
     // MARK: Non-synced fields
@@ -278,6 +293,9 @@ public class Grouse : Monster
 
     public Grouse() : base()
     {
+        // Compatibility with https://www.nexusmods.com/stardewvalley/mods/22672
+        modData.Add("Junimatic.NotScary", "true");
+        displayName = Constants.GrouseName;
         initNetFields();
         Slipperiness = 0;
         IsWalkingTowardPlayer = false;
