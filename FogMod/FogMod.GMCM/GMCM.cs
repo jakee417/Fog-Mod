@@ -1,6 +1,7 @@
 #nullable enable
 using System;
 using StardewModdingAPI;
+using StardewValley;
 
 namespace FogMod.GMCM;
 
@@ -21,6 +22,7 @@ public static class GMCM
         public bool EnableExplosionSmoke { get; set; } = true;
         public bool EnableGrouseCritters { get; set; } = true;
         public SButton GrouseToggleKey { get; set; } = SButton.G;
+        public int MultiSlingShotPellets { get; set; } = 3;
         public bool DebugShowInfo { get; set; } = false;
     }
 
@@ -125,6 +127,20 @@ public static class GMCM
                 () => "Grouse Spawn Hotkey",
                 () => "The key used to spawn a grouse."
             );
+
+            if (Game1.stats.getMonstersKilled(Constants.GrouseName) >= Constants.GrouseQuestGoal)
+            {
+                configMenu.AddNumberOption(
+                    ModManifest,
+                    () => FogMod.Config.MultiSlingShotPellets,
+                    value => FogMod.Config.MultiSlingShotPellets = value,
+                    () => "Multi-Sling Shot Pellets",
+                    () => "The number of pellets fired by the multi-sling shot.",
+                    1,
+                    5,
+                    2
+                );
+            }
 
             configMenu.AddSectionTitle(
                 ModManifest,
