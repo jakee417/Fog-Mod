@@ -51,13 +51,13 @@ public class Utilities
 
     public static bool IsColocatedWithPlayer(Farmer who, GameLocation location)
     {
-        bool result = who?.currentLocation?.NameOrUniqueName is string playerLocationName && location?.NameOrUniqueName is string locationName && playerLocationName == locationName;
-        return result;
+        if (location?.NameOrUniqueName is string name)
+            return IsColocatedWithPlayer(who, name);
+        return false;
     }
 
     public static bool IsColocatedWithPlayer(Farmer who, string locationName)
     {
-        bool result = who?.currentLocation?.NameOrUniqueName is string playerLocationName && playerLocationName == locationName;
-        return result;
+        return who?.currentLocation?.NameOrUniqueName is string playerLocationName && playerLocationName == locationName;
     }
 }

@@ -201,7 +201,7 @@ public class Grouse : Monster
         get => isTransitioning;
         set
         {
-            if (Utilities.IsColocatedWithPlayer(Game1.player, Game1.currentLocation) && Game1.currentLocation is GameLocation loc && value != isTransitioning)
+            if (Utilities.IsColocatedWithPlayer(Game1.player, currentLocation) && Game1.currentLocation is GameLocation loc && value != isTransitioning)
             {
                 switch (State)
                 {
