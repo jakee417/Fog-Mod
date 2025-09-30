@@ -145,6 +145,16 @@ public partial class FogMod : Mod
 
         try
         {
+            grouseGoldenTexture = Helper.ModContent.Load<Texture2D>("assets/grouse_gold.png");
+            Monitor.Log("Successfully loaded grouse golden texture", LogLevel.Trace);
+        }
+        catch (Exception ex)
+        {
+            Monitor.Log($"Failed to load grouse golden texture: {ex.Message}", LogLevel.Warn);
+        }
+
+        try
+        {
             surprisedTexture = Helper.ModContent.Load<Texture2D>("assets/surprised.png");
             Monitor.Log("Successfully loaded surprised texture", LogLevel.Trace);
         }

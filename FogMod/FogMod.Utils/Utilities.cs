@@ -60,4 +60,21 @@ public class Utilities
     {
         return who?.currentLocation?.NameOrUniqueName is string playerLocationName && playerLocationName == locationName;
     }
+
+    internal static void CreateItemDrop(Vector2 position, GameLocation location, string itemId, int quantity, int direction)
+    {
+        try
+        {
+            Game1.createItemDebris(
+                item: new StardewValley.Object(itemId: itemId, initialStack: quantity),
+                pixelOrigin: position,
+                direction: direction,
+                location: location
+            );
+        }
+        catch (Exception ex)
+        {
+            FogMod.Instance?.Monitor.Log($"Item drop failed: {ex.Message}", LogLevel.Error);
+        }
+    }
 }

@@ -2,6 +2,7 @@
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using StardewValley;
+using StardewValley.GameData.WildTrees;
 using StardewValley.TerrainFeatures;
 using System;
 using System.Collections.Generic;
@@ -150,5 +151,11 @@ public static class TreeHelper
             Vector2 drawPos = Game1.GlobalToLocal(Game1.viewport, leaf.position);
             spriteBatch.Draw(leaf.texture, drawPos, sourceRect, Color.White, leaf.rotation, Vector2.Zero, 4f, SpriteEffects.None, 0.99f);
         }
+    }
+
+    public static string GetTreeSeedId(Tree tree)
+    {
+        WildTreeData data = tree.GetData();
+        return data.SeedItemId;
     }
 }

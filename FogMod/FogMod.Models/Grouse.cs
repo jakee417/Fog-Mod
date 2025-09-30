@@ -34,6 +34,7 @@ public class Grouse : Monster
     public readonly NetEnum<GrouseState> state = new NetEnum<GrouseState>();
     public readonly NetBool isHiding = new NetBool();
     public readonly NetString textureName = new NetString();
+    public readonly NetStringList initialObjectToDrop = new NetStringList();
 
     // MARK: Immutable Property Wrappers
     public int GrouseId
@@ -64,6 +65,8 @@ public class Grouse : Monster
                     return FogMod.Instance?.grouseTexture;
                 case Constants.GrouseVoidTextureName:
                     return FogMod.Instance?.grouseVoidTexture;
+                case Constants.GrouseGoldenTextureName:
+                    return FogMod.Instance?.grouseGoldenTexture;
                 default:
                     return FogMod.Instance?.grouseTexture;
             }
@@ -158,15 +161,16 @@ public class Grouse : Monster
         set { }
     }
 
-    public string? ObjectToDrop
+    public List<string> InitialObjectToDrop
     {
-        get => objectsToDrop.Count > 0 ? objectsToDrop[0] : null;
-        set
-        {
-            objectsToDrop.Clear();
-            if (value is string item)
-                objectsToDrop.Add(item);
-        }
+        get => new List<string>(initialObjectToDrop);
+        set => initialObjectToDrop.Set(value);
+    }
+
+    public List<string> ObjectToDrop
+    {
+        get => new List<string>(objectsToDrop);
+        set => objectsToDrop.Set(value);
     }
 
     public int AnimationFrame
@@ -187,9 +191,15 @@ public class Grouse : Monster
                     case GrouseState.Flushing:
                     case GrouseState.Flying:
                     case GrouseState.Landing:
-                        if (value == 3)
-                            loc.localSound("parrot_flap", TilePosition, 0);
-                        break;
+                        {
+                            if (value == 3)
+                            {
+                                loc.localSound("parrot_flap", TilePosition, 0);
+                                if (TextureName == Constants.GrouseGoldenTextureName)
+                                    DrawGrouseSparkles(this);
+                            }
+                            break;
+                        }
                 }
             }
             animationFrame = value;
@@ -325,7 +335,8 @@ public class Grouse : Monster
         FacingDirection = Utilities.DeterministicBool(Position, GrouseId) ? 3 : 1;
         CyclesInState = (uint)GrouseId;
         TextureName = textureName;
-        ObjectToDrop = GetItemToDrop(launchedByFarmer, IsVoid);
+        InitialObjectToDrop = GetEggsToDrop(LaunchedByFarmer, TextureName);
+        ObjectToDrop = GetSnacksToDrop(LaunchedByFarmer, currentLocation, TreePosition, TilePosition);
     }
 
     // MARK: Monster Overrides
@@ -339,7 +350,8 @@ public class Grouse : Monster
             .AddField(launchedByFarmer, "launchedByFarmer")
             .AddField(state, "state")
             .AddField(isHiding, "isHiding")
-            .AddField(textureName, "textureName");
+            .AddField(textureName, "textureName")
+            .AddField(initialObjectToDrop, "initialObjectToDrop");
 
         treePosition.fieldChangeEvent += (NetVector2 field, Vector2 oldValue, Vector2 newValue) =>
         {
@@ -422,12 +434,7 @@ public class Grouse : Monster
                     Utility.makeTemporarySpriteJuicier(featherAnimation, loc, 2);
                 }
                 if (isBomb)
-                {
                     AddSmokePuffs(spriteCenter);
-                    // Fry the whatever item we had
-                    if (ObjectToDrop != null)
-                        ObjectToDrop = "194";
-                }
             }
             else
             {
@@ -571,27 +578,77 @@ public class Grouse : Monster
         return !locationBounds.Contains(new Point((int)g.Position.X, (int)g.Position.Y));
     }
 
-    protected static string? GetItemToDrop(bool launchedByFarmer, bool voidGrouse)
+    public void DropEggItems()
     {
+        foreach (string item in InitialObjectToDrop)
+        {
+            int randomDirection = Game1.random.Next(4);
+            Utilities.CreateItemDrop(Position, currentLocation, item, 1, randomDirection);
+        }
+        InitialObjectToDrop = new List<string>();
+    }
+
+    protected static List<string> GetSnacksToDrop(bool launchedByFarmer, GameLocation location, Vector2 treePosition, Vector2 tilePosition)
+    {
+        List<string> snacks = new List<string>();
+        // No spamming grouse to get snacks
+        if (launchedByFarmer)
+            return snacks;
+
+        Bush? bush = BushHelper.GetNearestBushWithFruitToTile(location, tilePosition);
+        Tree? tree = TreeHelper.GetTreeFromId(location, treePosition);
+        float luck = (float)Game1.player.DailyLuck;
+        int maxSnacks = luck > 0.0f ? 4 : 2;
+        int numberOfSnacks = FogMod.Random.Next(0, maxSnacks);
+        for (int i = 0; i < numberOfSnacks; i++)
+        {
+            if (bush != null)
+                snacks.Add(bush.GetShakeOffItem());
+            else if (tree != null)
+                snacks.Add(TreeHelper.GetTreeSeedId(tree));
+            else
+                snacks.Add("309");
+        }
+        return snacks;
+    }
+
+    // https://mateusaquino.github.io/stardewids/
+    protected static List<string> GetEggsToDrop(bool launchedByFarmer, string textureName)
+    {
+        List<string> eggs = new List<string>();
         // No spamming grouse to get eggs
         if (launchedByFarmer)
-            return null;
+            return eggs;
 
-        double roll = FogMod.Random.NextDouble();
-        string? eggItemId = null;
-        // Daily luck
         float luck = (float)Game1.player.DailyLuck;
-        // https://mateusaquino.github.io/stardewids/
-        // Golden egg
-        if (roll < luck + 0.01)
-            eggItemId = "928";
-        // Large egg
-        else if (roll < luck + 0.1)
-            eggItemId = "174";
-        // Basic egg
-        else if (roll < luck + 0.8)
-            eggItemId = "176";
-        return eggItemId != null ? (voidGrouse ? "305" : eggItemId) : null;
+        int maxEggs = luck > 0.0f ? 3 : 2;
+        int numberOfEggs = FogMod.Random.Next(0, maxEggs);
+        for (int i = 0; i < numberOfEggs; i++)
+        {
+            switch (textureName)
+            {
+                case Constants.GrouseTextureName:
+                    {
+                        double roll = FogMod.Random.NextDouble();
+                        if (roll < 0.5)
+                            // Large egg
+                            eggs.Add("174");
+                        else
+                            // Basic egg
+                            eggs.Add("176");
+                    }
+                    break;
+                case Constants.GrouseVoidTextureName:
+                    // Void grouse only drop void eggs
+                    eggs.Add("305");
+                    break;
+                case Constants.GrouseGoldenTextureName:
+                    // Golden grouse only drop golden eggs
+                    eggs.Add("928");
+                    break;
+            }
+        }
+        return eggs;
     }
 
     // MARK: Update Animation Functions
@@ -771,5 +828,16 @@ public class Grouse : Monster
                 layerDepth: 0.86f
             );
         }
+    }
+
+    public static void DrawGrouseSparkles(Grouse g)
+    {
+        TemporaryAnimatedSpriteList sparkles = Utility.sparkleWithinArea(
+            bounds: g.GetBoundingBox(),
+            numberOfSparkles: 2,
+            sparkleColor: Color.Gold,
+            1
+        );
+        g.currentLocation.temporarySprites.AddRange(sparkles);
     }
 }

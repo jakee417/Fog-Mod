@@ -18,6 +18,7 @@ public partial class FogMod : Mod
 {
     public Texture2D? grouseTexture { get; set; }
     public Texture2D? grouseVoidTexture { get; set; }
+    public Texture2D? grouseGoldenTexture { get; set; }
     public Texture2D? surprisedTexture { get; set; }
 
     private void InitializeGrouse()
@@ -118,9 +119,15 @@ public partial class FogMod : Mod
             position: treePosition,
             salt: salt
         );
+        float roll = (float)Game1.random.NextDouble();
+        string textureName = Constants.GrouseTextureName;
+        if (roll <= Constants.GrouseGoldenSpawnChance)
+            textureName = Constants.GrouseGoldenTextureName;
+        else if (roll <= Constants.GrouseGoldenSpawnChance + Constants.GrouseVoidSpawnChance)
+            textureName = Constants.GrouseVoidTextureName;
         Grouse newGrouse = new Grouse(
             grouseId: grouseId,
-            textureName: Game1.random.NextDouble() < Constants.GrouseVoidSpawnChance ? Constants.GrouseVoidTextureName : Constants.GrouseTextureName,
+            textureName: textureName,
             location: location,
             treePosition: treePosition,
             position: spawnPosition,
@@ -177,7 +184,10 @@ public partial class FogMod : Mod
         g.Velocity = Vector2.Zero;
 
         if (g.StateTimer >= Constants.GrouseSurprisedDuration)
+        {
             g.State = GrouseState.Flushing;
+            g.DropEggItems();
+        }
     }
 
     private void UpdateGrouseFlushing(Grouse g, float deltaSeconds)
