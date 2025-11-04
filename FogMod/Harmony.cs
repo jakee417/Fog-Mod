@@ -6,6 +6,7 @@ using StardewValley;
 using StardewValley.Objects;
 using StardewValley.TerrainFeatures;
 using System;
+using System.Collections.Generic;
 using FogMod.Models;
 using FogMod.Utils;
 
@@ -145,32 +146,149 @@ public partial class FogMod : Mod
             }
     }
 
-    // Grouse Reward
-    public static bool OnItemRegistryCreatePrefix(string itemId, int amount, int quality, bool allowNull, ref Item __result)
+    public static bool OnSlingshotPerformFirePrefix(StardewValley.Tools.Slingshot __instance, GameLocation location, Farmer who)
     {
         try
         {
-            if (itemId == Constants.GrouseRewardItemName)
+            // Not our multi-slingshot, run original
+            if (__instance.ItemId != Constants.GrouseRewardItemName)
+                return true;
+
+            StardewValley.Object obj = __instance.attachments[0];
+            if (obj == null)
             {
-                var multiSlingshot = new MultiSlingshot();
-                if (amount != 1)
-                {
-                    multiSlingshot.Stack = amount;
-                    multiSlingshot.FixStackSize();
-                }
-                if (quality != 0)
-                {
-                    multiSlingshot.Quality = quality;
-                    multiSlingshot.FixQuality();
-                }
-                __result = multiSlingshot;
+                Game1.showRedMessage(Game1.content.LoadString("Strings\\StringsFromCSFiles:Slingshot.cs.14254"));
+                __instance.canPlaySound = true;
                 return false;
+            }
+
+            int backArmDistance = __instance.GetBackArmDistance(who);
+            Vector2 shootOrigin = __instance.GetShootOrigin(who);
+            Vector2 aimPosition = __instance.AdjustForHeight(new Vector2(__instance.aimPos.X, __instance.aimPos.Y));
+            Vector2 baseVelocity = Utility.getVelocityTowardPoint(
+                shootOrigin,
+                aimPosition,
+                (float)(15 + Game1.random.Next(4, 6)) * (1f + who.buffs.WeaponSpeedMultiplier)
+            );
+
+            if (backArmDistance > 4 && !__instance.canPlaySound)
+            {
+                // Determine how many projectiles based on ammo and config
+                int maxPellets = FogMod.Config.MultiSlingShotPellets ? Constants.GrouseRewardItemMaxPellets : 1;
+                int availableAmmo = obj.Stack;
+                int pelletsToFire = Math.Min(maxPellets, availableAmmo);
+
+                // Generate spread pattern
+                List<int> spreadDirections = new List<int>();
+                if (pelletsToFire == 1)
+                    spreadDirections.Add(0); // Center only
+                else if (pelletsToFire == 2)
+                {
+                    spreadDirections.Add(-1); // Left
+                    spreadDirections.Add(1);  // Right
+                }
+                else // 3 or more
+                {
+                    spreadDirections.Add(0);  // Center
+                    spreadDirections.Add(1);  // Right
+                    spreadDirections.Add(-1); // Left
+                }
+
+                List<(StardewValley.Object ammo, float angle)> projectiles = new List<(StardewValley.Object, float)>();
+                foreach (int i in spreadDirections)
+                {
+                    StardewValley.Object obj2 = (StardewValley.Object)obj.getOne();
+                    float spreadAngle = i * 0.261799f; // ~15 degrees
+                    projectiles.Add((obj2, spreadAngle));
+
+                    if (obj.ConsumeStack(1) == null)
+                    {
+                        __instance.attachments[0] = null;
+                        break;
+                    }
+                }
+
+                foreach (var (obj2, spreadAngle) in projectiles)
+                {
+                    float cos = (float)Math.Cos(spreadAngle);
+                    float sin = (float)Math.Sin(spreadAngle);
+                    Vector2 velocityTowardPoint = new Vector2(
+                        baseVelocity.X * cos - baseVelocity.Y * sin,
+                        baseVelocity.X * sin + baseVelocity.Y * cos
+                    );
+
+                    // Use Galaxy Slingshot damage (4x)
+                    float damageMultiplier = 4f;
+                    int ammoDamage = __instance.GetAmmoDamage(obj2);
+                    string ammoCollisionSound = __instance.GetAmmoCollisionSound(obj2);
+                    var ammoCollisionBehavior = __instance.GetAmmoCollisionBehavior(obj2);
+
+                    if (!Game1.options.useLegacySlingshotFiring)
+                    {
+                        velocityTowardPoint.X *= -1f;
+                        velocityTowardPoint.Y *= -1f;
+                    }
+
+                    location.projectiles.Add(
+                        new StardewValley.Projectiles.BasicProjectile(
+                            (int)(damageMultiplier * (float)(ammoDamage + Game1.random.Next(-(ammoDamage / 2), ammoDamage + 2)) * (1f + who.buffs.AttackMultiplier)),
+                            -1, 0, 0,
+                            (float)(Math.PI / (double)(64f + (float)Game1.random.Next(-63, 64))),
+                            0f - velocityTowardPoint.X,
+                            0f - velocityTowardPoint.Y,
+                            shootOrigin - new Vector2(32f, 32f),
+                            ammoCollisionSound,
+                            null, null,
+                            explode: false,
+                            damagesMonsters: true,
+                            location, who,
+                            ammoCollisionBehavior,
+                            obj2.ItemId
+                        )
+                        {
+                            IgnoreLocationCollision = Game1.currentLocation.currentEvent != null || Game1.currentMinigame != null
+                        }
+                    );
+                }
+            }
+
+            __instance.canPlaySound = true;
+            // Skip original method
+            return false;
+        }
+        catch (Exception ex)
+        {
+            FogMod.Instance?.Monitor.Log($"OnSlingshotPerformFirePrefix failed: {ex.Message}", LogLevel.Error);
+            // Run original on error
+            return true;
+        }
+    }
+
+    // Galaxy Slingshot Multi-Shot Tooltip
+    public static void OnSlingshotGetHoverBoxTextPostfix(StardewValley.Tools.Slingshot __instance, Item hoveredItem, ref string? __result)
+    {
+        try
+        {
+            // Only apply to Galaxy Slingshot
+            if (__instance.ItemId != "34" || __result == null)
+                return;
+
+            // Keep base result for attachable items
+            if (hoveredItem is StardewValley.Object obj && __instance.canThisBeAttached(obj))
+                return;
+
+            if (hoveredItem == null && __instance.attachments?[0] != null)
+            {
+                int maxPellets = FogMod.Config.MultiSlingShotPellets ? Constants.GrouseRewardItemMaxPellets : 1;
+                int availableAmmo = __instance.attachments[0].Stack;
+                int willFire = Math.Min(maxPellets, availableAmmo);
+                string plural = willFire > 1 ? "s" : "";
+                __result = $"{__result}\nMulti-Shot: {willFire} {__instance.attachments[0].DisplayName}{plural}";
             }
         }
         catch (Exception ex)
         {
-            FogMod.Instance?.Monitor.Log($"OnItemRegistryCreatePrefix failed for item {itemId}: {ex.Message}", LogLevel.Error);
+            FogMod.Instance?.Monitor.Log($"OnSlingshotGetHoverBoxTextPostfix failed: {ex.Message}", LogLevel.Error);
         }
-        return true;
     }
 }

@@ -69,22 +69,14 @@ public partial class FogMod : Mod
             original: AccessTools.Method(typeof(Tree), nameof(Tree.shake), new Type[] { typeof(Vector2), typeof(bool) }),
             postfix: new HarmonyMethod(typeof(FogMod), nameof(OnTreeShakePostfix))
         );
-        // Need to disambiguate the overloaded Create methods
-        var createMethods = typeof(ItemRegistry).GetMethods(BindingFlags.Public | BindingFlags.Static)
-            .Where(m => m.Name == nameof(ItemRegistry.Create) && !m.IsGenericMethod)
-            .Where(m =>
-            {
-                var parameters = m.GetParameters();
-                return parameters.Length == 4 &&
-                       parameters[0].ParameterType == typeof(string) &&
-                       parameters[1].ParameterType == typeof(int) &&
-                       parameters[2].ParameterType == typeof(int) &&
-                       parameters[3].ParameterType == typeof(bool);
-            }).ToArray();
-
+        // Patch Galaxy Slingshot to add multi-shot behavior
         harmony.Patch(
-            original: createMethods[0],
-            prefix: new HarmonyMethod(typeof(FogMod), nameof(OnItemRegistryCreatePrefix))
+            original: AccessTools.Method(typeof(StardewValley.Tools.Slingshot), nameof(StardewValley.Tools.Slingshot.PerformFire)),
+            prefix: new HarmonyMethod(typeof(FogMod), nameof(OnSlingshotPerformFirePrefix))
+        );
+        harmony.Patch(
+            original: AccessTools.Method(typeof(StardewValley.Tools.Slingshot), nameof(StardewValley.Tools.Slingshot.getHoverBoxText)),
+            postfix: new HarmonyMethod(typeof(FogMod), nameof(OnSlingshotGetHoverBoxTextPostfix))
         );
     }
 
@@ -206,8 +198,8 @@ public partial class FogMod : Mod
                     DisplayName = "Grouse",
                     Targets = new List<string> { Constants.GrouseName },
                     Count = Constants.GrouseQuestGoal,
-                    RewardItemId = Constants.GrouseRewardItemName,
-                    RewardDialogue = "Well done! You've proven yourself quite the grouse hunter. These elusive birds hide among the trees in the fog. Your persistence has paid off - here's a special multi-shot slingshot for your efforts!",
+                    RewardItemId = "(W)34",
+                    RewardDialogue = "Well done! You've proven yourself quite the grouse hunter. These elusive birds hide among the trees in the fog. Your persistence has paid off - here's a Galaxy Slingshot with multi-shot capabilities!",
                     RewardFlag = "FogMod_GrouseSlayerComplete"
                 };
             });

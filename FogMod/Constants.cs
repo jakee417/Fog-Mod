@@ -33,7 +33,8 @@ public static class Constants
     // Grouse constants
     public const string GrouseName = "Grouse";
     public const string GrouseAudioCueId = "FogMod_Grouse";
-    public const string GrouseRewardItemName = "FogMod_MultiSlingshot";
+    public const string GrouseRewardItemName = "34";
+    public const int GrouseRewardItemMaxPellets = 3;
     public const string GrouseTextureName = "grouse";
     public const string GrouseVoidTextureName = "grouse_void";
     public const string GrouseGoldenTextureName = "grouse_golden";
@@ -45,10 +46,10 @@ public static class Constants
     public const float GrouseExitSpeed = 400f;
     public const float GrouseSurprisedDuration = 2.0f;
     public const float GrouseFlushDuration = 2.0f;
-    public const float GrouseSpawnChance = 0.1f;
+    public const float GrouseSpawnChance = 0.05f;
     public const float GrouseScale = 4f;
     public const int GrouseHidingCycles = 40;
-    public const int GrouseMaxPerLocation = 2;
+    public const int GrouseMaxPerLocation = 10;
     public const int GrouseSpriteWidth = 16;
     public const int GrouseSpriteHeight = 16;
     public const float GrouseTransitionDuration = 0.3f;
