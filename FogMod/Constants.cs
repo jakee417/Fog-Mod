@@ -46,7 +46,7 @@ public static class Constants
     public const float GrouseExitSpeed = 400f;
     public const float GrouseSurprisedDuration = 2.0f;
     public const float GrouseFlushDuration = 2.0f;
-    public const float GrouseSpawnChance = 0.05f;
+    public const float GrouseSpawnChance = 0.02f;
     public const float GrouseScale = 4f;
     public const int GrouseHidingCycles = 40;
     public const int GrouseMaxPerLocation = 10;
