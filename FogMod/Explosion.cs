@@ -75,7 +75,7 @@ public partial class FogMod : Mod
         catch { }
     }
 
-    internal void SpawnShotgunSmoke(Vector2 centerWorld, float radiusPixels, int count, Vector2 aimDirection)
+    internal void SpawnScattergunSmoke(Vector2 centerWorld, float radiusPixels, int count, Vector2 aimDirection)
     {
         try
         {
@@ -110,7 +110,7 @@ public partial class FogMod : Mod
                     float alpha = MathHelper.Lerp(0.35f, 0.7f, (float)Random.NextDouble());
                     var particle = new FogParticle(
                         position: pos, velocity: vel, scale: scale, rotation: 0f,
-                        alpha: alpha, ageSeconds: 0f, texture: tex,
+                        alpha: alpha, ageSeconds: Constants.SmokeFadeInSeconds, texture: tex,
                         isFadingOut: false, fadeOutSecondsLeft: Constants.ParticleFadeOutSeconds
                     );
                     explosionSmokeParticles.Add(particle);

@@ -10,18 +10,18 @@ namespace FogMod;
 
 public partial class FogMod : Mod
 {
-    public Texture2D? shotgunTexture { get; set; }
+    public Texture2D? scattergunTexture { get; set; }
     private Texture2D? armsBaseTexture;
     private Texture2D? armsRecoloredTexture;
 
     // Sprite source rectangles from weapon.png (32x32, 4 cells of 16x16)
-    private static readonly Rectangle ShotgunSourceIcon = new(0, 0, 16, 16);
-    private static readonly Rectangle ShotgunSourceRight = new(16, 0, 16, 16);
-    private static readonly Rectangle ShotgunSourceDown = new(0, 16, 16, 16);
-    private static readonly Rectangle ShotgunSourceUp = new(16, 16, 16, 16);
+    private static readonly Rectangle ScattergunSourceIcon = new(0, 0, 16, 16);
+    private static readonly Rectangle ScattergunSourceRight = new(16, 0, 16, 16);
+    private static readonly Rectangle ScattergunSourceDown = new(0, 16, 16, 16);
+    private static readonly Rectangle ScattergunSourceUp = new(16, 16, 16, 16);
 
     // Arm source rectangles from BowArms.png (112x64)
-    // Using the bow's "fully charged" arm poses since shotgun is always ready
+    // Using the bow's "fully charged" arm poses since scattergun is always ready
     // Down: back arm pulling back, front arm forward
     private static readonly Rectangle ArmDownBack = new(32, 0, 16, 32);
     private static readonly Rectangle ArmDownFront = new(0, 32, 16, 32);
@@ -42,7 +42,7 @@ public partial class FogMod : Mod
 
     internal static bool SuppressSlingshotDraw = false;
 
-    public static bool IsGalaxyShotgun(Farmer who)
+    public static bool IsGalaxyScattergun(Farmer who)
     {
         return who.UsingTool
             && who.CurrentTool is Slingshot slingshot
@@ -102,7 +102,7 @@ public partial class FogMod : Mod
         armsRecoloredTexture.SetData(data);
     }
 
-    private static float GetShotgunAimRotation(Farmer who)
+    private static float GetScattergunAimRotation(Farmer who)
     {
         if (who.CurrentTool is not Slingshot slingshot)
             return 0f;
@@ -136,14 +136,14 @@ public partial class FogMod : Mod
     public static void OnFarmerRendererDrawPrefix(Farmer who)
     {
         SuppressSlingshotDraw = false;
-        if (IsGalaxyShotgun(who))
+        if (IsGalaxyScattergun(who))
         {
             SuppressSlingshotDraw = true;
             who.usingSlingshot = false;
         }
     }
 
-    // === FarmerRenderer.draw postfix — restore state and draw shotgun + arms ===
+    // === FarmerRenderer.draw postfix — restore state and draw scattergun + arms ===
     public static void OnFarmerRendererDrawPostfix(
         SpriteBatch b, Vector2 position, Vector2 origin,
         float layerDepth, Color overrideColor, float rotation, float scale,
@@ -155,26 +155,26 @@ public partial class FogMod : Mod
         who.usingSlingshot = true;
         SuppressSlingshotDraw = false;
 
-        DrawShotgunWithArms(who, b, layerDepth, position, ___positionOffset, origin,
+        DrawScattergunWithArms(who, b, layerDepth, position, ___positionOffset, origin,
                             rotation, scale, overrideColor);
     }
 
-    private static void DrawShotgunWithArms(
+    private static void DrawScattergunWithArms(
         Farmer who, SpriteBatch b, float layerDepth,
         Vector2 position, Vector2 positionOffset, Vector2 origin,
         float rotation, float scale, Color overrideColor)
     {
-        if (Instance?.shotgunTexture == null || Instance.armsRecoloredTexture == null)
+        if (Instance?.scattergunTexture == null || Instance.armsRecoloredTexture == null)
             return;
 
-        Texture2D gunTex = Instance.shotgunTexture;
+        Texture2D gunTex = Instance.scattergunTexture;
         Texture2D armsTex = Instance.armsRecoloredTexture;
         Vector2 baseOffset = position + origin + positionOffset + who.armOffset;
         // Fixed base without armOffset — so the gun butt stays anchored
         Vector2 fixedBase = position + origin + positionOffset;
-        float aimRot = GetShotgunAimRotation(who);
+        float aimRot = GetScattergunAimRotation(who);
         float rawAngle = GetRawAimAngle(who);
-        var cfg = FogMod.ShotgunConfig;
+        var cfg = FogMod.ScattergunConfig;
         float gunScale = cfg.GunScale * scale;
         float armScale = cfg.ArmScale * scale;
 
@@ -197,9 +197,9 @@ public partial class FogMod : Mod
                            ArmDownBack, overrideColor, rotation, origin,
                            armScale, SpriteEffects.None, NextDepth(ref depth));
 
-                    // Shotgun — butt anchored at fixed position, barrel points at reticle
+                    // Scattergun — butt anchored at fixed position, barrel points at reticle
                     b.Draw(gunTex, fixedBase + new Vector2(d.GunOffset.X, d.GunOffset.Y),
-                           ShotgunSourceDown, Color.White, gunRot, gunPivot,
+                           ScattergunSourceDown, Color.White, gunRot, gunPivot,
                            gunScale, SpriteEffects.None, NextDepth(ref depth));
 
                     // Front arm
@@ -223,11 +223,12 @@ public partial class FogMod : Mod
                            origin + originOffset, armScale,
                            flipEffect, 5.9E-05f);
 
-                    // Shotgun — rotated toward aim, origin at left-center of sprite
-                    Vector2 gunOrigin = new Vector2(0, ShotgunSourceRight.Height / 2f)
+                    // Scattergun — rotated toward aim, origin at left-center of sprite
+                    float sideRotAdj = MathHelper.ToRadians(cfg.SideRotationOffset) * gunOffsetY;
+                    Vector2 gunOrigin = new Vector2(0, ScattergunSourceRight.Height / 2f)
                                         - new Vector2(side.GunOriginOffset.X, side.GunOriginOffset.Y * gunOffsetY);
                     b.Draw(gunTex, baseOffset + specialOffset,
-                           ShotgunSourceRight, Color.White, aimRot,
+                           ScattergunSourceRight, Color.White, aimRot + sideRotAdj,
                            gunOrigin, gunScale,
                            flipEffect, NextDepth(ref depth));
 
@@ -252,9 +253,9 @@ public partial class FogMod : Mod
                            ArmUpBack, overrideColor, rotation, origin,
                            armScale, SpriteEffects.None, depth - 0.001f);
 
-                    // Shotgun — butt anchored at fixed position, barrel rotates
+                    // Scattergun — butt anchored at fixed position, barrel rotates
                     b.Draw(gunTex, fixedBase + new Vector2(u.GunOffset.X, u.GunOffset.Y),
-                           ShotgunSourceUp, Color.White, gunRot, gunPivot,
+                           ScattergunSourceUp, Color.White, gunRot, gunPivot,
                            gunScale, SpriteEffects.None, depth - 0.001f);
 
                     // Front arm
@@ -273,9 +274,9 @@ public partial class FogMod : Mod
     }
 
     // === Called from Harmony.cs after projectiles fire ===
-    internal static void OnShotgunFired(Vector2 shootOrigin, Vector2 aimPosition)
+    internal static void OnScattergunFired(Vector2 shootOrigin, Vector2 aimPosition)
     {
-        var cfg = FogMod.ShotgunConfig;
+        var cfg = FogMod.ScattergunConfig;
 
         // Play explosion sound with configurable pitch
         Game1.playSound("explosion", cfg.ExplosionPitch);
@@ -285,7 +286,17 @@ public partial class FogMod : Mod
         Vector2 aimDir = aimPosition - shootOrigin;
         if (aimDir.LengthSquared() > 1e-3f)
             aimDir.Normalize();
-        Instance?.SpawnShotgunSmoke(smokePos, cfg.SmokeRadius, cfg.SmokeCount, aimDir);
+        Instance?.SpawnScattergunSmoke(smokePos, cfg.SmokeRadius, cfg.SmokeCount, aimDir);
+
+        // Orange muzzle flash
+        string locationName = Game1.currentLocation?.NameOrUniqueName ?? "Unknown";
+        var flash = new Models.ExplosionFlashInfo(
+            locationName: locationName,
+            centerWorld: smokePos,
+            radiusPixels: cfg.SmokeRadius * 2f,
+            timeLeft: Constants.ExplosionFlashDurationSeconds * 0.4f
+        );
+        Instance?.explosionFlashInfos.Add(flash);
     }
 
     // === Slingshot.tickUpdate prefix — suppress drawback sound, allow instant fire ===
@@ -312,19 +323,19 @@ public partial class FogMod : Mod
         ___canPlaySound = false;
     }
 
-    // === Slingshot.drawInMenu prefix — show shotgun icon in menus/toolbar ===
+    // === Slingshot.drawInMenu prefix — show scattergun icon in menus/toolbar ===
     public static bool OnSlingshotDrawInMenuPrefix(
         Slingshot __instance, SpriteBatch spriteBatch, Vector2 location,
         float scaleSize, float transparency, float layerDepth,
         StackDrawType drawStackNumber, Color color, bool drawShadow)
     {
-        if (__instance.ItemId != Constants.GrouseRewardItemName || Instance?.shotgunTexture == null)
+        if (__instance.ItemId != Constants.GrouseRewardItemName || Instance?.scattergunTexture == null)
             return true;
 
         spriteBatch.Draw(
-            Instance.shotgunTexture,
+            Instance.scattergunTexture,
             location + new Vector2(32f, 32f),
-            ShotgunSourceIcon,
+            ScattergunSourceIcon,
             color * transparency,
             0f,
             new Vector2(8f, 8f),

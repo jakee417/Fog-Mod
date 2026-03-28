@@ -251,8 +251,8 @@ public partial class FogMod : Mod
                     );
                 }
 
-                // Shotgun effects: explosion sound + smoke puff
-                OnShotgunFired(shootOrigin, aimPosition);
+                // Scattergun effects: explosion sound + smoke puff
+                OnScattergunFired(shootOrigin, aimPosition);
             }
 
             __instance.canPlaySound = true;

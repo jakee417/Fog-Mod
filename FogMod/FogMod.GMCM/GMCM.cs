@@ -122,8 +122,8 @@ public static class GMCM
                 ModManifest,
                 () => FogMod.Config.MultiSlingShotPellets,
                 value => FogMod.Config.MultiSlingShotPellets = value,
-                () => "Shotgun Shot Pellets",
-                () => "Enable or disable multiple shotgun shot pellets."
+                () => "Scattergun Shot Pellets",
+                () => "Enable or disable multiple scattergun shot pellets."
             );
 
             configMenu.AddSectionTitle(

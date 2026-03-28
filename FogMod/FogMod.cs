@@ -30,7 +30,7 @@ public partial class FogMod : Mod
     public static readonly Vector2 globalWindDirection = new Vector2(WeatherDebris.globalWind, 0f);
     public static readonly Color DefaultFogColor = Color.LightGray;
     internal static FogMod? Instance;
-    internal static ShotgunOffsets ShotgunConfig = new();
+    internal static ScattergunOffsets ScattergunConfig = new();
     public Grid grid;
     public float time;
 
@@ -53,10 +53,10 @@ public partial class FogMod : Mod
         helper.Events.GameLoop.DayEnding += OnDayEnding;
 
         // Console commands
-        helper.ConsoleCommands.Add("reload_shotgun", "Reload shotgun_offsets.json", (_, _) =>
+        helper.ConsoleCommands.Add("reload_scattergun", "Reload scattergun_offsets.json", (_, _) =>
         {
-            LoadShotgunOffsets();
-            Monitor.Log("Reloaded shotgun offsets.", LogLevel.Info);
+            LoadScattergunOffsets();
+            Monitor.Log("Reloaded scattergun offsets.", LogLevel.Info);
         });
         helper.ConsoleCommands.Add("spawn_grouse", "Spawn a debug grouse at the player", (_, _) =>
         {
@@ -123,20 +123,20 @@ public partial class FogMod : Mod
             original: AccessTools.Method(typeof(StardewValley.Tools.Slingshot), nameof(StardewValley.Tools.Slingshot.getHoverBoxText)),
             postfix: new HarmonyMethod(typeof(FogMod), nameof(OnSlingshotGetHoverBoxTextPostfix))
         );
-        // Patch FarmerRenderer.draw to replace Galaxy Slingshot visuals with shotgun
+        // Patch FarmerRenderer.draw to replace Galaxy Slingshot visuals with scattergun
         harmony.Patch(
             original: AccessTools.Method(typeof(FarmerRenderer), nameof(FarmerRenderer.draw),
                 new[] { typeof(SpriteBatch), typeof(FarmerSprite.AnimationFrame), typeof(int), typeof(Rectangle), typeof(Vector2), typeof(Vector2), typeof(float), typeof(int), typeof(Color), typeof(float), typeof(float), typeof(Farmer) }),
             prefix: new HarmonyMethod(typeof(FogMod), nameof(OnFarmerRendererDrawPrefix)),
             postfix: new HarmonyMethod(typeof(FogMod), nameof(OnFarmerRendererDrawPostfix))
         );
-        // Patch Slingshot.drawInMenu to show shotgun icon for Galaxy Slingshot
+        // Patch Slingshot.drawInMenu to show scattergun icon for Galaxy Slingshot
         harmony.Patch(
             original: AccessTools.Method(typeof(StardewValley.Tools.Slingshot), nameof(StardewValley.Tools.Slingshot.drawInMenu),
                 new[] { typeof(SpriteBatch), typeof(Vector2), typeof(float), typeof(float), typeof(float), typeof(StackDrawType), typeof(Color), typeof(bool) }),
             prefix: new HarmonyMethod(typeof(FogMod), nameof(OnSlingshotDrawInMenuPrefix))
         );
-        // Patch Slingshot.tickUpdate — skip drawback sound and charge delay for shotgun
+        // Patch Slingshot.tickUpdate — skip drawback sound and charge delay for scattergun
         harmony.Patch(
             original: AccessTools.Method(typeof(StardewValley.Tools.Slingshot), nameof(StardewValley.Tools.Slingshot.tickUpdate)),
             prefix: new HarmonyMethod(typeof(FogMod), nameof(OnSlingshotTickUpdatePrefix))
@@ -218,21 +218,21 @@ public partial class FogMod : Mod
             Monitor.Log($"Failed to load surprised texture: {ex.Message}", LogLevel.Warn);
         }
 
-        LoadShotgunOffsets();
+        LoadScattergunOffsets();
 
         try
         {
-            shotgunTexture = Helper.ModContent.Load<Texture2D>("assets/weapon.png");
-            Monitor.Log("Successfully loaded shotgun texture", LogLevel.Trace);
+            scattergunTexture = Helper.ModContent.Load<Texture2D>("assets/weapon.png");
+            Monitor.Log("Successfully loaded scattergun texture", LogLevel.Trace);
         }
         catch (Exception ex)
         {
-            Monitor.Log($"Failed to load shotgun texture: {ex.Message}", LogLevel.Warn);
+            Monitor.Log($"Failed to load scattergun texture: {ex.Message}", LogLevel.Warn);
         }
 
         try
         {
-            armsBaseTexture = Helper.ModContent.Load<Texture2D>("assets/shotgun_arms.png");
+            armsBaseTexture = Helper.ModContent.Load<Texture2D>("assets/arms.png");
             Monitor.Log("Successfully loaded arms texture", LogLevel.Trace);
         }
         catch (Exception ex)
@@ -241,27 +241,27 @@ public partial class FogMod : Mod
         }
     }
 
-    private void LoadShotgunOffsets()
+    private void LoadScattergunOffsets()
     {
         try
         {
-            string path = Path.Combine(Helper.DirectoryPath, "assets", "shotgun_offsets.json");
+            string path = Path.Combine(Helper.DirectoryPath, "assets", "scattergun_offsets.json");
             if (File.Exists(path))
             {
                 string json = File.ReadAllText(path);
-                var offsets = System.Text.Json.JsonSerializer.Deserialize<ShotgunOffsets>(json);
+                var offsets = System.Text.Json.JsonSerializer.Deserialize<ScattergunOffsets>(json);
                 if (offsets != null)
-                    ShotgunConfig = offsets;
-                Monitor.Log("Loaded shotgun offsets from JSON.", LogLevel.Trace);
+                    ScattergunConfig = offsets;
+                Monitor.Log("Loaded scattergun offsets from JSON.", LogLevel.Trace);
             }
             else
             {
-                Monitor.Log("shotgun_offsets.json not found, using defaults.", LogLevel.Warn);
+                Monitor.Log("scattergun_offsets.json not found, using defaults.", LogLevel.Warn);
             }
         }
         catch (Exception ex)
         {
-            Monitor.Log($"Failed to load shotgun offsets: {ex.Message}", LogLevel.Warn);
+            Monitor.Log($"Failed to load scattergun offsets: {ex.Message}", LogLevel.Warn);
         }
     }
 
@@ -323,8 +323,8 @@ public partial class FogMod : Mod
                 var data = asset.AsDictionary<string, WeaponData>().Data;
                 if (data.TryGetValue(Constants.GrouseRewardItemName, out var weapon))
                 {
-                    weapon.DisplayName = "Hunting Shotgun";
-                    weapon.Description = "A powerful shotgun that fires multiple pellets.";
+                    weapon.DisplayName = "Scattergun";
+                    weapon.Description = "A powerful scattergun that fires multiple pellets.";
                 }
             });
         }
@@ -339,7 +339,7 @@ public partial class FogMod : Mod
                     Targets = new List<string> { Constants.GrouseName },
                     Count = Constants.GrouseQuestGoal,
                     RewardItemId = "(W)34",
-                    RewardDialogue = "Well done! You've proven yourself quite the grouse hunter. These elusive birds hide among the trees in the fog. Your persistence has paid off - here's a Shotgun with multi-shot capabilities!",
+                    RewardDialogue = "Well done! You've proven yourself quite the grouse hunter. These elusive birds hide among the trees in the fog. Your persistence has paid off - here's a Scattergun with multi-shot capabilities!",
                     RewardFlag = "FogMod_GrouseSlayerComplete"
                 };
             });
@@ -368,7 +368,10 @@ public partial class FogMod : Mod
             return;
 
         if (e.IsLocalPlayer)
+        {
             ResetAllParticlesOnLocationChange();
+            RecolorArmsTexture(Game1.player);
+        }
     }
 
     private void OnUpdateTicked(object? sender, UpdateTickedEventArgs e)
