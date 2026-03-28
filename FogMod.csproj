@@ -52,7 +52,9 @@
     </Reference>
   </ItemGroup>
 
-  
+  <ItemGroup>
+    <Compile Remove="Archery/**" />
+  </ItemGroup>
 
   <ItemGroup>
     <Content Include="manifest.json">

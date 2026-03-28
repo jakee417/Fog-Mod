@@ -13,6 +13,8 @@ using Netcode;
 using StardewValley.TerrainFeatures;
 using System.IO;
 using StardewValley.GameData;
+using StardewValley.GameData.Weapons;
+using StardewValley.Menus;
 using FogMod.Models;
 using FogMod.Utils;
 
@@ -28,6 +30,7 @@ public partial class FogMod : Mod
     public static readonly Vector2 globalWindDirection = new Vector2(WeatherDebris.globalWind, 0f);
     public static readonly Color DefaultFogColor = Color.LightGray;
     internal static FogMod? Instance;
+    internal static ShotgunOffsets ShotgunConfig = new();
     public Grid grid;
     public float time;
 
@@ -48,6 +51,49 @@ public partial class FogMod : Mod
         helper.Events.GameLoop.UpdateTicked += OnUpdateTicked;
         helper.Events.Display.Rendered += OnRendered;
         helper.Events.GameLoop.DayEnding += OnDayEnding;
+
+        // Console commands
+        helper.ConsoleCommands.Add("reload_shotgun", "Reload shotgun_offsets.json", (_, _) =>
+        {
+            LoadShotgunOffsets();
+            Monitor.Log("Reloaded shotgun offsets.", LogLevel.Info);
+        });
+        helper.ConsoleCommands.Add("spawn_grouse", "Spawn a debug grouse at the player", (_, _) =>
+        {
+            if (!Context.IsWorldReady)
+            {
+                Monitor.Log("You must be in-game to spawn a grouse.", LogLevel.Warn);
+                return;
+            }
+            if (!Game1.currentLocation.IsOutdoors)
+            {
+                Monitor.Log("Must be outdoors to spawn a grouse.", LogLevel.Warn);
+                return;
+            }
+            if (GetNPCsAtCurrentLocation() is NetCollection<NPC> npc)
+            {
+                Vector2 playerPosition = Game1.player.getStandingPosition();
+                Utils.Multiplayer.SendMessage(new GrouseEventInfo(
+                    grouseId: -1,
+                    _event: GrouseEventInfo.EventType.Released,
+                    timestamp: DateTime.UtcNow.Ticks
+                ));
+                FarmerHelper.raiseHands(Game1.player);
+                Vector2 spawnPosition = playerPosition + new Vector2(0, -Game1.player.FarmerSprite.SpriteHeight * 2.5f);
+                int salt = (int)Random.NextInt64();
+                Grouse g = SpawnGrouse(
+                    npc: npc,
+                    treePosition: spawnPosition,
+                    spawnPosition: spawnPosition,
+                    location: Game1.currentLocation,
+                    salt: salt,
+                    launchedByFarmer: true
+                );
+                g.State = GrouseState.Surprised;
+                Monitor.Log("Grouse spawned!", LogLevel.Info);
+                Game1.addHUDMessage(new HUDMessage("Grouse Released!", 2));
+            }
+        });
 
         // Harmony patches
         var harmony = new Harmony(ModManifest.UniqueID);
@@ -76,6 +122,24 @@ public partial class FogMod : Mod
         harmony.Patch(
             original: AccessTools.Method(typeof(StardewValley.Tools.Slingshot), nameof(StardewValley.Tools.Slingshot.getHoverBoxText)),
             postfix: new HarmonyMethod(typeof(FogMod), nameof(OnSlingshotGetHoverBoxTextPostfix))
+        );
+        // Patch FarmerRenderer.draw to replace Galaxy Slingshot visuals with shotgun
+        harmony.Patch(
+            original: AccessTools.Method(typeof(FarmerRenderer), nameof(FarmerRenderer.draw),
+                new[] { typeof(SpriteBatch), typeof(FarmerSprite.AnimationFrame), typeof(int), typeof(Rectangle), typeof(Vector2), typeof(Vector2), typeof(float), typeof(int), typeof(Color), typeof(float), typeof(float), typeof(Farmer) }),
+            prefix: new HarmonyMethod(typeof(FogMod), nameof(OnFarmerRendererDrawPrefix)),
+            postfix: new HarmonyMethod(typeof(FogMod), nameof(OnFarmerRendererDrawPostfix))
+        );
+        // Patch Slingshot.drawInMenu to show shotgun icon for Galaxy Slingshot
+        harmony.Patch(
+            original: AccessTools.Method(typeof(StardewValley.Tools.Slingshot), nameof(StardewValley.Tools.Slingshot.drawInMenu),
+                new[] { typeof(SpriteBatch), typeof(Vector2), typeof(float), typeof(float), typeof(float), typeof(StackDrawType), typeof(Color), typeof(bool) }),
+            prefix: new HarmonyMethod(typeof(FogMod), nameof(OnSlingshotDrawInMenuPrefix))
+        );
+        // Patch Slingshot.tickUpdate — skip drawback sound and charge delay for shotgun
+        harmony.Patch(
+            original: AccessTools.Method(typeof(StardewValley.Tools.Slingshot), nameof(StardewValley.Tools.Slingshot.tickUpdate)),
+            prefix: new HarmonyMethod(typeof(FogMod), nameof(OnSlingshotTickUpdatePrefix))
         );
     }
 
@@ -153,6 +217,52 @@ public partial class FogMod : Mod
         {
             Monitor.Log($"Failed to load surprised texture: {ex.Message}", LogLevel.Warn);
         }
+
+        LoadShotgunOffsets();
+
+        try
+        {
+            shotgunTexture = Helper.ModContent.Load<Texture2D>("assets/weapon.png");
+            Monitor.Log("Successfully loaded shotgun texture", LogLevel.Trace);
+        }
+        catch (Exception ex)
+        {
+            Monitor.Log($"Failed to load shotgun texture: {ex.Message}", LogLevel.Warn);
+        }
+
+        try
+        {
+            armsBaseTexture = Helper.ModContent.Load<Texture2D>("assets/shotgun_arms.png");
+            Monitor.Log("Successfully loaded arms texture", LogLevel.Trace);
+        }
+        catch (Exception ex)
+        {
+            Monitor.Log($"Failed to load arms texture: {ex.Message}", LogLevel.Warn);
+        }
+    }
+
+    private void LoadShotgunOffsets()
+    {
+        try
+        {
+            string path = Path.Combine(Helper.DirectoryPath, "assets", "shotgun_offsets.json");
+            if (File.Exists(path))
+            {
+                string json = File.ReadAllText(path);
+                var offsets = System.Text.Json.JsonSerializer.Deserialize<ShotgunOffsets>(json);
+                if (offsets != null)
+                    ShotgunConfig = offsets;
+                Monitor.Log("Loaded shotgun offsets from JSON.", LogLevel.Trace);
+            }
+            else
+            {
+                Monitor.Log("shotgun_offsets.json not found, using defaults.", LogLevel.Warn);
+            }
+        }
+        catch (Exception ex)
+        {
+            Monitor.Log($"Failed to load shotgun offsets: {ex.Message}", LogLevel.Warn);
+        }
     }
 
     private void OnAssetRequested(object? sender, AssetRequestedEventArgs e)
@@ -163,29 +273,60 @@ public partial class FogMod : Mod
             e.LoadFrom(
                 () =>
                 {
-                    string grouseAudioPath = Path.Combine(Helper.DirectoryPath, "assets", "grouse.wav");
+                    var audioCues = new Dictionary<string, AudioCueData>();
 
-                    if (!File.Exists(grouseAudioPath))
+                    string grouseAudioPath = Path.Combine(Helper.DirectoryPath, "assets", "grouse.wav");
+                    if (File.Exists(grouseAudioPath))
+                    {
+                        audioCues[Constants.GrouseAudioCueId] = new AudioCueData
+                        {
+                            Id = Constants.GrouseAudioCueId,
+                            FilePaths = new List<string> { grouseAudioPath },
+                            Category = "Sound",
+                            StreamedVorbis = false,
+                            Looped = false,
+                            UseReverb = false
+                        };
+                    }
+                    else
                     {
                         Monitor.Log($"Grouse audio file not found at: {grouseAudioPath}", LogLevel.Warn);
-                        return new Dictionary<string, AudioCueData>();
                     }
-                    AudioCueData cue = new AudioCueData
+
+                    string clickAudioPath = Path.Combine(Helper.DirectoryPath, "assets", "click.wav");
+                    if (File.Exists(clickAudioPath))
                     {
-                        Id = Constants.GrouseAudioCueId,
-                        FilePaths = new List<string> { grouseAudioPath },
-                        Category = "Sound",
-                        StreamedVorbis = false,
-                        Looped = false,
-                        UseReverb = false
-                    };
-                    return new Dictionary<string, AudioCueData>
+                        audioCues[Constants.ClickAudioCueId] = new AudioCueData
+                        {
+                            Id = Constants.ClickAudioCueId,
+                            FilePaths = new List<string> { clickAudioPath },
+                            Category = "Sound",
+                            StreamedVorbis = false,
+                            Looped = false,
+                            UseReverb = false
+                        };
+                    }
+                    else
                     {
-                        { Constants.GrouseAudioCueId, cue }
-                    };
+                        Monitor.Log($"Click audio file not found at: {clickAudioPath}", LogLevel.Warn);
+                    }
+
+                    return audioCues;
                 },
                 AssetLoadPriority.Medium
             );
+        }
+        else if (e.NameWithoutLocale.IsEquivalentTo("Data/Weapons"))
+        {
+            e.Edit(asset =>
+            {
+                var data = asset.AsDictionary<string, WeaponData>().Data;
+                if (data.TryGetValue(Constants.GrouseRewardItemName, out var weapon))
+                {
+                    weapon.DisplayName = "Hunting Shotgun";
+                    weapon.Description = "A powerful shotgun that fires multiple pellets.";
+                }
+            });
         }
         else if (e.NameWithoutLocale.IsEquivalentTo("Data/MonsterSlayerQuests"))
         {
@@ -198,7 +339,7 @@ public partial class FogMod : Mod
                     Targets = new List<string> { Constants.GrouseName },
                     Count = Constants.GrouseQuestGoal,
                     RewardItemId = "(W)34",
-                    RewardDialogue = "Well done! You've proven yourself quite the grouse hunter. These elusive birds hide among the trees in the fog. Your persistence has paid off - here's a Galaxy Slingshot with multi-shot capabilities!",
+                    RewardDialogue = "Well done! You've proven yourself quite the grouse hunter. These elusive birds hide among the trees in the fog. Your persistence has paid off - here's a Shotgun with multi-shot capabilities!",
                     RewardFlag = "FogMod_GrouseSlayerComplete"
                 };
             });
@@ -209,6 +350,8 @@ public partial class FogMod : Mod
     {
         InitializeDailyFogStrength();
         TreeHelper.ClearCache();
+        if (Context.IsWorldReady)
+            RecolorArmsTexture(Game1.player);
         if (Context.IsMainPlayer && Config.EnableGrouseCritters)
             InitializeGrouse();
     }
@@ -277,30 +420,5 @@ public partial class FogMod : Mod
 
     private void OnButtonPressed(object? sender, ButtonPressedEventArgs e)
     {
-        if (e.Button == Config.GrouseToggleKey && Config.EnableGrouseCritters && Game1.currentLocation.IsOutdoors)
-        {
-            if (GetNPCsAtCurrentLocation() is NetCollection<NPC> npc)
-            {
-                Vector2 playerPosition = Game1.player.getStandingPosition();
-                Utils.Multiplayer.SendMessage(new GrouseEventInfo(
-                    grouseId: -1,
-                    _event: GrouseEventInfo.EventType.Released,
-                    timestamp: DateTime.UtcNow.Ticks
-                ));
-                FarmerHelper.raiseHands(Game1.player);
-                Vector2 spawnPosition = playerPosition + new Vector2(0, -Game1.player.FarmerSprite.SpriteHeight * 2.5f);
-                int salt = (int)Random.NextInt64();
-                Grouse g = SpawnGrouse(
-                    npc: npc,
-                    treePosition: spawnPosition,
-                    spawnPosition: spawnPosition,
-                    location: Game1.currentLocation,
-                    salt: salt,
-                    launchedByFarmer: true
-                );
-                g.State = GrouseState.Surprised;
-                Game1.addHUDMessage(new HUDMessage("Grouse Released!", 2));
-            }
-        }
     }
 }

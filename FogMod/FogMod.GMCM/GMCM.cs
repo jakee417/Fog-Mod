@@ -21,7 +21,6 @@ public static class GMCM
         public bool EnableTimeOfDayFog { get; set; } = true;
         public bool EnableExplosionSmoke { get; set; } = true;
         public bool EnableGrouseCritters { get; set; } = true;
-        public SButton GrouseToggleKey { get; set; } = SButton.G;
         public bool MultiSlingShotPellets { get; set; } = true;
         public bool DebugShowInfo { get; set; } = false;
     }
@@ -119,25 +118,13 @@ public static class GMCM
                 () => "Spawn grouse birds in trees that flush when you get close. Requires restart to take full effect."
             );
 
-
-            configMenu.AddKeybind(
+            configMenu.AddBoolOption(
                 ModManifest,
-                () => Config.GrouseToggleKey,
-                value => Config.GrouseToggleKey = value,
-                () => "Grouse Spawn Hotkey",
-                () => "The key used to spawn a grouse."
+                () => FogMod.Config.MultiSlingShotPellets,
+                value => FogMod.Config.MultiSlingShotPellets = value,
+                () => "Shotgun Shot Pellets",
+                () => "Enable or disable multiple shotgun shot pellets."
             );
-
-            if (Game1.stats.getMonstersKilled(Constants.GrouseName) >= Constants.GrouseQuestGoal)
-            {
-                configMenu.AddBoolOption(
-                    ModManifest,
-                    () => FogMod.Config.MultiSlingShotPellets,
-                    value => FogMod.Config.MultiSlingShotPellets = value,
-                    () => "Multi-Sling Shot Pellets",
-                    () => "Enable or disable multi-sling shot pellets."
-                );
-            }
 
             configMenu.AddSectionTitle(
                 ModManifest,
