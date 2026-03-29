@@ -22,7 +22,6 @@ public static class GMCM
         public bool EnableExplosionSmoke { get; set; } = true;
         public bool EnableGrouseCritters { get; set; } = true;
         public bool MultiSlingShotPellets { get; set; } = true;
-        public bool DebugShowInfo { get; set; } = false;
     }
 
     public static void RegisterModConfig(IGenericModConfigMenuApi configMenu)
@@ -124,20 +123,6 @@ public static class GMCM
                 value => FogMod.Config.MultiSlingShotPellets = value,
                 () => "Scattergun Shot Pellets",
                 () => "Enable or disable multiple scattergun shot pellets."
-            );
-
-            configMenu.AddSectionTitle(
-                ModManifest,
-                () => "Debug Options",
-                () => "Options for debugging and development purposes."
-            );
-
-            configMenu.AddBoolOption(
-                ModManifest,
-                () => Config.DebugShowInfo,
-                value => Config.DebugShowInfo = value,
-                () => "Show Debugging Information",
-                () => "Display debugging information in the top-left corner"
             );
         }
         catch (Exception ex)

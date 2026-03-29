@@ -42,11 +42,17 @@ public partial class FogMod : Mod
 
     internal static bool SuppressSlingshotDraw = false;
 
+    /// Returns true if the given item ID is the scattergun (Galaxy Slingshot).
+    public static bool IsScattergunId(string? itemId)
+    {
+        return itemId == Constants.GrouseRewardItemName;
+    }
+
     public static bool IsGalaxyScattergun(Farmer who)
     {
         return who.UsingTool
             && who.CurrentTool is Slingshot slingshot
-            && slingshot.ItemId == Constants.GrouseRewardItemName;
+            && IsScattergunId(slingshot.ItemId);
     }
 
     internal void RecolorArmsTexture(Farmer farmer)
@@ -278,8 +284,8 @@ public partial class FogMod : Mod
     {
         var cfg = FogMod.ScattergunConfig;
 
-        // Play explosion sound with configurable pitch
-        Game1.playSound("explosion", cfg.ExplosionPitch);
+        // Play custom scattergun sound
+        Game1.currentLocation?.playSound(Constants.ScattergunAudioCueId, Game1.player.Tile);
 
         // Spawn smoke halfway between barrel and reticle, drifting toward aim
         Vector2 smokePos = Vector2.Lerp(shootOrigin, aimPosition, 0.5f);
@@ -308,7 +314,7 @@ public partial class FogMod : Mod
     private static bool _wasAiming = false;
     public static void OnSlingshotTickUpdatePrefix(Slingshot __instance, ref bool ___canPlaySound)
     {
-        if (__instance.ItemId != Constants.GrouseRewardItemName)
+        if (!IsScattergunId(__instance.ItemId))
             return;
 
         // Detect the very first frame of a new aim (player wasn't aiming last tick)
@@ -316,7 +322,7 @@ public partial class FogMod : Mod
         bool isAiming = who.usingSlingshot;
         if (isAiming && !_wasAiming)
         {
-            Game1.playSound(Constants.ClickAudioCueId);
+            Game1.currentLocation?.playSound(Constants.ClickAudioCueId, Game1.player.Tile);
         }
         _wasAiming = isAiming;
 
@@ -329,7 +335,7 @@ public partial class FogMod : Mod
         float scaleSize, float transparency, float layerDepth,
         StackDrawType drawStackNumber, Color color, bool drawShadow)
     {
-        if (__instance.ItemId != Constants.GrouseRewardItemName || Instance?.scattergunTexture == null)
+        if (!IsScattergunId(__instance.ItemId) || Instance?.scattergunTexture == null)
             return true;
 
         spriteBatch.Draw(

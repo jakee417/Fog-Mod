@@ -3,12 +3,11 @@
   "ArmScale": 4.0,
   "SmokeCount": 6,
   "SmokeRadius": 24.0,
-  "ExplosionPitch": 100,
   "SideRotationOffset": -6.0,
   "Down": {
     "GunOffset": {
       "X": 25.0,
-      "Y": -50.0
+      "Y": -60.0
     },
     "GunPivot": {
       "X": 0.0,
@@ -21,7 +20,7 @@
       "Y": -60.0
     },
     "GunOriginOffset": {
-      "X": 4.0,
+      "X": 1.0,
       "Y": -5.0
     }
   },
@@ -31,14 +30,14 @@
       "Y": -60.0
     },
     "GunOriginOffset": {
-      "X": 4.0,
+      "X": 1.0,
       "Y": -5.0
     }
   },
   "Up": {
     "GunOffset": {
       "X": 25.0,
-      "Y": -80.0
+      "Y": -60.0
     },
     "GunPivot": {
       "X": 0.0,

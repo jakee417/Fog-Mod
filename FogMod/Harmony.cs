@@ -151,7 +151,7 @@ public partial class FogMod : Mod
         try
         {
             // Not our multi-slingshot, run original
-            if (__instance.ItemId != Constants.GrouseRewardItemName)
+            if (!FogMod.IsScattergunId(__instance.ItemId))
                 return true;
 
             StardewValley.Object obj = __instance.attachments[0];
@@ -273,7 +273,7 @@ public partial class FogMod : Mod
         try
         {
             // Only apply to Galaxy Slingshot
-            if (__instance.ItemId != "34" || __result == null)
+            if (!FogMod.IsScattergunId(__instance.ItemId) || __result == null)
                 return;
 
             // Keep base result for attachable items

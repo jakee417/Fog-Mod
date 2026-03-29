@@ -26,7 +26,6 @@ public class ScattergunOffsets
     public float ArmScale { get; set; } = 4f;
     public int SmokeCount { get; set; } = 24;
     public float SmokeRadius { get; set; } = 24f;
-    public int ExplosionPitch { get; set; } = 0;
     public float SideRotationOffset { get; set; } = 2f;
     public DownUpOffsets Down { get; set; } = new();
     public SideOffsets Right { get; set; } = new();

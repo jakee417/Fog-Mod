@@ -14,7 +14,7 @@ using StardewValley.TerrainFeatures;
 using System.IO;
 using StardewValley.GameData;
 using StardewValley.GameData.Weapons;
-using StardewValley.Menus;
+using StardewValley.GameData.Shops;
 using FogMod.Models;
 using FogMod.Utils;
 
@@ -58,6 +58,58 @@ public partial class FogMod : Mod
             LoadScattergunOffsets();
             Monitor.Log("Reloaded scattergun offsets.", LogLevel.Info);
         });
+
+        helper.ConsoleCommands.Add(
+            "set_grouse_kills",
+            "Set the number of grouse killed for the current player. Usage: set_grouse_kills <count>",
+            (cmd, args) =>
+            {
+                if (!Context.IsWorldReady)
+                {
+                    Monitor.Log("You must be in-game to use this command.", LogLevel.Warn);
+                    return;
+                }
+                if (args.Length != 1 || !int.TryParse(args[0], out int count) || count < 0)
+                {
+                    Monitor.Log("Usage: set_grouse_kills <count> (must be a non-negative integer)", LogLevel.Info);
+                    return;
+                }
+                int prev = Game1.stats.getMonstersKilled(Constants.GrouseName);
+                Game1.stats.specificMonstersKilled[Constants.GrouseName] = count;
+                bool hadRewardFlag = Game1.player.mailReceived.Contains(Constants.GrouseSlayerCompleteFlag);
+                string gilFlag = $"Gil_{Constants.GrouseQuestName}";
+                bool hadGilFlag = Game1.player.mailReceived.Contains(gilFlag);
+                if (count < Constants.GrouseQuestGoal)
+                {
+                    if (hadRewardFlag)
+                    {
+                        Game1.player.mailReceived.Remove(Constants.GrouseSlayerCompleteFlag);
+                        Monitor.Log($"Removed quest flag '{Constants.GrouseSlayerCompleteFlag}' because kills set below quest goal ({Constants.GrouseQuestGoal}).", LogLevel.Info);
+                    }
+                    if (hadGilFlag)
+                    {
+                        Game1.player.mailReceived.Remove(gilFlag);
+                        Monitor.Log($"Removed Gil quest flag '{gilFlag}' because kills set below quest goal ({Constants.GrouseQuestGoal}).", LogLevel.Info);
+                    }
+                }
+                Monitor.Log($"Set grouse kills to {count} for this player. Previous value was {prev}. Gil flag present: {(Game1.player.mailReceived.Contains(gilFlag) ? "YES" : "NO")}", LogLevel.Info);
+            }
+        );
+
+        helper.ConsoleCommands.Add(
+            "fogmod_debug",
+            "Print FogMod debug info to the SMAPI log.",
+            (cmd, args) =>
+            {
+                if (!Context.IsWorldReady)
+                {
+                    Monitor.Log("You must be in-game to use this command.", LogLevel.Warn);
+                    return;
+                }
+                PrintDebugInfoToConsole();
+            }
+        );
+
         helper.ConsoleCommands.Add("spawn_grouse", "Spawn a debug grouse at the player", (_, _) =>
         {
             if (!Context.IsWorldReady)
@@ -275,6 +327,8 @@ public partial class FogMod : Mod
                 {
                     var audioCues = new Dictionary<string, AudioCueData>();
 
+
+                    // Register Grouse sound
                     string grouseAudioPath = Path.Combine(Helper.DirectoryPath, "assets", "grouse.wav");
                     if (File.Exists(grouseAudioPath))
                     {
@@ -291,6 +345,25 @@ public partial class FogMod : Mod
                     else
                     {
                         Monitor.Log($"Grouse audio file not found at: {grouseAudioPath}", LogLevel.Warn);
+                    }
+
+                    // Register Scattergun sound (weapon.wav)
+                    string scattergunAudioPath = Path.Combine(Helper.DirectoryPath, "assets", "weapon.wav");
+                    if (File.Exists(scattergunAudioPath))
+                    {
+                        audioCues[Constants.ScattergunAudioCueId] = new AudioCueData
+                        {
+                            Id = Constants.ScattergunAudioCueId,
+                            FilePaths = new List<string> { scattergunAudioPath },
+                            Category = "Sound",
+                            StreamedVorbis = false,
+                            Looped = false,
+                            UseReverb = false
+                        };
+                    }
+                    else
+                    {
+                        Monitor.Log($"Scattergun audio file not found at: {scattergunAudioPath}", LogLevel.Warn);
                     }
 
                     string clickAudioPath = Path.Combine(Helper.DirectoryPath, "assets", "click.wav");
@@ -328,19 +401,41 @@ public partial class FogMod : Mod
                 }
             });
         }
+        else if (e.NameWithoutLocale.IsEquivalentTo("Data/Shops"))
+        {
+            e.Edit(asset =>
+            {
+                var data = asset.AsDictionary<string, ShopData>().Data;
+                // Marlon's shop context is "AdventureGuild"
+                if (data.TryGetValue("AdventureShop", out var shop))
+                {
+                    bool alreadyPresent = shop.Items.Any(i => i.ItemId == $"(W){Constants.GrouseRewardItemName}");
+                    bool hasGrouseReward = Game1.player.mailReceived.Contains(Constants.GrouseSlayerCompleteFlag);
+                    if (!alreadyPresent && hasGrouseReward)
+                    {
+                        shop.Items.Add(new ShopItemData
+                        {
+                            ItemId = $"(W){Constants.GrouseRewardItemName}",
+                            Price = 50000, // Set your desired price
+                            AvailableStock = -1 // Infinite stock
+                        });
+                    }
+                }
+            });
+        }
         else if (e.NameWithoutLocale.IsEquivalentTo("Data/MonsterSlayerQuests"))
         {
             e.Edit(asset =>
             {
                 var data = asset.AsDictionary<string, MonsterSlayerQuestData>().Data;
-                data["FogMod_GrouseSlayer"] = new MonsterSlayerQuestData
+                data[Constants.GrouseQuestName] = new MonsterSlayerQuestData
                 {
                     DisplayName = "Grouse",
                     Targets = new List<string> { Constants.GrouseName },
                     Count = Constants.GrouseQuestGoal,
-                    RewardItemId = "(W)34",
+                    RewardItemId = $"(W){Constants.GrouseRewardItemName}",
                     RewardDialogue = "Well done! You've proven yourself quite the grouse hunter. These elusive birds hide among the trees in the fog. Your persistence has paid off - here's a Scattergun with multi-shot capabilities!",
-                    RewardFlag = "FogMod_GrouseSlayerComplete"
+                    RewardFlag = Constants.GrouseSlayerCompleteFlag
                 };
             });
         }
@@ -409,8 +504,6 @@ public partial class FogMod : Mod
     {
         if (!Context.IsWorldReady || Game1.currentLocation == null)
             return;
-        if (Config.DebugShowInfo)
-            DrawDebugInfo(e.SpriteBatch);
         Color fogColor = GetEffectiveFogColor();
         TreeHelper.DrawLeaves(e.SpriteBatch);
         if (Config.EnableExplosionSmoke)

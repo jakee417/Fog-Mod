@@ -30,18 +30,21 @@ public static class Constants
     public const float SmokeGrowthSeconds = 8.0f;
     public const float DebugRingThickness = 2.0f;
 
-    // Grouse constants
+    // Grouse & Scattergun constants
+    public const string GrouseQuestName = "FogMod_GrouseSlayer";
     public const string GrouseName = "Grouse";
     public const string GrouseAudioCueId = "FogMod_Grouse";
     public const string ClickAudioCueId = "FogMod_Click";
+    public const string ScattergunAudioCueId = "FogMod_Scattergun";
     public const string GrouseRewardItemName = "34";
+    public const string GrouseSlayerCompleteFlag = "FogMod_GrouseSlayerComplete";
     public const int GrouseRewardItemMaxPellets = 3;
     public const string GrouseTextureName = "grouse";
     public const string GrouseVoidTextureName = "grouse_void";
     public const string GrouseGoldenTextureName = "grouse_golden";
     public const float GrouseVoidSpawnChance = 0.2f;
     public const float GrouseGoldenSpawnChance = 0.05f;
-    public const int GrouseQuestGoal = 100;
+    public const int GrouseQuestGoal = 50;
     public const float GrouseFlushSpeed = 200f;
     public const float GrouseBobAmplitude = 10f;
     public const float GrouseExitSpeed = 400f;
