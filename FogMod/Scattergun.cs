@@ -305,28 +305,27 @@ public partial class FogMod : Mod
         Instance?.explosionFlashInfos.Add(flash);
     }
 
-    // === Slingshot.tickUpdate prefix — suppress drawback sound, allow instant fire ===
-    // Set canPlaySound = false BEFORE the original runs. This prevents the
-    // "pullItemFromWater" sound from playing (it only plays when canPlaySound is true).
-    // The original still runs (returns true) so aim position and other state updates normally.
-    // canPlaySound staying false means the fire condition (!canPlaySound) is immediately true.
-    // We play a click sound once when the player first starts aiming.
-    private static bool _wasAiming = false;
+    // === Slingshot.beginUsing postfix — play scattergun click immediately ===
+    public static void OnSlingshotBeginUsingPostfix(Slingshot __instance, GameLocation location, int x, int y, Farmer who)
+    {
+        if (!IsScattergunId(__instance.ItemId) || !who.IsLocalPlayer)
+            return;
+
+        location.playSound(Constants.ClickAudioCueId, who.Tile);
+    }
+
+    // === Slingshot.tickUpdate prefix — suppress vanilla drawback sound, keep charge timer running ===
     public static void OnSlingshotTickUpdatePrefix(Slingshot __instance, ref bool ___canPlaySound)
     {
         if (!IsScattergunId(__instance.ItemId))
             return;
 
-        // Detect the very first frame of a new aim (player wasn't aiming last tick)
-        Farmer who = Game1.player;
-        bool isAiming = who.usingSlingshot;
-        if (isAiming && !_wasAiming)
-        {
-            Game1.currentLocation?.playSound(Constants.ClickAudioCueId, Game1.player.Tile);
-        }
-        _wasAiming = isAiming;
-
         ___canPlaySound = false;
+    }
+
+    private static bool IsScattergunCharged(Slingshot slingshot)
+    {
+        return slingshot.GetSlingshotChargeTime() >= 1f;
     }
 
     // === Slingshot.drawInMenu prefix — show scattergun icon in menus/toolbar ===

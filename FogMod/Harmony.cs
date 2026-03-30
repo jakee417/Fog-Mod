@@ -171,7 +171,7 @@ public partial class FogMod : Mod
                 (float)(15 + Game1.random.Next(4, 6)) * (1f + who.buffs.WeaponSpeedMultiplier)
             );
 
-            if (backArmDistance > 4 && !__instance.canPlaySound)
+            if (backArmDistance > 4 && IsScattergunCharged(__instance))
             {
                 // Determine how many projectiles based on ammo and config
                 int maxPellets = FogMod.Config.MultiSlingShotPellets ? Constants.GrouseRewardItemMaxPellets : 1;

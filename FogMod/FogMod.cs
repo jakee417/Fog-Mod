@@ -172,6 +172,11 @@ public partial class FogMod : Mod
             prefix: new HarmonyMethod(typeof(FogMod), nameof(OnSlingshotPerformFirePrefix))
         );
         harmony.Patch(
+            original: AccessTools.Method(typeof(StardewValley.Tools.Slingshot), nameof(StardewValley.Tools.Slingshot.beginUsing),
+                new[] { typeof(GameLocation), typeof(int), typeof(int), typeof(Farmer) }),
+            postfix: new HarmonyMethod(typeof(FogMod), nameof(OnSlingshotBeginUsingPostfix))
+        );
+        harmony.Patch(
             original: AccessTools.Method(typeof(StardewValley.Tools.Slingshot), nameof(StardewValley.Tools.Slingshot.getHoverBoxText)),
             postfix: new HarmonyMethod(typeof(FogMod), nameof(OnSlingshotGetHoverBoxTextPostfix))
         );
@@ -188,9 +193,10 @@ public partial class FogMod : Mod
                 new[] { typeof(SpriteBatch), typeof(Vector2), typeof(float), typeof(float), typeof(float), typeof(StackDrawType), typeof(Color), typeof(bool) }),
             prefix: new HarmonyMethod(typeof(FogMod), nameof(OnSlingshotDrawInMenuPrefix))
         );
-        // Patch Slingshot.tickUpdate — skip drawback sound and charge delay for scattergun
+        // Patch Slingshot.tickUpdate — suppress drawback sound while scattergun uses slingshot warmup timing
         harmony.Patch(
-            original: AccessTools.Method(typeof(StardewValley.Tools.Slingshot), nameof(StardewValley.Tools.Slingshot.tickUpdate)),
+            original: AccessTools.Method(typeof(StardewValley.Tools.Slingshot), nameof(StardewValley.Tools.Slingshot.tickUpdate),
+                new[] { typeof(GameTime), typeof(Farmer) }),
             prefix: new HarmonyMethod(typeof(FogMod), nameof(OnSlingshotTickUpdatePrefix))
         );
     }
