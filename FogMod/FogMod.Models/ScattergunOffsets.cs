@@ -27,6 +27,7 @@ public class ScattergunOffsets
     public int SmokeCount { get; set; } = 24;
     public float SmokeRadius { get; set; } = 24f;
     public float SideRotationOffset { get; set; } = 2f;
+    public float SpreadAngle { get; set; } = 0.261799f; // ~15 degrees in radians
     public DownUpOffsets Down { get; set; } = new();
     public SideOffsets Right { get; set; } = new();
     public SideOffsets Left { get; set; } = new();

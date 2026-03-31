@@ -198,7 +198,7 @@ public partial class FogMod : Mod
                 foreach (int i in spreadDirections)
                 {
                     StardewValley.Object obj2 = (StardewValley.Object)obj.getOne();
-                    float spreadAngle = i * 0.261799f; // ~15 degrees
+                    float spreadAngle = i * FogMod.ScattergunConfig.SpreadAngle;
                     projectiles.Add((obj2, spreadAngle));
 
                     if (obj.ConsumeStack(1) == null)

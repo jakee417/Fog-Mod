@@ -4,6 +4,7 @@
   "SmokeCount": 6,
   "SmokeRadius": 24.0,
   "SideRotationOffset": -6.0,
+  "SpreadAngle": 0.15,
   "Down": {
     "GunOffset": {
       "X": 25.0,
