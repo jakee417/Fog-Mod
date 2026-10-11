@@ -17,37 +17,45 @@
     <Platforms>x64</Platforms>
   </PropertyGroup>
 
+  <!-- Location of the Stardew Valley game folder (containing the DLLs below).
+       Defaults per OS; override with -p:StardewValleyDir="..." or the StardewValleyDir env var. -->
+  <PropertyGroup>
+    <StardewValleyDir Condition="'$(StardewValleyDir)' == '' and $([MSBuild]::IsOSPlatform('OSX'))">$(HOME)/Library/Application Support/Steam/steamapps/common/Stardew Valley/Contents/MacOS</StardewValleyDir>
+    <StardewValleyDir Condition="'$(StardewValleyDir)' == '' and $([MSBuild]::IsOSPlatform('Linux'))">$(HOME)/.local/share/Steam/steamapps/common/Stardew Valley</StardewValleyDir>
+    <StardewValleyDir Condition="'$(StardewValleyDir)' == '' and $([MSBuild]::IsOSPlatform('Windows'))">$(ProgramFiles(x86))/Steam/steamapps/common/Stardew Valley</StardewValleyDir>
+  </PropertyGroup>
+
   <ItemGroup>
     <Reference Include="0Harmony">
-      <HintPath>/Users/jakeetaylor/Library/Application Support/Steam/steamapps/common/Stardew Valley/Contents/MacOS/smapi-internal/0Harmony.dll</HintPath>
+      <HintPath>$(StardewValleyDir)/smapi-internal/0Harmony.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="SMAPI">
-      <HintPath>/Users/jakeetaylor/Library/Application Support/Steam/steamapps/common/Stardew Valley/Contents/MacOS/StardewModdingAPI.dll</HintPath>
+      <HintPath>$(StardewValleyDir)/StardewModdingAPI.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="SMAPI.Toolkit.CoreInterfaces">
-      <HintPath>/Users/jakeetaylor/Library/Application Support/Steam/steamapps/common/Stardew Valley/Contents/MacOS/smapi-internal/SMAPI.Toolkit.CoreInterfaces.dll</HintPath>
+      <HintPath>$(StardewValleyDir)/smapi-internal/SMAPI.Toolkit.CoreInterfaces.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="Stardew Valley">
-      <HintPath>/Users/jakeetaylor/Library/Application Support/Steam/steamapps/common/Stardew Valley/Contents/MacOS/Stardew Valley.dll</HintPath>
+      <HintPath>$(StardewValleyDir)/Stardew Valley.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="Microsoft.Xna.Framework">
-      <HintPath>/Users/jakeetaylor/Library/Application Support/Steam/steamapps/common/Stardew Valley/Contents/MacOS/MonoGame.Framework.dll</HintPath>
+      <HintPath>$(StardewValleyDir)/MonoGame.Framework.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="Microsoft.Xna.Framework.Graphics">
-      <HintPath>/Users/jakeetaylor/Library/Application Support/Steam/steamapps/common/Stardew Valley/Contents/MacOS/MonoGame.Framework.dll</HintPath>
+      <HintPath>$(StardewValleyDir)/MonoGame.Framework.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="xTile">
-      <HintPath>/Users/jakeetaylor/Library/Application Support/Steam/steamapps/common/Stardew Valley/Contents/MacOS/xTile.dll</HintPath>
+      <HintPath>$(StardewValleyDir)/xTile.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="StardewValley.GameData">
-      <HintPath>/Users/jakeetaylor/Library/Application Support/Steam/steamapps/common/Stardew Valley/Contents/MacOS/StardewValley.GameData.dll</HintPath>
+      <HintPath>$(StardewValleyDir)/StardewValley.GameData.dll</HintPath>
       <Private>False</Private>
     </Reference>
   </ItemGroup>

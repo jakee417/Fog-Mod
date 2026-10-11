@@ -5,6 +5,11 @@
 # Usage: ./build_release.sh [version]
 # If no version is provided, defaults to 0.3
 
+# Pick up a user-local .NET SDK install if dotnet isn't on PATH
+if ! command -v dotnet >/dev/null 2>&1 && [ -x "$HOME/.dotnet/dotnet" ]; then
+    export PATH="$HOME/.dotnet:$PATH"
+fi
+
 # Set default version or use provided version
 VERSION=${1:-"0.3"}
 echo "🚀 Building Fog Mod for Release (Version: $VERSION)..."

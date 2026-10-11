@@ -110,6 +110,31 @@ public partial class FogMod : Mod
             }
         );
 
+        helper.ConsoleCommands.Add("give_scattergun", "Add the Scattergun to the player's inventory", (_, _) =>
+        {
+            if (!Context.IsWorldReady)
+            {
+                Monitor.Log("You must be in-game to use this command.", LogLevel.Warn);
+                return;
+            }
+            Item? scattergun = ItemRegistry.Create($"(W){Constants.GrouseRewardItemName}");
+            if (scattergun == null)
+            {
+                Monitor.Log("Failed to create the Scattergun item.", LogLevel.Error);
+                return;
+            }
+            if (Game1.player.addItemToInventoryBool(scattergun))
+            {
+                Monitor.Log("Scattergun added to inventory!", LogLevel.Info);
+                Game1.addHUDMessage(new HUDMessage("Scattergun added to inventory!", 2));
+            }
+            else
+            {
+                Game1.createItemDebris(scattergun, Game1.player.getStandingPosition(), Game1.player.FacingDirection, Game1.currentLocation);
+                Monitor.Log("Inventory full — dropped the Scattergun at your feet.", LogLevel.Warn);
+            }
+        });
+
         helper.ConsoleCommands.Add("spawn_grouse", "Spawn a debug grouse at the player", (_, _) =>
         {
             if (!Context.IsWorldReady)

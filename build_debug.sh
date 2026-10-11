@@ -5,6 +5,11 @@
 
 echo "🔨 Building Fog Mod..."
 
+# Pick up a user-local .NET SDK install if dotnet isn't on PATH
+if ! command -v dotnet >/dev/null 2>&1 && [ -x "$HOME/.dotnet/dotnet" ]; then
+    export PATH="$HOME/.dotnet:$PATH"
+fi
+
 # Build the project
 echo "📦 Building project..."
 dotnet build FogMod.csproj -c Debug
@@ -12,7 +17,11 @@ dotnet build FogMod.csproj -c Debug
 if [ $? -eq 0 ]; then
     echo "✅ Build successful!"
 
-    MOD_DIR="/Users/jakeetaylor/Library/Application Support/Steam/steamapps/common/Stardew Valley/Contents/MacOS/Mods/FoggyGrouse"
+    if [ "$(uname)" = "Darwin" ]; then
+        MOD_DIR="$HOME/Library/Application Support/Steam/steamapps/common/Stardew Valley/Contents/MacOS/Mods/FoggyGrouse"
+    else
+        MOD_DIR="$HOME/.local/share/Steam/steamapps/common/Stardew Valley/Mods/FoggyGrouse"
+    fi
     mkdir -p "$MOD_DIR"
 
     echo "📋 Copying mod files..."
