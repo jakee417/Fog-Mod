@@ -72,6 +72,10 @@ namespace FogMod
             bool gilRewardReceived = Game1.player.mailReceived.Contains(gilFlag);
             string grouseKilledText = $"Grouse Killed: {grouseKilled}/{grouseQuestGoal} (Reward mail: {(grouseRewardReceived ? "YES" : "NO")}, Gil flag: {(gilRewardReceived ? "YES" : "NO")})";
             grouseInfo = $"\n{grouseCountText}\n{grouseInLocation}\n{stateText}\n{grouseKilledText}";
+            List<Critterz>? allCritterz = GetAllCritterz();
+            int sittingCritterz = allCritterz?.Count(r => r.State == CritterzState.Sitting) ?? 0;
+            int runningCritterz = allCritterz?.Count(r => r.State == CritterzState.Running) ?? 0;
+            string critterzInfo = $"\nCritterz: {allCritterz?.Count ?? 0} (hidden: {sittingCritterz}, running: {runningCritterz})";
             string timeOfDayMultiplierText = $"Time of day multiplier: {ComputeTimeOfDayOpacityMultiplier():F2}";
             string weatherMultiplierText = $"Weather multiplier: {GetWeatherIntensityFactor():F2}";
             string dailyFogMultiplierText = $"Daily fog multiplier: {dailyFogStrength:F2}";
@@ -79,7 +83,7 @@ namespace FogMod
             string fogGridSizeText = $"Fog grid size: {grid.ExtCols}x{grid.ExtRows} = {grid.ExtCols * grid.ExtRows}";
             string fogDayText = $"Fog day: {isFogDay} w/ prob {probabilityOfFogRoll:F2} <? {probabilityOfFogForADay:F2}";
             string needsSync = $"Needs Sync: {!Utils.Multiplayer.IsAbleToUpdateOwnWorld()}";
-            string debugInfo = $"{fogDayText}\n{fogGridSizeText}\n{cloudCountText}\n{fogCountText}\n{smokeCountText}{grouseInfo}\n{dailyFogMultiplierText}\n{timeOfDayMultiplierText}\n{weatherMultiplierText}\n{locationText}\n{needsSync}";
+            string debugInfo = $"{fogDayText}\n{fogGridSizeText}\n{cloudCountText}\n{fogCountText}\n{smokeCountText}{grouseInfo}{critterzInfo}\n{dailyFogMultiplierText}\n{timeOfDayMultiplierText}\n{weatherMultiplierText}\n{locationText}\n{needsSync}";
             Monitor.Log(debugInfo, LogLevel.Info);
         }
 

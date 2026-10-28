@@ -21,6 +21,7 @@ public static class GMCM
         public bool EnableTimeOfDayFog { get; set; } = true;
         public bool EnableExplosionSmoke { get; set; } = true;
         public bool EnableGrouseCritters { get; set; } = true;
+        public bool EnableCritterz { get; set; } = true;
         public bool MultiSlingShotPellets { get; set; } = true;
     }
 
@@ -116,6 +117,21 @@ public static class GMCM
                 () => "Enable Grouse Critters",
                 () => "Spawn grouse birds in trees that flush when you get close. Requires restart to take full effect."
             );
+
+            configMenu.AddSectionTitle(
+                ModManifest,
+                () => "Critterz",
+                () => "Configure Critterz settings"
+            );
+
+            configMenu.AddBoolOption(
+                ModManifest,
+                () => Config.EnableCritterz,
+                value => Config.EnableCritterz = value,
+                () => "Enable Critterz",
+                () => "Hide shootable Critterz in bushes. Shake a bush to flush one out. Requires restart to take full effect."
+            );
+
 
             configMenu.AddBoolOption(
                 ModManifest,

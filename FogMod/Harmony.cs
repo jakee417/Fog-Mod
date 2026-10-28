@@ -7,6 +7,7 @@ using StardewValley.Objects;
 using StardewValley.TerrainFeatures;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using FogMod.Models;
 using FogMod.Utils;
 
@@ -144,6 +145,57 @@ public partial class FogMod : Mod
                     }
                 }
             }
+    }
+
+    // Critterz Startling
+    public static void OnBushPerformToolActionPostfix(Bush __instance, Tool t, int explosion, Vector2 tileLocation)
+    {
+        try
+        {
+            FogMod.HandleCritterzStartle(__instance);
+        }
+        catch (Exception ex)
+        {
+            FogMod.Instance?.Monitor.Log($"OnBushPerformToolActionPostfix failed: {ex.Message}", LogLevel.Error);
+        }
+    }
+
+    public static void OnBushShakePostfix(Bush __instance, Vector2 tileLocation, bool doEvenIfStillShaking)
+    {
+        try
+        {
+            FogMod.HandleCritterzStartle(__instance);
+        }
+        catch (Exception ex)
+        {
+            FogMod.Instance?.Monitor.Log($"OnBushShakePostfix failed: {ex.Message}", LogLevel.Error);
+        }
+    }
+
+    public static void OnBushPerformUseActionPostfix(Bush __instance, Vector2 tileLocation)
+    {
+        try
+        {
+            FogMod.HandleCritterzStartle(__instance);
+        }
+        catch (Exception ex)
+        {
+            FogMod.Instance?.Monitor.Log($"OnBushPerformUseActionPostfix failed: {ex.Message}", LogLevel.Error);
+        }
+    }
+
+    public static void HandleCritterzStartle(Bush bush)
+    {
+        if (FogMod.Instance == null || !FogMod.Config.EnableCritterz)
+            return;
+        if (bush.Location is not GameLocation location)
+            return;
+
+        foreach (Critterz r in location.characters.OfType<Critterz>())
+        {
+            if (r.HomeBush == bush.Tile)
+                FogMod.TriggerCritterz(r);
+        }
     }
 
     public static bool OnSlingshotPerformFirePrefix(StardewValley.Tools.Slingshot __instance, GameLocation location, Farmer who)

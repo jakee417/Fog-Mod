@@ -15,6 +15,7 @@ using System.IO;
 using StardewValley.GameData;
 using StardewValley.GameData.Weapons;
 using StardewValley.GameData.Shops;
+using StardewValley.Extensions;
 using FogMod.Models;
 using FogMod.Utils;
 
@@ -48,6 +49,7 @@ public partial class FogMod : Mod
         helper.Events.Multiplayer.ModMessageReceived += Utils.Multiplayer.OnModMessageReceived;
         helper.Events.Input.ButtonPressed += OnButtonPressed;
         helper.Events.Player.Warped += OnWarped;
+        helper.Events.GameLoop.TimeChanged += OnTimeChanged;
         helper.Events.GameLoop.UpdateTicked += OnUpdateTicked;
         helper.Events.Display.Rendered += OnRendered;
         helper.Events.GameLoop.DayEnding += OnDayEnding;
@@ -172,6 +174,29 @@ public partial class FogMod : Mod
             }
         });
 
+        helper.ConsoleCommands.Add("spawn_critterz", "Hide a debug Critterz in the nearest bush", (_, _) =>
+        {
+            if (!Context.IsWorldReady)
+            {
+                Monitor.Log("You must be in-game to spawn a Critterz.", LogLevel.Warn);
+                return;
+            }
+            if (!Game1.currentLocation.IsOutdoors)
+            {
+                Monitor.Log("Must be outdoors to spawn a Critterz.", LogLevel.Warn);
+                return;
+            }
+            if (NearestReachableBush(Game1.currentLocation, Game1.player.Tile) is not Bush bush)
+            {
+                Monitor.Log("No reachable bushes in this location.", LogLevel.Warn);
+                return;
+            }
+            bool flip = Game1.random.NextBool();
+            Critterz r = SpawnCritterz(Game1.currentLocation, bush.Tile, flip, bush.Tile);
+            Monitor.Log($"Critterz {r.CritterzId} hiding at bush {bush.Tile}!", LogLevel.Info);
+            Game1.addHUDMessage(new HUDMessage("Critterz hiding nearby - shake the bushes!", 2));
+        });
+
         // Harmony patches
         var harmony = new Harmony(ModManifest.UniqueID);
         harmony.Patch(
@@ -190,6 +215,18 @@ public partial class FogMod : Mod
         harmony.Patch(
             original: AccessTools.Method(typeof(Tree), nameof(Tree.shake), new Type[] { typeof(Vector2), typeof(bool) }),
             postfix: new HarmonyMethod(typeof(FogMod), nameof(OnTreeShakePostfix))
+        );
+        harmony.Patch(
+            original: AccessTools.Method(typeof(Bush), nameof(Bush.performToolAction), new Type[] { typeof(Tool), typeof(int), typeof(Vector2) }),
+            postfix: new HarmonyMethod(typeof(FogMod), nameof(OnBushPerformToolActionPostfix))
+        );
+        harmony.Patch(
+            original: AccessTools.Method(typeof(Bush), nameof(Bush.shake), new Type[] { typeof(Vector2), typeof(bool) }),
+            postfix: new HarmonyMethod(typeof(FogMod), nameof(OnBushShakePostfix))
+        );
+        harmony.Patch(
+            original: AccessTools.Method(typeof(Bush), nameof(Bush.performUseAction), new Type[] { typeof(Vector2) }),
+            postfix: new HarmonyMethod(typeof(FogMod), nameof(OnBushPerformUseActionPostfix))
         );
         // Patch Galaxy Slingshot to add multi-shot behavior
         harmony.Patch(
@@ -299,6 +336,16 @@ public partial class FogMod : Mod
         catch (Exception ex)
         {
             Monitor.Log($"Failed to load surprised texture: {ex.Message}", LogLevel.Warn);
+        }
+
+        try
+        {
+            critterzTexture = Helper.ModContent.Load<Texture2D>("assets/critterz.png");
+            Monitor.Log("Successfully loaded critterz texture", LogLevel.Trace);
+        }
+        catch (Exception ex)
+        {
+            Monitor.Log($"Failed to load critterz texture: {ex.Message}", LogLevel.Warn);
         }
 
         LoadScattergunOffsets();
@@ -476,15 +523,29 @@ public partial class FogMod : Mod
     {
         InitializeDailyFogStrength();
         TreeHelper.ClearCache();
+        ClearReachabilityCache();
         if (Context.IsWorldReady)
             RecolorArmsTexture(Game1.player);
         if (Context.IsMainPlayer && Config.EnableGrouseCritters)
             InitializeGrouse();
+        if (Context.IsMainPlayer && Config.EnableCritterz)
+        {
+            InitializeCritterz();
+            EnsureFarmDebugCritterz();
+        }
+    }
+
+    private void OnTimeChanged(object? sender, TimeChangedEventArgs e)
+    {
+        // Mirror vanilla critter spawns, which run on the ten-minute update.
+        if (Context.IsMainPlayer && Config.EnableCritterz)
+            SpawnCritterzInBushes(outdoorLocations);
     }
 
     private void OnDayEnding(object? sender, DayEndingEventArgs e)
     {
         ClearGrouseFromAllLocations();
+        ClearCritterzFromAllLocations();
         ResetAllParticlesOnLocationChange();
     }
 
@@ -497,6 +558,11 @@ public partial class FogMod : Mod
         {
             ResetAllParticlesOnLocationChange();
             RecolorArmsTexture(Game1.player);
+            // Mirror vanilla critter spawns, which also run on warp.
+            if (Context.IsMainPlayer && Config.EnableCritterz && e.NewLocation.IsOutdoors)
+                TrySpawnCritterz(e.NewLocation);
+            if (Context.IsMainPlayer && Config.EnableCritterz && e.NewLocation is Farm)
+                EnsureFarmDebugCritterz();
         }
     }
 
@@ -521,7 +587,10 @@ public partial class FogMod : Mod
             UpdateFloatingFogParticles(deltaSeconds);
         TreeHelper.UpdateLeaves();
         if (Utils.Multiplayer.IsAbleToUpdateOwnWorld())
+        {
             UpdateGrouse(deltaSeconds);
+            UpdateCritterz(deltaSeconds);
+        }
     }
 
     private void ResetAllParticlesOnLocationChange()

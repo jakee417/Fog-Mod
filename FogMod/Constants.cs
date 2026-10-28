@@ -61,4 +61,22 @@ public static class Constants
     public const float GrouseLandingDistanceThreshold = 512f;
     public const float GrouseMissRate = 0.1f;
     public const int GrouseMaxHealth = 30;
+
+    // Critterz constants (loop mirrors the grouse: hide, trigger, run, hide)
+    public const string CritterzName = "Critterz";
+    // critterz.png rows, 7 frames each: squirrel, grey bunny, white bunny, raccoon.
+    public const int CritterRowLength = 7;
+    public const int SquirrelRow = 0;
+    public const int GreyBunnyRow = 1;
+    public const int WhiteBunnyRow = 2;
+    public const int RaccoonRow = 3;
+    public const float CritterzRunSpeed = 360f;
+    public const float CritterzZigZagAmplitudePx = 32f;
+    public const string CritterzTurnAudioCueId = "cowboy_gopher";
+    public const float CritterzTurnSoundChance = 0.25f;
+    public const int CritterzMaxPerLocation = 5;
+    public const float CritterzSpawnChance = 0.2f;
+    public const int CritterzDestinationTries = 3;
+    public const float CritterzMissRate = 0.1f;
+    public const int CritterzMaxHealth = 10;
 }

@@ -1,7 +1,9 @@
 #nullable enable
 using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
 using StardewValley;
 using StardewValley.TerrainFeatures;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -9,6 +11,42 @@ namespace FogMod.Utils;
 
 public static class BushHelper
 {
+    public static void TriggerBushLeaves(Bush bush, int numLeaves = 5)
+    {
+        Rectangle bushRect = bush.sourceRect.Value;
+        if (bushRect.Width < 8 || bushRect.Height < 8)
+            return;
+        Texture2D texture;
+        try
+        {
+            texture = Game1.content.Load<Texture2D>("TileSheets\\bushes");
+        }
+        catch
+        {
+            return;
+        }
+        // Sample green pixels from the middle of the bush itself, so the
+        // leaves always match the bush's season.
+        Rectangle leafRect = new Rectangle(
+            bushRect.X + bushRect.Width / 2 - 4,
+            bushRect.Y + bushRect.Height / 2 - 4,
+            8,
+            8
+        );
+        Vector2 center = bush.Tile * Game1.tileSize + new Vector2(32f, 32f);
+        Random rng = new Random((int)(center.X + center.Y));
+        for (int i = 0; i < numLeaves; i++)
+        {
+            Vector2 spawnPos = new Vector2(
+                center.X + rng.Next(-32, 32),
+                center.Y - rng.Next(0, 64)
+            );
+            float yVelocity = rng.Next(10, 40) / 10f;
+            float rotationRate = rng.Next(-10, 10) / 100f;
+            TreeHelper.leaves.Add(new TreeHelper._Leaf(spawnPos, rotationRate, 0, yVelocity, center.Y, texture, leafRect));
+        }
+    }
+
 
     private static Dictionary<string, List<Bush>> cache = new();
 

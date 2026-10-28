@@ -19,12 +19,14 @@ public static class TreeHelper
     {
         public float initialY;
         public Texture2D texture;
+        public Rectangle? sourceOverride;
 
-        public _Leaf(Vector2 position, float rotationRate, int type, float yVelocity, float initialY, Texture2D texture)
+        public _Leaf(Vector2 position, float rotationRate, int type, float yVelocity, float initialY, Texture2D texture, Rectangle? sourceOverride = null)
             : base(position, rotationRate, type, yVelocity)
         {
             this.initialY = initialY;
             this.texture = texture;
+            this.sourceOverride = sourceOverride;
         }
     }
 
@@ -147,7 +149,7 @@ public static class TreeHelper
     {
         foreach (var leaf in leaves)
         {
-            Rectangle sourceRect = new Rectangle(16 + leaf.type % 2 * 8, 112 + leaf.type / 2 * 8, 8, 8);
+            Rectangle sourceRect = leaf.sourceOverride ?? new Rectangle(16 + leaf.type % 2 * 8, 112 + leaf.type / 2 * 8, 8, 8);
             Vector2 drawPos = Game1.GlobalToLocal(Game1.viewport, leaf.position);
             spriteBatch.Draw(leaf.texture, drawPos, sourceRect, Color.White, leaf.rotation, Vector2.Zero, 4f, SpriteEffects.None, 0.99f);
         }
