@@ -3,9 +3,7 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using StardewModdingAPI;
 using StardewValley;
-using StardewValley.Buildings;
 using StardewValley.Extensions;
-using StardewValley.Locations;
 using StardewValley.TerrainFeatures;
 using System;
 using System.Collections.Generic;
@@ -210,40 +208,6 @@ public partial class FogMod : Mod
             || reachable.Contains(bushTile + new Vector2(-1, 0))
             || reachable.Contains(bushTile + new Vector2(0, 1))
             || reachable.Contains(bushTile + new Vector2(0, -1));
-    }
-
-    // Test helper: always hide a debug Critterz at an existing farm bush
-    // near the farmhouse, so the loop is visible right where you spawn.
-    public void EnsureFarmDebugCritterz()
-    {
-        if (Game1.getFarm() is not Farm farm)
-            return;
-        if (farm.characters.Count(c => c is Critterz) >= Constants.CritterzMaxPerLocation)
-            return;
-        Vector2 anchor = GetFarmhouseDoorTile(farm) ?? new Vector2(
-            farm.Map.Layers[0].LayerWidth / 2,
-            farm.Map.Layers[0].LayerHeight / 2
-        );
-        if (NearestReachableBush(farm, anchor) is not Bush bush)
-            return;
-        bool alreadyThere = farm.characters
-            .OfType<Critterz>()
-            .Any(r => r.HomeBush == bush.Tile);
-        if (alreadyThere)
-            return;
-        SpawnCritterz(farm, bush.Tile, Game1.random.NextBool(), bush.Tile);
-    }
-
-    private Vector2? GetFarmhouseDoorTile(Farm farm)
-    {
-        Building? farmhouse = farm.buildings.FirstOrDefault(b => b.indoors.Value is FarmHouse);
-        farmhouse ??= farm.buildings.FirstOrDefault(b => b.buildingType.Value == "FarmHouse");
-        if (farmhouse == null)
-            return null;
-        return new Vector2(
-            farmhouse.tileX.Value + farmhouse.tilesWide.Value / 2,
-            farmhouse.tileY.Value + farmhouse.tilesHigh.Value
-        );
     }
 
     // Any client can spook a sitting Critterz; the synced state transition is

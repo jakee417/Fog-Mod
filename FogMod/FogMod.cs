@@ -529,10 +529,7 @@ public partial class FogMod : Mod
         if (Context.IsMainPlayer && Config.EnableGrouseCritters)
             InitializeGrouse();
         if (Context.IsMainPlayer && Config.EnableCritterz)
-        {
             InitializeCritterz();
-            EnsureFarmDebugCritterz();
-        }
     }
 
     private void OnTimeChanged(object? sender, TimeChangedEventArgs e)
@@ -561,8 +558,6 @@ public partial class FogMod : Mod
             // Mirror vanilla critter spawns, which also run on warp.
             if (Context.IsMainPlayer && Config.EnableCritterz && e.NewLocation.IsOutdoors)
                 TrySpawnCritterz(e.NewLocation);
-            if (Context.IsMainPlayer && Config.EnableCritterz && e.NewLocation is Farm)
-                EnsureFarmDebugCritterz();
         }
     }
 
