@@ -162,6 +162,8 @@ public class Critterz : Monster
     {
         Sprite = new AnimatedSprite();
         Sprite.spriteTexture = FogMod.Instance?.critterzTexture;
+        if (Sprite.spriteTexture == null)
+            FogMod.Instance?.Monitor.Log("Critterz texture is missing - make sure every player installed the same mod version including assets/critterz.png.", LogLevel.Warn);
         Sprite.SpriteWidth = 32;
         Sprite.SpriteHeight = 32;
         Sprite.SourceRect = new Rectangle(0, 0, Sprite.SpriteWidth, Sprite.SpriteHeight);
