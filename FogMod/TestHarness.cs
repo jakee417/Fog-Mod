@@ -53,6 +53,7 @@ public partial class FogMod : Mod
     private readonly List<Critterz> testSkinCritters = new();
     private Critterz? testNowhere;
     private bool testFogResetChecked;
+    private string? testWarpedTo;
     private Vector2 testCycleHome;
     private bool testCycleSawRun;
     private Vector2 testFlightTree;
@@ -92,6 +93,7 @@ public partial class FogMod : Mod
             ?? Path.Combine(Path.GetTempPath(), "fogmod-test-results.txt");
         Helper.Events.GameLoop.UpdateTicked += OnTestTick;
         Helper.Events.Display.Rendering += OnTestRendering;
+        Helper.Events.Player.Warped += OnTestWarped;
         testHideFarmer = true;
         try
         {
@@ -172,6 +174,13 @@ public partial class FogMod : Mod
     public static bool OnTestFarmerDrawPrefix()
     {
         return !(Instance?.testHideFarmer ?? false);
+    }
+
+    // Tracks warp completion for the reset test. Registered after OnWarped,
+    // so when this fires the particle reset has already run.
+    private void OnTestWarped(object? sender, WarpedEventArgs e)
+    {
+        testWarpedTo = e.NewLocation?.NameOrUniqueName;
     }
 
     private void GiveUp(string name, string detail)
@@ -1152,7 +1161,7 @@ public partial class FogMod : Mod
             Game1.warpFarmer("FarmHouse", 5, 5, false);
             return;
         }
-        if (Game1.currentLocation?.NameOrUniqueName == "FarmHouse" && !testFogResetChecked)
+        if (testWarpedTo == "FarmHouse" && !testFogResetChecked)
         {
             testFogResetChecked = true;
             Check(floatingParticles.Count == 0, "fog-reset-particles", $"count={floatingParticles.Count}");
@@ -1161,7 +1170,7 @@ public partial class FogMod : Mod
             Game1.warpFarmer("Forest", 50, 30, false);
             return;
         }
-        if (testFogResetChecked && Game1.currentLocation?.NameOrUniqueName == "Forest")
+        if (testFogResetChecked && testWarpedTo == "Forest")
             NextPhase();
         else if (testPhaseTicks > 1500)
             GiveUp("fog", "warp stuck");
