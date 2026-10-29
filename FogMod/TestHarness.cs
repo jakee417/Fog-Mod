@@ -72,6 +72,8 @@ public partial class FogMod : Mod
         new("Systems", 21, 23),
     };
     private int testAnnouncedScenario = -1;
+    private System.Diagnostics.Stopwatch? testWall;
+    private double[] testScenarioStart = System.Array.Empty<double>();
 
     private static int ScenarioForPhase(int phase)
     {
@@ -203,6 +205,13 @@ public partial class FogMod : Mod
             {
                 var s = TestScenarios[scenario];
                 Monitor.Log($"TEST === Scenario {scenario + 1}/{TestScenarios.Length}: {s.Name} ===", LogLevel.Info);
+                if (testWall == null)
+                {
+                    testWall = System.Diagnostics.Stopwatch.StartNew();
+                    testScenarioStart = new double[TestScenarios.Length];
+                    for (int i = 0; i < testScenarioStart.Length; i++) testScenarioStart[i] = -1;
+                }
+                testScenarioStart[scenario] = testWall.Elapsed.TotalSeconds;
                 try { Game1.addHUDMessage(new HUDMessage($"Test: {s.Name}", 2)); } catch { }
             }
         }
@@ -1224,10 +1233,20 @@ public partial class FogMod : Mod
         {
             var checks = testResults.Where(r => ScenarioForPhase(r.Phase) == i).ToList();
             int passed = checks.Count(r => r.Line.StartsWith("PASS"));
-            lines.Add($"## Scenario {i + 1}/{TestScenarios.Length}: {TestScenarios[i].Name} ({passed}/{checks.Count})");
+            string wall = "";
+            if (testWall != null && testScenarioStart.Length == TestScenarios.Length && testScenarioStart[i] >= 0)
+            {
+                double end = (i + 1 < TestScenarios.Length && testScenarioStart[i + 1] >= 0)
+                    ? testScenarioStart[i + 1]
+                    : testWall.Elapsed.TotalSeconds;
+                wall = $" [{end - testScenarioStart[i]:F1}s]";
+            }
+            lines.Add($"## Scenario {i + 1}/{TestScenarios.Length}: {TestScenarios[i].Name} ({passed}/{checks.Count}){wall}");
             lines.AddRange(checks.Select(r => r.Line));
         }
         int totalPass = testResults.Count(r => r.Line.StartsWith("PASS"));
+        if (testWall != null)
+            lines.Add($"TOTAL WALL: {testWall.Elapsed.TotalSeconds:F1}s");
         lines.Add($"RESULT: PASS {totalPass} FAIL {testFailures}");
         try
         {
