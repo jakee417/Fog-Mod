@@ -112,90 +112,14 @@ public partial class FogMod : Mod
             }
         );
 
-        helper.ConsoleCommands.Add("give_scattergun", "Add the Scattergun to the player's inventory", (_, _) =>
-        {
-            if (!Context.IsWorldReady)
-            {
-                Monitor.Log("You must be in-game to use this command.", LogLevel.Warn);
-                return;
-            }
-            Item? scattergun = ItemRegistry.Create($"(W){Constants.GrouseRewardItemName}");
-            if (scattergun == null)
-            {
-                Monitor.Log("Failed to create the Scattergun item.", LogLevel.Error);
-                return;
-            }
-            if (Game1.player.addItemToInventoryBool(scattergun))
-            {
-                Monitor.Log("Scattergun added to inventory!", LogLevel.Info);
-                Game1.addHUDMessage(new HUDMessage("Scattergun added to inventory!", 2));
-            }
-            else
-            {
-                Game1.createItemDebris(scattergun, Game1.player.getStandingPosition(), Game1.player.FacingDirection, Game1.currentLocation);
-                Monitor.Log("Inventory full — dropped the Scattergun at your feet.", LogLevel.Warn);
-            }
-        });
+        helper.ConsoleCommands.Add("give_scattergun", "Add the Scattergun to the player's inventory",
+            (_, _) => GiveScattergunToPlayer());
 
-        helper.ConsoleCommands.Add("spawn_grouse", "Spawn a debug grouse at the player", (_, _) =>
-        {
-            if (!Context.IsWorldReady)
-            {
-                Monitor.Log("You must be in-game to spawn a grouse.", LogLevel.Warn);
-                return;
-            }
-            if (!Game1.currentLocation.IsOutdoors)
-            {
-                Monitor.Log("Must be outdoors to spawn a grouse.", LogLevel.Warn);
-                return;
-            }
-            if (GetNPCsAtCurrentLocation() is NetCollection<NPC> npc)
-            {
-                Vector2 playerPosition = Game1.player.getStandingPosition();
-                Utils.Multiplayer.SendMessage(new GrouseEventInfo(
-                    grouseId: -1,
-                    _event: GrouseEventInfo.EventType.Released,
-                    timestamp: DateTime.UtcNow.Ticks
-                ));
-                FarmerHelper.raiseHands(Game1.player);
-                Vector2 spawnPosition = playerPosition + new Vector2(0, -Game1.player.FarmerSprite.SpriteHeight * 2.5f);
-                int salt = (int)Random.NextInt64();
-                Grouse g = SpawnGrouse(
-                    npc: npc,
-                    treePosition: spawnPosition,
-                    spawnPosition: spawnPosition,
-                    location: Game1.currentLocation,
-                    salt: salt,
-                    launchedByFarmer: true
-                );
-                g.State = GrouseState.Surprised;
-                Monitor.Log("Grouse spawned!", LogLevel.Info);
-                Game1.addHUDMessage(new HUDMessage("Grouse Released!", 2));
-            }
-        });
+        helper.ConsoleCommands.Add("spawn_grouse", "Spawn a debug grouse at the player",
+            (_, _) => SpawnDebugGrouse());
 
-        helper.ConsoleCommands.Add("spawn_critterz", "Hide a debug Critterz in the nearest bush", (_, _) =>
-        {
-            if (!Context.IsWorldReady)
-            {
-                Monitor.Log("You must be in-game to spawn a Critterz.", LogLevel.Warn);
-                return;
-            }
-            if (!Game1.currentLocation.IsOutdoors)
-            {
-                Monitor.Log("Must be outdoors to spawn a Critterz.", LogLevel.Warn);
-                return;
-            }
-            if (NearestReachableBush(Game1.currentLocation, Game1.player.Tile) is not Bush bush)
-            {
-                Monitor.Log("No reachable bushes in this location.", LogLevel.Warn);
-                return;
-            }
-            bool flip = Game1.random.NextBool();
-            Critterz r = SpawnCritterz(Game1.currentLocation, bush.Tile, flip, bush.Tile);
-            Monitor.Log($"Critterz {r.CritterzId} hiding at bush {bush.Tile}!", LogLevel.Info);
-            Game1.addHUDMessage(new HUDMessage("Critterz hiding nearby - shake the bushes!", 2));
-        });
+        helper.ConsoleCommands.Add("spawn_critterz", "Hide a debug Critterz in the nearest bush",
+            (_, _) => SpawnDebugCritterz());
 
         // Harmony patches
         var harmony = new Harmony(ModManifest.UniqueID);
@@ -264,6 +188,91 @@ public partial class FogMod : Mod
 
         // Headless test harness (inert unless FOGMOD_TEST=1).
         InitTestHarness();
+    }
+
+    private void GiveScattergunToPlayer()
+    {
+        if (!Context.IsWorldReady)
+        {
+            Monitor.Log("You must be in-game to use this command.", LogLevel.Warn);
+            return;
+        }
+        Item? scattergun = ItemRegistry.Create($"(W){Constants.GrouseRewardItemName}");
+        if (scattergun == null)
+        {
+            Monitor.Log("Failed to create the Scattergun item.", LogLevel.Error);
+            return;
+        }
+        if (Game1.player.addItemToInventoryBool(scattergun))
+        {
+            Monitor.Log("Scattergun added to inventory!", LogLevel.Info);
+            Game1.addHUDMessage(new HUDMessage("Scattergun added to inventory!", 2));
+        }
+        else
+        {
+            Game1.createItemDebris(scattergun, Game1.player.getStandingPosition(), Game1.player.FacingDirection, Game1.currentLocation);
+            Monitor.Log("Inventory full — dropped the Scattergun at your feet.", LogLevel.Warn);
+        }
+    }
+
+    private void SpawnDebugGrouse()
+    {
+        if (!Context.IsWorldReady)
+        {
+            Monitor.Log("You must be in-game to spawn a grouse.", LogLevel.Warn);
+            return;
+        }
+        if (!Game1.currentLocation.IsOutdoors)
+        {
+            Monitor.Log("Must be outdoors to spawn a grouse.", LogLevel.Warn);
+            return;
+        }
+        if (GetNPCsAtCurrentLocation() is NetCollection<NPC> npc)
+        {
+            Vector2 playerPosition = Game1.player.getStandingPosition();
+            Utils.Multiplayer.SendMessage(new GrouseEventInfo(
+                grouseId: -1,
+                _event: GrouseEventInfo.EventType.Released,
+                timestamp: DateTime.UtcNow.Ticks
+            ));
+            FarmerHelper.raiseHands(Game1.player);
+            Vector2 spawnPosition = playerPosition + new Vector2(0, -Game1.player.FarmerSprite.SpriteHeight * 2.5f);
+            int salt = (int)Random.NextInt64();
+            Grouse g = SpawnGrouse(
+                npc: npc,
+                treePosition: spawnPosition,
+                spawnPosition: spawnPosition,
+                location: Game1.currentLocation,
+                salt: salt,
+                launchedByFarmer: true
+            );
+            g.State = GrouseState.Surprised;
+            Monitor.Log("Grouse spawned!", LogLevel.Info);
+            Game1.addHUDMessage(new HUDMessage("Grouse Released!", 2));
+        }
+    }
+
+    private void SpawnDebugCritterz()
+    {
+        if (!Context.IsWorldReady)
+        {
+            Monitor.Log("You must be in-game to spawn a Critterz.", LogLevel.Warn);
+            return;
+        }
+        if (!Game1.currentLocation.IsOutdoors)
+        {
+            Monitor.Log("Must be outdoors to spawn a Critterz.", LogLevel.Warn);
+            return;
+        }
+        if (NearestReachableBush(Game1.currentLocation, Game1.player.Tile) is not Bush bush)
+        {
+            Monitor.Log("No reachable bushes in this location.", LogLevel.Warn);
+            return;
+        }
+        bool flip = Game1.random.NextBool();
+        Critterz r = SpawnCritterz(Game1.currentLocation, bush.Tile, flip, bush.Tile);
+        Monitor.Log($"Critterz {r.CritterzId} hiding at bush {bush.Tile}!", LogLevel.Info);
+        Game1.addHUDMessage(new HUDMessage("Critterz hiding nearby - shake the bushes!", 2));
     }
 
     private void OnGameLaunched(object? sender, GameLaunchedEventArgs e)

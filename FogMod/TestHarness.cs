@@ -5,6 +5,7 @@ using StardewModdingAPI.Events;
 using StardewValley;
 using StardewValley.Menus;
 using StardewValley.TerrainFeatures;
+using StardewValley.Tools;
 using Netcode;
 using System;
 using System.Collections.Generic;
@@ -25,7 +26,7 @@ public partial class FogMod : Mod
     private bool testActive;
     private int testPhase;
     private int testPhaseTicks;
-    private readonly List<string> testResults = new();
+    private readonly List<(int Phase, string Line)> testResults = new();
     private int testFailures;
     private string testSaveName = "Tims_452916884";
     private string testResultsPath = "";
@@ -44,7 +45,42 @@ public partial class FogMod : Mod
     private Critterz? testSitterA;
     private Critterz? testRunnerB;
     private Grouse? testGrouseDmg;
-    private const int TestFinishPhase = 15;
+    private Critterz? testMissCritterz;
+    private Grouse? testMissGrouse;
+    private Grouse? testHider;
+    private bool testHideSeenHidden;
+    private bool testHideSeenExposed;
+    private readonly List<Critterz> testSkinCritters = new();
+    private Critterz? testNowhere;
+    private bool testFogResetChecked;
+    private Vector2 testCycleHome;
+    private bool testCycleSawRun;
+    private Vector2 testFlightTree;
+    private bool testFlightSawAir;
+    private const int TestFinishPhase = 24;
+
+    private record TestScenario(string Name, int FirstPhase, int LastPhase);
+    private static readonly TestScenario[] TestScenarios = new TestScenario[]
+    {
+        new("Setup", 0, 2),
+        new("Critter run", 3, 6),
+        new("Critter combat", 7, 9),
+        new("Grouse perch & flight", 10, 15),
+        new("Grouse combat", 16, 16),
+        new("Spawning", 17, 20),
+        new("Systems", 21, 23),
+    };
+    private int testAnnouncedScenario = -1;
+
+    private static int ScenarioForPhase(int phase)
+    {
+        for (int i = 0; i < TestScenarios.Length; i++)
+        {
+            if (phase >= TestScenarios[i].FirstPhase && phase <= TestScenarios[i].LastPhase)
+                return i;
+        }
+        return -1;
+    }
 
     private void InitTestHarness()
     {
@@ -75,13 +111,16 @@ public partial class FogMod : Mod
 
     private void Check(bool cond, string name, string detail = "")
     {
-        testResults.Add(cond ? $"PASS {name}" : $"FAIL {name}: {detail}");
+        string line = cond ? $"PASS {name}" : $"FAIL {name}: {detail}";
+        testResults.Add((testPhase, line));
+        int scenario = ScenarioForPhase(testPhase);
+        string tag = scenario >= 0 ? $"[S{scenario + 1}] " : "";
         if (cond)
-            Monitor.Log($"TEST PASS {name}", LogLevel.Info);
+            Monitor.Log($"TEST {tag}{line}", LogLevel.Info);
         else
         {
             testFailures++;
-            Monitor.Log($"TEST FAIL {name}: {detail}", LogLevel.Error);
+            Monitor.Log($"TEST {tag}{line}", LogLevel.Error);
         }
     }
 
@@ -147,6 +186,17 @@ public partial class FogMod : Mod
         if (!testActive || testPhase > TestFinishPhase)
             return;
         testPhaseTicks++;
+        int scenario = ScenarioForPhase(testPhase);
+        if (scenario != testAnnouncedScenario)
+        {
+            testAnnouncedScenario = scenario;
+            if (scenario >= 0)
+            {
+                var s = TestScenarios[scenario];
+                Monitor.Log($"TEST === Scenario {scenario + 1}/{TestScenarios.Length}: {s.Name} ===", LogLevel.Info);
+                try { Game1.addHUDMessage(new HUDMessage($"Test: {s.Name}", 2)); } catch { }
+            }
+        }
         try
         {
             switch (testPhase)
@@ -157,15 +207,24 @@ public partial class FogMod : Mod
                 case 3: TestSpawn(); break;
                 case 4: TestTrigger(); break;
                 case 5: TestRun(); break;
-                case 6: TestKill(); break;
-                case 7: TestGrouseSpawn(); break;
-                case 8: TestGrouseTrigger(); break;
-                case 9: TestGrouseFlush(); break;
-                case 10: TestGrouseLand(); break;
-                case 11: TestGrouseKill(); break;
-                case 12: TestAuditSpawns(); break;
-                case 13: TestDamageRules(); break;
-                case 14: TestFxAndSnacks(); break;
+                case 6: TestSecondCycle(); break;
+                case 7: TestKill(); break;
+                case 8: TestDamageRules(); break;
+                case 9: TestMissRate(); break;
+                case 10: TestGrouseSpawn(); break;
+                case 11: TestGrouseTrigger(); break;
+                case 12: TestGrouseFlush(); break;
+                case 13: TestGrouseLand(); break;
+                case 14: TestHiding(); break;
+                case 15: TestSecondFlight(); break;
+                case 16: TestGrouseKill(); break;
+                case 17: TestAuditSpawns(); break;
+                case 18: TestSkinSeason(); break;
+                case 19: TestNowhereToRun(); break;
+                case 20: TestLaunchedAndCommands(); break;
+                case 21: TestFxAndSnacks(); break;
+                case 22: TestFog(); break;
+                case 23: TestScattergun(); break;
                 case TestFinishPhase: TestFinish(); break;
             }
         }
@@ -178,7 +237,7 @@ public partial class FogMod : Mod
         }
     }
 
-    // Phase 0: wait for the title screen, then load the test save exactly
+    // wait for the title screen, then load the test save exactly
     // like clicking its slot (SaveFileSlot.Activate).
     private void TestWaitTitle()
     {
@@ -196,7 +255,7 @@ public partial class FogMod : Mod
         }
     }
 
-    // Phase 1: wait for the world.
+    // wait for the world.
     private void TestWaitLoaded()
     {
         if (testPhaseTicks > 10800)
@@ -208,7 +267,7 @@ public partial class FogMod : Mod
             NextPhase();
     }
 
-    // Phase 2: warp to the Forest (bushes everywhere, no farm in the way).
+    // warp to the Forest (bushes everywhere, no farm in the way).
     private void TestWarp()
     {
         if (testPhaseTicks == 1)
@@ -219,7 +278,7 @@ public partial class FogMod : Mod
             GiveUp("warp", "never arrived in Forest");
     }
 
-    // Phase 3: spawn a critter in the nearest usable bush.
+    // spawn a critter in the nearest usable bush.
     private void TestSpawn()
     {
         GameLocation location = Game1.currentLocation;
@@ -238,7 +297,7 @@ public partial class FogMod : Mod
         NextPhase();
     }
 
-    // Phase 4: wrong bush first (must not startle), then the home bush
+    // wrong bush first (must not startle), then the home bush
     // through the real engine path (exercises the Harmony hook).
     private void TestTrigger()
     {
@@ -340,7 +399,7 @@ public partial class FogMod : Mod
         Check(endDist < 2f, "path-endpoint", $"ends {endDist}px from dest bush");
     }
 
-    // Phase 5: wait for arrival at the destination bush.
+    // wait for arrival at the destination bush.
     private void TestRun()
     {
         if (testRunner is not Critterz r)
@@ -360,7 +419,7 @@ public partial class FogMod : Mod
             GiveUp("arrive", $"still running after 60s (waypoints={r.Path?.Count})");
     }
 
-    // Phase 6: loot shape + real engine kill (damageMonster, bomb hitbox).
+    // loot shape + real engine kill (damageMonster, bomb hitbox).
     private void TestKill()
     {
         GameLocation location = Game1.currentLocation;
@@ -410,7 +469,7 @@ public partial class FogMod : Mod
         NextPhase();
     }
 
-    // Phase 7: perch a grouse in a free tree.
+    // perch a grouse in a free tree.
     private void TestGrouseSpawn()
     {
         GameLocation location = Game1.currentLocation;
@@ -442,7 +501,7 @@ public partial class FogMod : Mod
         NextPhase();
     }
 
-    // Phase 8: shake the tree through the real engine path (exercises the
+    // shake the tree through the real engine path (exercises the
     // Harmony hook) and wait for the surprise.
     private void TestGrouseTrigger()
     {
@@ -484,7 +543,7 @@ public partial class FogMod : Mod
             GiveUp("g-trigger", $"still perched (state={g.State})");
     }
 
-    // Phase 9: wait for the flush and its egg drop.
+    // wait for the flush and its egg drop.
     private void TestGrouseFlush()
     {
         GameLocation location = Game1.currentLocation;
@@ -514,7 +573,7 @@ public partial class FogMod : Mod
         }
     }
 
-    // Phase 10: wait for landing at a new tree.
+    // wait for landing at a new tree.
     private void TestGrouseLand()
     {
         if (testFlyer is not Grouse g)
@@ -536,7 +595,7 @@ public partial class FogMod : Mod
             GiveUp("g-land", $"never landed (state={g.State})");
     }
 
-    // Phase 11: snack shape + real engine kill (damageMonster, bomb hitbox).
+    // snack shape + real engine kill (damageMonster, bomb hitbox).
     private void TestGrouseKill()
     {
         GameLocation location = Game1.currentLocation;
@@ -577,11 +636,11 @@ public partial class FogMod : Mod
         NextPhase();
     }
 
-    // Phase 12: audit every auto-spawned animal in every outdoor location:
+    // audit every auto-spawned animal in every outdoor location:
     // valid homes, reachable exits, caps, banned locations.
     private void TestAuditSpawns()
     {
-        int badBush = 0, badReach = 0, critterzOver = 0, bannedCritterz = 0, badTree = 0, grouseOver = 0;
+        int badBush = 0, badReach = 0, critterzOver = 0, bannedCritterz = 0, badTree = 0, badTreeLegal = 0, grouseOver = 0;
         foreach (GameLocation loc in Game1.locations.Where(l => l.IsOutdoors))
         {
             List<Critterz> critters = loc.characters.OfType<Critterz>().Where(r => !testCritters.Contains(r)).ToList();
@@ -603,8 +662,10 @@ public partial class FogMod : Mod
                 grouseOver++;
             foreach (Grouse g in grouse)
             {
-                if (TreeHelper.GetTreeFromId(loc, g.TreePosition) is not Tree)
+                if (TreeHelper.GetTreeFromId(loc, g.TreePosition) is not Tree tree)
                     badTree++;
+                else if (!TreeHelper.GetLegalTree(tree))
+                    badTreeLegal++;
             }
         }
         Check(badBush == 0, "audit-critterz-bushes", $"{badBush} homed at non-bushes");
@@ -612,11 +673,12 @@ public partial class FogMod : Mod
         Check(critterzOver == 0, "audit-critterz-cap", $"{critterzOver} locations over cap");
         Check(bannedCritterz == 0, "audit-critterz-banned", $"{bannedCritterz} on farm/desert");
         Check(badTree == 0, "audit-grouse-trees", $"{badTree} perched at non-trees");
+        Check(badTreeLegal == 0, "audit-grouse-legal", $"{badTreeLegal} on illegal trees");
         Check(grouseOver == 0, "audit-grouse-cap", $"{grouseOver} locations over cap");
         NextPhase();
     }
 
-    // Phase 13: damage rules per state and weapon.
+    // damage rules per state and weapon.
     private void TestDamageRules()
     {
         GameLocation location = Game1.currentLocation;
@@ -686,7 +748,7 @@ public partial class FogMod : Mod
         NextPhase();
     }
 
-    // Phase 14: bush fx helper, flush snacks, off-location predicate.
+    // bush fx helper, flush snacks, off-location predicate.
     private void TestFxAndSnacks()
     {
         GameLocation location = Game1.currentLocation;
@@ -725,14 +787,442 @@ public partial class FogMod : Mod
         NextPhase();
     }
 
-    // Phase 15: report and exit without saving.
+    // S1: second full cycle on the same critter.
+    private void TestSecondCycle()
+    {
+        GameLocation location = Game1.currentLocation;
+        if (testRunner is not Critterz r)
+        {
+            GiveUp("cycle2", "no test runner");
+            return;
+        }
+        if (testPhaseTicks == 1)
+        {
+            if (r.State != CritterzState.Sitting)
+            {
+                GiveUp("cycle2", $"runner not sitting (state={r.State})");
+                return;
+            }
+            testCycleHome = r.HomeBush;
+            testCycleSawRun = false;
+            Bush? bush = BushHelper.GetAvailableBushes(location).FirstOrDefault(b => b.Tile == r.HomeBush);
+            if (bush == null)
+            {
+                GiveUp("cycle2", "home bush missing");
+                return;
+            }
+            bush.shake(bush.Tile, true);
+            SnapCam(r.Position);
+            return;
+        }
+        if (r.State == CritterzState.Running && r.Path != null)
+            testCycleSawRun = true;
+        TrackCam(r.Position);
+        if (testCycleSawRun && r.State == CritterzState.Sitting)
+        {
+            Check(r.HomeBush != testCycleHome, "cycle2-home", $"home={r.HomeBush} (unchanged)");
+            Check(r.modData.ContainsKey("Junimatic.NotScary"), "notscary-critterz", "modData missing");
+            NextPhase();
+        }
+        else if (testPhaseTicks > 4200)
+            GiveUp("cycle2", $"stuck (state={r.State}, sawRun={testCycleSawRun})");
+    }
+
+    // S2: miss rate over 200 rolls per species (healed between hits).
+    private void TestMissRate()
+    {
+        GameLocation location = Game1.currentLocation;
+        if (testPhaseTicks == 1)
+        {
+            Bush? bush = NearestReachableBush(location, Game1.player.Tile);
+            if (bush == null)
+            {
+                GiveUp("miss", "no bush");
+                return;
+            }
+            testMissCritterz = SpawnCritterz(location, bush.Tile, false, bush.Tile);
+            testCritters.Add(testMissCritterz);
+            TriggerCritterz(testMissCritterz);
+            SnapCam(testMissCritterz.Position);
+        }
+        if (testMissCritterz is not Critterz b)
+        {
+            GiveUp("miss", "missing critterz");
+            return;
+        }
+        if (b.State != CritterzState.Running || b.Path == null)
+        {
+            if (testPhaseTicks > 600)
+                GiveUp("miss", "runner never ran");
+            return;
+        }
+        int hits = 0;
+        for (int i = 0; i < 200; i++)
+        {
+            b.Health = Constants.CritterzMaxHealth;
+            if (b.takeDamage(1, 0, 0, true, 0.0, Game1.player) != -1)
+                hits++;
+        }
+        Check(hits >= 160 && hits <= 195, "miss-rate", $"{hits}/200 hit");
+        Tree? tree = TreeHelper.GetAvailableTreePositions(location).FirstOrDefault();
+        if (tree == null || GetNPCsAtCurrentLocation() is not NetCollection<NPC> npc)
+        {
+            GiveUp("miss", "no tree");
+            return;
+        }
+        testMissGrouse = SpawnGrouse(npc, TreeHelper.GetTreePosition(tree),
+            TreeHelper.GetGrouseSpawnPosition(tree), location, null, false);
+        testGrouse.Add(testMissGrouse);
+        testMissGrouse.State = GrouseState.Flying;
+        int ghits = 0;
+        for (int i = 0; i < 200; i++)
+        {
+            testMissGrouse.Health = Constants.GrouseMaxHealth;
+            if (testMissGrouse.takeDamage(1, 0, 0, true, 0.0, Game1.player) != -1)
+                ghits++;
+        }
+        Check(ghits >= 160 && ghits <= 195, "miss-rate-grouse", $"{ghits}/200 hit");
+        NextPhase();
+    }
+
+    // S3: perched grouse cycles between hidden and exposed.
+    private void TestHiding()
+    {
+        GameLocation location = Game1.currentLocation;
+        if (testPhaseTicks == 1)
+        {
+            if (GetNPCsAtCurrentLocation() is not NetCollection<NPC> npc)
+            {
+                GiveUp("hiding", "no NPC list");
+                return;
+            }
+            Tree? tree = TreeHelper.GetAvailableTreePositions(location).FirstOrDefault();
+            if (tree == null)
+            {
+                GiveUp("hiding", "no tree");
+                return;
+            }
+            testHider = SpawnGrouse(npc, TreeHelper.GetTreePosition(tree),
+                TreeHelper.GetGrouseSpawnPosition(tree), location, null, false);
+            testGrouse.Add(testHider);
+            testHideSeenHidden = false;
+            testHideSeenExposed = false;
+            SnapCam(testHider.Position);
+        }
+        if (testHider is not Grouse g)
+        {
+            GiveUp("hiding", "no hider");
+            return;
+        }
+        testHideSeenHidden |= g.IsHiding;
+        testHideSeenExposed |= !g.IsHiding;
+        if (testHideSeenHidden && testHideSeenExposed)
+        {
+            Check(true, "hiding-cycles");
+            NextPhase();
+        }
+        else if (testPhaseTicks > 3600)
+            GiveUp("hiding-cycles", $"hidden={testHideSeenHidden} exposed={testHideSeenExposed}");
+    }
+
+    // S3: second full flight on the same grouse.
+    private void TestSecondFlight()
+    {
+        GameLocation location = Game1.currentLocation;
+        if (testFlyer is not Grouse g)
+        {
+            GiveUp("flight2", "no test grouse");
+            return;
+        }
+        if (testPhaseTicks == 1)
+        {
+            if (g.State != GrouseState.Perched)
+            {
+                GiveUp("flight2", $"grouse not perched (state={g.State})");
+                return;
+            }
+            testFlightTree = g.TreePosition;
+            testFlightSawAir = false;
+            if (TreeHelper.GetTreeFromId(location, g.TreePosition) is not Tree tree)
+            {
+                GiveUp("flight2", "home tree missing");
+                return;
+            }
+            tree.shake(tree.Tile, true);
+            SnapCam(g.Position);
+            return;
+        }
+        if (g.State != GrouseState.Perched)
+            testFlightSawAir = true;
+        TrackCam(g.Position);
+        if (testFlightSawAir && g.State == GrouseState.Perched)
+        {
+            Check(g.TreePosition != testFlightTree, "flight2-tree", $"tree={g.TreePosition} (unchanged)");
+            Check(g.modData.ContainsKey("Junimatic.NotScary"), "notscary-grouse", "modData missing");
+            NextPhase();
+        }
+        else if (testPhaseTicks > 4200)
+            GiveUp("flight2", $"stuck (state={g.State}, sawAir={testFlightSawAir})");
+    }
+
+    // S5: bunny skin follows the season; proximity alone never startles.
+    private void TestSkinSeason()
+    {
+        GameLocation location = Game1.currentLocation;
+        if (testPhaseTicks == 1)
+        {
+            Bush? bush = NearestReachableBush(location, Game1.player.Tile);
+            if (bush == null)
+            {
+                GiveUp("skin", "no bush");
+                return;
+            }
+            string savedSeason = Game1.currentSeason;
+            try
+            {
+                Game1.currentSeason = "winter";
+                if (!location.IsWinterHere())
+                {
+                    GiveUp("skin", "location not winter in winter");
+                    return;
+                }
+                List<int> winterSkins = new();
+                for (int i = 0; i < 30; i++)
+                {
+                    Critterz c = SpawnCritterz(location, bush.Tile, false, bush.Tile);
+                    winterSkins.Add(c.Skin);
+                    testSkinCritters.Add(c);
+                }
+                Check(!winterSkins.Contains(Constants.GreyBunnyRow), "skin-winter-no-grey",
+                    $"skins=[{string.Join(",", winterSkins)}]");
+                Check(winterSkins.Contains(Constants.WhiteBunnyRow), "skin-winter-white", "no white bunny in 30");
+                Game1.currentSeason = savedSeason;
+                List<int> mildSkins = new();
+                for (int i = 0; i < 30; i++)
+                {
+                    Critterz c = SpawnCritterz(location, bush.Tile, false, bush.Tile);
+                    mildSkins.Add(c.Skin);
+                    testSkinCritters.Add(c);
+                }
+                Check(!mildSkins.Contains(Constants.WhiteBunnyRow), "skin-mild-no-white",
+                    $"skins=[{string.Join(",", mildSkins)}]");
+                Check(mildSkins.Contains(Constants.GreyBunnyRow), "skin-mild-grey", "no grey bunny in 30");
+                var all = winterSkins.Concat(mildSkins).ToList();
+                Check(all.Contains(Constants.SquirrelRow) && all.Contains(Constants.RaccoonRow), "skin-variety",
+                    "missing squirrel or raccoon in 60");
+            }
+            finally
+            {
+                Game1.currentSeason = savedSeason;
+            }
+            Game1.player.Position = bush.Tile * Game1.tileSize + new Vector2(32f, 32f);
+            SnapCam(bush.Tile * Game1.tileSize + new Vector2(32f, 32f));
+        }
+        if (testPhaseTicks >= 300)
+        {
+            Check(testSkinCritters.All(c => c.State == CritterzState.Sitting), "no-proximity",
+                $"{testSkinCritters.Count(c => c.State != CritterzState.Sitting)} emerged unprovoked");
+            NextPhase();
+        }
+    }
+
+    // S5: every bush occupied means ducking back silently.
+    private void TestNowhereToRun()
+    {
+        GameLocation location = Game1.currentLocation;
+        if (testPhaseTicks == 1)
+        {
+            List<Bush> bushes = BushHelper.GetAvailableBushes(location);
+            if (bushes.Count == 0)
+            {
+                GiveUp("nowhere", "no bushes");
+                return;
+            }
+            Bush home = NearestReachableBush(location, Game1.player.Tile) ?? bushes[0];
+            foreach (Bush b in bushes)
+                SpawnCritterz(location, b.Tile, false, b.Tile);
+            testNowhere = SpawnCritterz(location, home.Tile, false, home.Tile);
+            TriggerCritterz(testNowhere);
+            SnapCam(home.Tile * Game1.tileSize + new Vector2(32f, 32f));
+            return;
+        }
+        if (testNowhere is not Critterz v)
+        {
+            GiveUp("nowhere", "no victim");
+            return;
+        }
+        if (v.State == CritterzState.Running && v.Path != null)
+        {
+            GiveUp("nowhere-ducked", "ran despite full bushes");
+            return;
+        }
+        if (v.State == CritterzState.Sitting && v.Path == null && testPhaseTicks > 10)
+        {
+            Check(v.DestBush == null, "nowhere-no-dest", $"dest={v.DestBush}");
+            Check(true, "nowhere-ducked");
+            NextPhase();
+        }
+        else if (testPhaseTicks > 240)
+            GiveUp("nowhere", "stuck");
+    }
+
+    // S5: launched grouse carry no drops; debug commands work.
+    private void TestLaunchedAndCommands()
+    {
+        GameLocation location = Game1.currentLocation;
+        if (GetNPCsAtCurrentLocation() is not NetCollection<NPC> npc)
+        {
+            GiveUp("launched", "no NPC list");
+            return;
+        }
+        Tree? tree = TreeHelper.GetAvailableTreePositions(location).FirstOrDefault();
+        if (tree == null)
+        {
+            GiveUp("launched", "no tree");
+            return;
+        }
+        Grouse launched = SpawnGrouse(npc, TreeHelper.GetTreePosition(tree),
+            TreeHelper.GetGrouseSpawnPosition(tree), location, null, true);
+        Check(launched.InitialObjectToDrop.Count == 0 && launched.ObjectToDrop.Count == 0, "launched-no-drops",
+            $"eggs={launched.InitialObjectToDrop.Count} snacks={launched.ObjectToDrop.Count}");
+        int critBefore = location.characters.OfType<Critterz>().Count();
+        SpawnDebugCritterz();
+        Check(location.characters.OfType<Critterz>().Count() == critBefore + 1, "cmd-spawn-critterz", "no critterz spawned");
+        int grouseBefore = location.characters.OfType<Grouse>().Count();
+        SpawnDebugGrouse();
+        Check(location.characters.OfType<Grouse>().Count() == grouseBefore + 1, "cmd-spawn-grouse", "no grouse spawned");
+        NextPhase();
+    }
+
+    // S6: fog forecast, season table, config gates, warp reset.
+    private void TestFog()
+    {
+        GameLocation location = Game1.currentLocation;
+        if (testPhaseTicks == 1)
+        {
+            var f1 = ComputeFogForecast(100);
+            var f2 = ComputeFogForecast(100);
+            Check(f1.IsFogDay == f2.IsFogDay && f1.DailyFogStrength == f2.DailyFogStrength
+                && f1.ProbabilityOfFogForADay == f2.ProbabilityOfFogForADay
+                && f1.ProbabilityOfFogRoll == f2.ProbabilityOfFogRoll, "fog-forecast-deterministic", "same input diverged");
+            Check(f1.ProbabilityOfFogRoll >= 0f && f1.ProbabilityOfFogRoll <= 1f
+                && f1.ProbabilityOfFogForADay >= 0f && f1.ProbabilityOfFogForADay <= 1f
+                && f1.DailyFogStrength >= Constants.DailyRandomFogMin
+                && f1.DailyFogStrength <= Constants.DailyRandomFogMax, "fog-forecast-bounds", "out of range");
+            string savedSeason = Game1.currentSeason;
+            try
+            {
+                Game1.currentSeason = "spring";
+                float spring = ComputeProbabilityOfFogForADay();
+                Game1.currentSeason = "summer";
+                float summer = ComputeProbabilityOfFogForADay();
+                Game1.currentSeason = "fall";
+                float fall = ComputeProbabilityOfFogForADay();
+                Game1.currentSeason = "winter";
+                float winter = ComputeProbabilityOfFogForADay();
+                Game1.currentSeason = "void";
+                float def = ComputeProbabilityOfFogForADay();
+                Check(spring == 0.05f && summer == 0.1f && fall == 0.2f && winter == 0.18f && def == 0.08f,
+                    "fog-season-table", $"s={spring} su={summer} f={fall} w={winter} d={def}");
+            }
+            finally
+            {
+                Game1.currentSeason = savedSeason;
+            }
+            bool enableFog = Config.EnableFog, enableBank = Config.EnableFogBank, enableDaily = Config.EnableDailyRandomFog;
+            try
+            {
+                Config.EnableFog = false;
+                Config.EnableFogBank = false;
+                InitializeDailyFogStrength();
+                Check(!isFogDay, "fog-config-off", "fog day with fog disabled");
+                Config.EnableFog = true;
+                Config.EnableFogBank = true;
+                Config.EnableDailyRandomFog = false;
+                InitializeDailyFogStrength();
+                Check(isFogDay, "fog-config-always", "no fog day with randomness off");
+            }
+            finally
+            {
+                Config.EnableFog = enableFog;
+                Config.EnableFogBank = enableBank;
+                Config.EnableDailyRandomFog = enableDaily;
+                InitializeDailyFogStrength();
+            }
+            Game1.warpFarmer("FarmHouse", 5, 5, false);
+            return;
+        }
+        if (Game1.currentLocation?.NameOrUniqueName == "FarmHouse" && !testFogResetChecked)
+        {
+            testFogResetChecked = true;
+            Check(floatingParticles.Count == 0, "fog-reset-particles", $"count={floatingParticles.Count}");
+            Check(explosionSmokeParticles.Count == 0, "fog-reset-smoke", $"count={explosionSmokeParticles.Count}");
+            Check(TreeHelper.leaves.Count == 0, "fog-reset-leaves", $"count={TreeHelper.leaves.Count}");
+            Game1.warpFarmer("Forest", 50, 30, false);
+            return;
+        }
+        if (testFogResetChecked && Game1.currentLocation?.NameOrUniqueName == "Forest")
+            NextPhase();
+        else if (testPhaseTicks > 1500)
+            GiveUp("fog", "warp stuck");
+    }
+
+    // S6: scattergun fire through the real engine path.
+    private void TestScattergun()
+    {
+        GameLocation location = Game1.currentLocation;
+        SnapCam(Game1.player.Position);
+        GiveScattergunToPlayer();
+        Slingshot? gun = Game1.player.Items.OfType<Slingshot>().FirstOrDefault(s => IsScattergunId(s.ItemId));
+        if (gun == null)
+        {
+            GiveUp("scatter-give", "not in inventory (full?)");
+            return;
+        }
+        Check(true, "scatter-give");
+        gun.attachments[0] = new StardewValley.Object("390", 10);
+        gun.aimPos.Value = new Point(1000, 500);
+        gun.pullStartTime = Game1.currentGameTime.TotalGameTime.TotalSeconds - 5.0;
+        int projBefore = location.projectiles.Count;
+        int flashBefore = explosionFlashInfos.Count;
+        int smokeBefore = explosionSmokeParticles.Count;
+        gun.PerformFire(location, Game1.player);
+        int expectPellets = Config.MultiSlingShotPellets ? Constants.GrouseRewardItemMaxPellets : 1;
+        Check(location.projectiles.Count == projBefore + expectPellets, "scatter-pellets",
+            $"fired {location.projectiles.Count - projBefore}, expected {expectPellets}");
+        Check(gun.attachments[0] != null && gun.attachments[0].Stack == 10 - expectPellets, "scatter-ammo",
+            $"stack={gun.attachments[0]?.Stack}");
+        Check(explosionFlashInfos.Count == flashBefore + 1, "scatter-flash",
+            $"flashes grew by {explosionFlashInfos.Count - flashBefore}");
+        Check(explosionSmokeParticles.Count == smokeBefore + ScattergunConfig.SmokeCount, "scatter-smoke",
+            $"smoke grew by {explosionSmokeParticles.Count - smokeBefore}");
+        gun.pullStartTime = Game1.currentGameTime.TotalGameTime.TotalSeconds;
+        int proj2 = location.projectiles.Count, flash2 = explosionFlashInfos.Count, smoke2 = explosionSmokeParticles.Count;
+        int ammoBefore = gun.attachments[0]?.Stack ?? -1;
+        gun.PerformFire(location, Game1.player);
+        Check(location.projectiles.Count == proj2 && explosionFlashInfos.Count == flash2
+            && explosionSmokeParticles.Count == smoke2 && (gun.attachments[0]?.Stack ?? -2) == ammoBefore,
+            "scatter-uncharged-noop", "uncharged shot had effects");
+        NextPhase();
+    }
+
+    // report by scenario and exit without saving.
     private void TestFinish()
     {
         testPhase = 99; // run once
-        testResults.Add($"RESULT: PASS {testResults.Count(r => r.StartsWith("PASS"))} FAIL {testFailures}");
+        var lines = new List<string>();
+        for (int i = 0; i < TestScenarios.Length; i++)
+        {
+            var checks = testResults.Where(r => ScenarioForPhase(r.Phase) == i).ToList();
+            int passed = checks.Count(r => r.Line.StartsWith("PASS"));
+            lines.Add($"## Scenario {i + 1}/{TestScenarios.Length}: {TestScenarios[i].Name} ({passed}/{checks.Count})");
+            lines.AddRange(checks.Select(r => r.Line));
+        }
+        int totalPass = testResults.Count(r => r.Line.StartsWith("PASS"));
+        lines.Add($"RESULT: PASS {totalPass} FAIL {testFailures}");
         try
         {
-            File.WriteAllLines(testResultsPath, testResults);
+            File.WriteAllLines(testResultsPath, lines);
             Monitor.Log($"TEST wrote {testResultsPath}", LogLevel.Info);
         }
         catch (Exception ex)
@@ -740,7 +1230,7 @@ public partial class FogMod : Mod
             Monitor.Log($"TEST could not write results: {ex.Message}", LogLevel.Error);
             testFailures++;
         }
-        foreach (string line in testResults)
+        foreach (string line in lines)
             Monitor.Log($"TEST {line}", testFailures > 0 ? LogLevel.Error : LogLevel.Info);
         Environment.Exit(testFailures > 0 ? 1 : 0);
     }
