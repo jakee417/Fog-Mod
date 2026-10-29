@@ -11,11 +11,13 @@
 #   ./run_headless_test.sh                     # default save, 7 min timeout
 #   HEADLESS_SAVE=pickles_434696114 ./run_headless_test.sh
 #   HEADLESS_TIMEOUT=600 ./run_headless_test.sh
+#   ./run_headless_test.sh --watch             # visible window, watch it play
 #
 # Env overrides: STEAM_ROOT, GAME_DIR, PROTON_VERSION, PROTON_EXE (full path
 # to a proton script, wins over PROTON_VERSION), HEADLESS_PREFIX,
 # HEADLESS_MODS_PATH (Windows-style, e.g. 'Z:\tmp\headless-mods'),
-# HEADLESS_SAVE, HEADLESS_TIMEOUT (seconds).
+# HEADLESS_SAVE, HEADLESS_TIMEOUT (seconds), HEADLESS_RESULTS_LIN (results
+# file, Linux path), HEADLESS_WATCH=1 (same as --watch).
 
 set -u
 
@@ -27,8 +29,10 @@ PREFIX="${HEADLESS_PREFIX:-$STEAM_ROOT/steamapps/compatdata/$APP_ID}"
 MODS_PATH="${HEADLESS_MODS_PATH:-}"
 SAVE="${HEADLESS_SAVE:-Foggy_418804507}"
 TIMEOUT="${HEADLESS_TIMEOUT:-420}"
-RESULTS_LIN="/tmp/fogmod-test-results.txt"
-RESULTS_WIN='Z:\tmp\fogmod-test-results.txt'
+RESULTS_LIN="${HEADLESS_RESULTS_LIN:-/tmp/fogmod-test-results.txt}"
+RESULTS_WIN="Z:$(echo "$RESULTS_LIN" | sed 's|/|\\|g')"
+WATCH="${HEADLESS_WATCH:-0}"
+[ "${1:-}" = "--watch" ] && WATCH=1
 
 PROTON="${PROTON_EXE:-$STEAM_ROOT/steamapps/common/$PROTON_VERSION/proton}"
 EXE="$GAME_DIR/Stardew Valley.exe"
@@ -60,11 +64,16 @@ echo "---"
 
 cd "$GAME_DIR" || exit 1
 if [ -n "$MODS_PATH" ]; then
-    timeout "$TIMEOUT" xvfb-run -a -s "-screen 0 1280x720x24" \
-        "$PROTON" run "$EXE" --mods-path "$MODS_PATH" > /tmp/fogmod-headless-console.log 2>&1
+    set -- "$PROTON" run "$EXE" --mods-path "$MODS_PATH"
+else
+    set -- "$PROTON" run "$EXE"
+fi
+if [ "$WATCH" = "1" ]; then
+    echo "(visible window - sit back)"
+    timeout "$TIMEOUT" "$@" > /tmp/fogmod-headless-console.log 2>&1
 else
     timeout "$TIMEOUT" xvfb-run -a -s "-screen 0 1280x720x24" \
-        "$PROTON" run "$EXE" > /tmp/fogmod-headless-console.log 2>&1
+        "$@" > /tmp/fogmod-headless-console.log 2>&1
 fi
 game_exit=$?
 
