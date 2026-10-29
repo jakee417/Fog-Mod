@@ -285,17 +285,59 @@ public partial class FogMod : Mod
             NextPhase();
     }
 
-    // warp to Backwoods: a small map, so distance-weighted destinations
-    // stay near (in Forest's 99x82 spread, critter runs and grouse flights
-    // crossed the whole map).
+    // Backwoods is the test sandbox: TestPinLayout rewrites it to a
+    // pinned feature set first (one walkable region, fixed counts), so
+    // the suite never depends on Tim's save contents, then we warp there.
     private void TestWarp()
     {
         if (testPhaseTicks == 1)
+        {
+            if (!TestPinLayout())
+                return;
             Game1.warpFarmer("Backwoods", 27, 11, false);
+        }
         if (Game1.currentLocation?.NameOrUniqueName == "Backwoods")
             NextPhase();
         else if (testPhaseTicks > 600)
             GiveUp("warp", "never arrived in Backwoods");
+    }
+
+    // Rewrite Backwoods to a pinned feature set before the warp, so the
+    // suite is independent of Tim's save contents. Bushes: 12 tiles in the
+    // northern band, the map's one walkable region for this warp — the
+    // southern bushes sit across a wall, and far-weighted picks there were
+    // the miss-rate flake (all 3 tries landing unreachable). Trees: 8 tight
+    // tiles, covering every test grouse alive at once with margin. All
+    // subjects here are wild (no test subject exists yet), so clearing them
+    // is safe; the warp then respawns wild critters into the pinned bushes.
+    private bool TestPinLayout()
+    {
+        GameLocation? backwoods = Game1.getLocationFromName("Backwoods");
+        if (backwoods == null || backwoods.largeTerrainFeatures == null || backwoods.terrainFeatures == null)
+        {
+            GiveUp("pin", "Backwoods not loaded");
+            return false;
+        }
+        backwoods.characters.RemoveWhere(p => p is Critterz or Grouse);
+        foreach (LargeTerrainFeature f in backwoods.largeTerrainFeatures.Where(f => f is Bush).ToList())
+            backwoods.largeTerrainFeatures.Remove(f);
+        foreach (Vector2 tile in backwoods.terrainFeatures.Pairs.Where(p => p.Value is Tree).Select(p => p.Key).ToList())
+            backwoods.terrainFeatures.Remove(tile);
+        Vector2[] bushTiles = { new Vector2(16, 10), new Vector2(16, 11), new Vector2(20, 9), new Vector2(22, 8), new Vector2(26, 8), new Vector2(28, 16), new Vector2(31, 9), new Vector2(31, 17), new Vector2(34, 15), new Vector2(34, 17), new Vector2(36, 11), new Vector2(37, 16) };
+        foreach (Vector2 tile in bushTiles)
+            backwoods.largeTerrainFeatures.Add(new Bush(tile, 1, backwoods));
+        Vector2[] treeTiles = { new Vector2(24, 10), new Vector2(32, 16), new Vector2(18, 12), new Vector2(22, 13), new Vector2(26, 14), new Vector2(30, 13), new Vector2(34, 12), new Vector2(38, 13) };
+        foreach (Vector2 tile in treeTiles)
+        {
+            // 1.6 Tree takes (type, growthStage); "3" is pine (leafy in
+            // every season), 5 is fully grown.
+            Tree tree = new Tree("3", 5);
+            tree.Tile = tile;
+            backwoods.terrainFeatures.Add(tile, tree);
+        }
+        ClearReachabilityCache();
+        TreeHelper.ClearCache();
+        return true;
     }
 
     // spawn a critter in the nearest usable bush.
@@ -626,9 +668,8 @@ public partial class FogMod : Mod
                 GiveUp("g-kill", "no NPC list");
                 return;
             }
-            // Backwoods has only 3 trees: free the hider's tree (its
-            // hiding-cycles check already passed) so the victim has
-            // somewhere to spawn.
+            // Free the hider's tree (its hiding-cycles check already
+            // passed) so the victim always has a spawn tree.
             if (testHider is Grouse hider)
                 location.characters.Remove(hider);
             var occupied = location.characters.OfType<Grouse>().Select(g => g.TreePosition).ToHashSet();
