@@ -345,6 +345,12 @@ public partial class FogMod : Mod
         }
         else if (testPhaseTicks > 600)
             GiveUp("g-flush", $"never flushed (state={g.State})");
+        else
+        {
+            // Rolling baseline: old debris expires or gets vacuumed up while
+            // we wait out the surprise, so compare against last tick.
+            testGrouseDebrisBefore = location.debris.Count;
+        }
     }
 
     // Phase 10: wait for landing at a new tree.
