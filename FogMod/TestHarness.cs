@@ -27,7 +27,7 @@ public partial class FogMod : Mod
     private int testPhaseTicks;
     private readonly List<string> testResults = new();
     private int testFailures;
-    private string testSaveName = "Foggy_418804507";
+    private string testSaveName = "Tims_452916884";
     private string testResultsPath = "";
     private Critterz? testRunner;
     private Critterz? testVictim;
@@ -69,6 +69,13 @@ public partial class FogMod : Mod
     {
         testPhase++;
         testPhaseTicks = 0;
+    }
+
+    // Frame the action for watch mode (the camera follows the player). Safe:
+    // nothing past spawn depends on where the player stands.
+    private void Follow(Vector2 pixelPos)
+    {
+        Game1.player.Position = pixelPos;
     }
 
     private void GiveUp(string name, string detail)
@@ -165,6 +172,7 @@ public partial class FogMod : Mod
         Check(testRunner.State == CritterzState.Sitting, "spawn-sitting", $"state={testRunner.State}");
         Check(testRunner.Skin >= 0 && testRunner.Skin <= 3, "spawn-skin", $"skin={testRunner.Skin}");
         Check(testRunner.HomeBush == bush.Tile, "spawn-homebush", $"home={testRunner.HomeBush} bush={bush.Tile}");
+        Follow(testRunner.Position);
         NextPhase();
     }
 
@@ -188,6 +196,7 @@ public partial class FogMod : Mod
             }
             testLeavesBefore = TreeHelper.leaves.Count;
             bush.shake(bush.Tile, true);
+            Follow(r.Position);
         }
         if (r.State == CritterzState.Running && r.Path != null)
         {
@@ -211,6 +220,8 @@ public partial class FogMod : Mod
             GiveUp("arrive", "no test runner");
             return;
         }
+        if (testPhaseTicks % 30 == 0)
+            Follow(r.Position);
         if (r.State == CritterzState.Sitting)
         {
             Check(r.HomeBush == testDestBush, "arrive-homebush", $"home={r.HomeBush} dest={testDestBush}");
@@ -238,6 +249,7 @@ public partial class FogMod : Mod
             }
             testVictim = SpawnCritterz(location, bush.Tile, false, bush.Tile);
             TriggerCritterz(testVictim);
+            Follow(testVictim.Position);
         }
         if (testVictim is not Critterz v)
         {
@@ -259,6 +271,7 @@ public partial class FogMod : Mod
         };
         List<string> loot = v.ObjectToDrop;
         Check(loot.All(id => pool.Contains(id)), "kill-loot-shape", $"skin={v.Skin} loot=[{string.Join(",", loot)}]");
+        Follow(v.Position);
         // Real kill through the engine (retry: 10% miss chance).
         int debrisBefore = location.debris.Count;
         for (int i = 0; i < 25 && v.Health > 0; i++)
@@ -296,6 +309,7 @@ public partial class FogMod : Mod
         Check(testFlyer.InitialObjectToDrop.All(id => eggs.Contains(id)), "g-spawn-eggs",
             $"eggs=[{string.Join(",", testFlyer.InitialObjectToDrop)}]");
         testGrouseDebrisBefore = location.debris.Count;
+        Follow(testFlyer.Position);
         NextPhase();
     }
 
@@ -317,6 +331,7 @@ public partial class FogMod : Mod
                 return;
             }
             tree.shake(tree.Tile, true);
+            Follow(g.Position);
         }
         if (g.State == GrouseState.Surprised || g.State == GrouseState.Flushing || g.State == GrouseState.Flying)
             NextPhase();
@@ -333,6 +348,8 @@ public partial class FogMod : Mod
             GiveUp("g-flush", "no test grouse");
             return;
         }
+        if (testPhaseTicks % 30 == 0)
+            Follow(g.Position);
         if (g.State == GrouseState.Flushing || g.State == GrouseState.Flying || g.State == GrouseState.Landing
             || (g.State == GrouseState.Perched && g.TreePosition != testGrouseStartTree))
         {
@@ -361,6 +378,8 @@ public partial class FogMod : Mod
             GiveUp("g-land", "no test grouse");
             return;
         }
+        if (testPhaseTicks % 30 == 0)
+            Follow(g.Position);
         if (g.State == GrouseState.Perched)
         {
             Check(g.TreePosition != testGrouseStartTree, "g-land-newtree",
@@ -396,6 +415,7 @@ public partial class FogMod : Mod
             testGrouseVictim = SpawnGrouse(npc, TreeHelper.GetTreePosition(tree),
                 TreeHelper.GetGrouseSpawnPosition(tree), location, null, false);
             testGrouseVictim.State = GrouseState.Flying;
+            Follow(testGrouseVictim.Position);
         }
         if (testGrouseVictim is not Grouse v)
         {
