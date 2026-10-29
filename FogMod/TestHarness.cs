@@ -285,15 +285,17 @@ public partial class FogMod : Mod
             NextPhase();
     }
 
-    // warp to the Forest (bushes everywhere, no farm in the way).
+    // warp to Backwoods: a small map, so distance-weighted destinations
+    // stay near (in Forest's 99x82 spread, critter runs and grouse flights
+    // crossed the whole map).
     private void TestWarp()
     {
         if (testPhaseTicks == 1)
-            Game1.warpFarmer("Forest", 50, 30, false);
-        if (Game1.currentLocation?.NameOrUniqueName == "Forest")
+            Game1.warpFarmer("Backwoods", 27, 11, false);
+        if (Game1.currentLocation?.NameOrUniqueName == "Backwoods")
             NextPhase();
         else if (testPhaseTicks > 600)
-            GiveUp("warp", "never arrived in Forest");
+            GiveUp("warp", "never arrived in Backwoods");
     }
 
     // spawn a critter in the nearest usable bush.
@@ -303,7 +305,7 @@ public partial class FogMod : Mod
         Bush? bush = NearestReachableBush(location, Game1.player.Tile);
         if (bush == null)
         {
-            GiveUp("spawn", "no reachable bush in Forest");
+            GiveUp("spawn", "no reachable bush in Backwoods");
             return;
         }
         testRunner = SpawnCritterz(location, bush.Tile, false, bush.Tile);
@@ -501,7 +503,7 @@ public partial class FogMod : Mod
             .FirstOrDefault(t => !occupied.Contains(TreeHelper.GetTreePosition(t)));
         if (tree == null)
         {
-            GiveUp("g-spawn", "no free tree in Forest");
+            GiveUp("g-spawn", "no free tree in Backwoods");
             return;
         }
         testGrouseStartTree = TreeHelper.GetTreePosition(tree);
@@ -624,6 +626,11 @@ public partial class FogMod : Mod
                 GiveUp("g-kill", "no NPC list");
                 return;
             }
+            // Backwoods has only 3 trees: free the hider's tree (its
+            // hiding-cycles check already passed) so the victim has
+            // somewhere to spawn.
+            if (testHider is Grouse hider)
+                location.characters.Remove(hider);
             var occupied = location.characters.OfType<Grouse>().Select(g => g.TreePosition).ToHashSet();
             Tree? tree = TreeHelper.GetAvailableTreePositions(location)
                 .FirstOrDefault(t => !occupied.Contains(TreeHelper.GetTreePosition(t)));
