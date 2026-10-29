@@ -295,6 +295,18 @@ public partial class FogMod : Mod
             PlayCritterzBushFx(location, bush);
             Utils.Multiplayer.SendMessage(new CritterzBushFxInfo(location.NameOrUniqueName, bush.Tile));
         }
+        DropCritterzSnacks(r, location);
+    }
+
+    // Flush snacks, grouse-egg style: what the critter was nibbling. Single
+    // snack at a flat chance per burst (bursts repeat, so no luck scaling).
+    private static void DropCritterzSnacks(Critterz r, GameLocation location)
+    {
+        if (FogMod.Random.NextDouble() >= Constants.CritterzSnackChance)
+            return;
+        Bush? bush = BushHelper.GetNearestBushWithFruitToTile(location, r.TilePosition);
+        string snack = bush?.GetShakeOffItem() ?? "309"; // else acorn
+        Utilities.CreateItemDrop(r.Position, location, snack, 1, Game1.random.Next(4));
     }
 
     private void ArriveCritterz(Critterz r, GameLocation location)

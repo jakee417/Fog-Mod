@@ -71,6 +71,12 @@ public class Critterz : Monster
         get => BaseFrame;
     }
 
+    public List<string> ObjectToDrop
+    {
+        get => new List<string>(objectsToDrop);
+        set => objectsToDrop.Set(value);
+    }
+
     public Vector2 TilePosition
     {
         get => new Vector2((float)Math.Floor(Position.X / Game1.tileSize), (float)Math.Floor(Position.Y / Game1.tileSize));
@@ -130,6 +136,7 @@ public class Critterz : Monster
         HomeBush = homeBush;
         Skin = skin;
         reloadSprite();
+        ObjectToDrop = GetCritterzLootToDrop();
     }
 
     // MARK: Monster Overrides
@@ -378,6 +385,29 @@ public class Critterz : Monster
             new FarmerSprite.AnimationFrame(SittingFrame, 100),
         });
         Sprite.loop = true;
+    }
+
+    // Kill loot, pre-rolled at spawn into the vanilla objectsToDrop list
+    // (dropped by GameLocation.monsterDrop, like the grouse snacks). One
+    // universal table: the critter stays generic, the loot carries the theme.
+    protected static List<string> GetCritterzLootToDrop()
+    {
+        List<string> loot = new List<string>();
+        float luck = (float)Game1.player.DailyLuck;
+        // Common forage/trash mix: cave carrot, hazelnut, acorn, pine cone,
+        // trash, driftwood, broken glasses, broken CD, soggy newspaper.
+        string[] commons = { "78", "408", "309", "311", "168", "169", "170", "171", "172" };
+        int maxCommons = luck > 0.0f ? 3 : 2;
+        int numCommons = FogMod.Random.Next(0, maxCommons);
+        for (int i = 0; i < numCommons; i++)
+            loot.Add(commons[FogMod.Random.Next(commons.Length)]);
+        // Uncommon rabbit product.
+        if (FogMod.Random.NextDouble() < (luck > 0.0f ? 0.15 : 0.10))
+            loot.Add("440"); // Wool
+        // Rare chase item (cf. Serpent 0.8%).
+        if (FogMod.Random.NextDouble() < (luck > 0.0f ? 0.05 : 0.03))
+            loot.Add("446"); // Rabbit's Foot
+        return loot;
     }
 
     public bool RemoveCritterzForPosition()

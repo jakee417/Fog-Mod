@@ -79,4 +79,5 @@ public static class Constants
     public const int CritterzDestinationTries = 3;
     public const float CritterzMissRate = 0.1f;
     public const int CritterzMaxHealth = 10;
+    public const float CritterzSnackChance = 0.3f;
 }
