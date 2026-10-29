@@ -277,6 +277,21 @@ public class Critterz : Monster
 
     public override void draw(SpriteBatch b)
     {
+        // Character.sprite is a net field, but AnimatedSprite only syncs
+        // textureName (plus width/height) and re-resolves pixels with
+        // ContentManager.Load on arrival. A ModContent texture has no content
+        // name, so farmhands always deserialize with spriteTexture == null
+        // (shadow still draws; the engine calls DrawShadow separately).
+        // Repair it locally: spriteTexture is a plain field, so this touches
+        // no net state. The grouse sidesteps this by never drawing via Sprite.
+        if (Sprite != null && Sprite.spriteTexture == null)
+        {
+            Sprite.spriteTexture = FogMod.Instance?.critterzTexture;
+            if (State == CritterzState.Running)
+                SetHopAnimation();
+            else
+                SetSittingFrame();
+        }
         if (Sprite?.spriteTexture == null)
             return;
         // Coy: fully hidden inside the bush until triggered.
