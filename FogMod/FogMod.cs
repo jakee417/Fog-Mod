@@ -261,6 +261,9 @@ public partial class FogMod : Mod
                 new[] { typeof(GameTime), typeof(Farmer) }),
             prefix: new HarmonyMethod(typeof(FogMod), nameof(OnSlingshotTickUpdatePrefix))
         );
+
+        // Headless test harness (inert unless FOGMOD_TEST=1).
+        InitTestHarness();
     }
 
     private void OnGameLaunched(object? sender, GameLaunchedEventArgs e)
