@@ -172,6 +172,7 @@ public partial class FogMod : Mod
         catch (Exception ex)
         {
             Check(false, "harness", $"phase {testPhase}: {ex.GetType().Name}: {ex.Message}");
+            Monitor.Log($"TEST harness stack: {ex}", LogLevel.Error);
             testPhase = TestFinishPhase;
             testPhaseTicks = 0;
         }
@@ -401,7 +402,7 @@ public partial class FogMod : Mod
         // Real kill through the engine (retry: 10% miss chance).
         int debrisBefore = location.debris.Count;
         for (int i = 0; i < 25 && v.Health > 0; i++)
-            location.damageMonster(v.GetBoundingBox(), 1000, 0, true, Game1.player, false);
+            location.damageMonster(v.GetBoundingBox(), 1000, 1000, true, Game1.player, false);
         Check(v.Health <= 0, "kill-dead", $"health={v.Health}");
         Check(location.debris.Count >= debrisBefore + loot.Count, "kill-debris",
             $"debris grew by {location.debris.Count - debrisBefore}, loot had {loot.Count}");
@@ -567,7 +568,7 @@ public partial class FogMod : Mod
         Check(loot.All(id => !string.IsNullOrEmpty(id)), "g-kill-loot-shape", $"loot=[{string.Join(",", loot)}]");
         int debrisBefore = location.debris.Count;
         for (int i = 0; i < 25 && v.Health > 0; i++)
-            location.damageMonster(v.GetBoundingBox(), 1000, 0, true, Game1.player, false);
+            location.damageMonster(v.GetBoundingBox(), 1000, 1000, true, Game1.player, false);
         Check(v.Health <= 0, "g-kill-dead", $"health={v.Health}");
         Check(location.debris.Count >= debrisBefore + loot.Count, "g-kill-debris",
             $"debris grew by {location.debris.Count - debrisBefore}, loot had {loot.Count}");
