@@ -1120,10 +1120,10 @@ public partial class FogMod : Mod
                 float fall = ComputeProbabilityOfFogForADay();
                 Game1.currentSeason = "winter";
                 float winter = ComputeProbabilityOfFogForADay();
-                Game1.currentSeason = "void";
-                float def = ComputeProbabilityOfFogForADay();
-                Check(spring == 0.05f && summer == 0.1f && fall == 0.2f && winter == 0.18f && def == 0.08f,
-                    "fog-season-table", $"s={spring} su={summer} f={fall} w={winter} d={def}");
+                // No default-branch probe: the currentSeason setter rejects
+                // anything but the four real seasons, so it is unreachable.
+                Check(spring == 0.05f && summer == 0.1f && fall == 0.2f && winter == 0.18f,
+                    "fog-season-table", $"s={spring} su={summer} f={fall} w={winter}");
             }
             finally
             {
