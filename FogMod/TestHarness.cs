@@ -5,6 +5,7 @@ using StardewModdingAPI.Events;
 using StardewValley;
 using StardewValley.Menus;
 using StardewValley.TerrainFeatures;
+using Netcode;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -32,6 +33,13 @@ public partial class FogMod : Mod
     private Critterz? testVictim;
     private Vector2 testDestBush;
     private int testLeavesBefore;
+    private Grouse? testFlyer;
+    private Grouse? testGrouseVictim;
+    private Vector2 testGrouseStartTree;
+    private int testGrouseEggs;
+    private int testGrouseLeavesBefore;
+    private int testGrouseDebrisBefore;
+    private const int TestFinishPhase = 12;
 
     private void InitTestHarness()
     {
@@ -66,13 +74,13 @@ public partial class FogMod : Mod
     private void GiveUp(string name, string detail)
     {
         Check(false, name, detail);
-        testPhase = 7;
+        testPhase = TestFinishPhase;
         testPhaseTicks = 0;
     }
 
     private void OnTestTick(object? sender, UpdateTickedEventArgs e)
     {
-        if (!testActive || testPhase > 7)
+        if (!testActive || testPhase > TestFinishPhase)
             return;
         testPhaseTicks++;
         try
@@ -86,13 +94,18 @@ public partial class FogMod : Mod
                 case 4: TestTrigger(); break;
                 case 5: TestRun(); break;
                 case 6: TestKill(); break;
-                case 7: TestFinish(); break;
+                case 7: TestGrouseSpawn(); break;
+                case 8: TestGrouseTrigger(); break;
+                case 9: TestGrouseFlush(); break;
+                case 10: TestGrouseLand(); break;
+                case 11: TestGrouseKill(); break;
+                case TestFinishPhase: TestFinish(); break;
             }
         }
         catch (Exception ex)
         {
             Check(false, "harness", $"phase {testPhase}: {ex.GetType().Name}: {ex.Message}");
-            testPhase = 7;
+            testPhase = TestFinishPhase;
             testPhaseTicks = 0;
         }
     }
@@ -256,10 +269,148 @@ public partial class FogMod : Mod
         NextPhase();
     }
 
-    // Phase 7: report and exit without saving.
+    // Phase 7: perch a grouse in a free tree.
+    private void TestGrouseSpawn()
+    {
+        GameLocation location = Game1.currentLocation;
+        if (GetNPCsAtCurrentLocation() is not NetCollection<NPC> npc)
+        {
+            GiveUp("g-spawn", "no NPC list");
+            return;
+        }
+        var occupied = location.characters.OfType<Grouse>().Select(g => g.TreePosition).ToHashSet();
+        Tree? tree = TreeHelper.GetAvailableTreePositions(location)
+            .FirstOrDefault(t => !occupied.Contains(TreeHelper.GetTreePosition(t)));
+        if (tree == null)
+        {
+            GiveUp("g-spawn", "no free tree in Forest");
+            return;
+        }
+        testGrouseStartTree = TreeHelper.GetTreePosition(tree);
+        testFlyer = SpawnGrouse(npc, testGrouseStartTree, TreeHelper.GetGrouseSpawnPosition(tree), location, null, false);
+        Check(testFlyer.State == GrouseState.Perched, "g-spawn-perched", $"state={testFlyer.State}");
+        Check(testFlyer.TreePosition == testGrouseStartTree, "g-spawn-tree", $"tree={testFlyer.TreePosition}");
+        Check(testFlyer.Texture != null, "g-spawn-texture", $"texture={testFlyer.TextureName}");
+        string[] eggs = { "174", "176", "305", "928" };
+        testGrouseEggs = testFlyer.InitialObjectToDrop.Count;
+        Check(testFlyer.InitialObjectToDrop.All(id => eggs.Contains(id)), "g-spawn-eggs",
+            $"eggs=[{string.Join(",", testFlyer.InitialObjectToDrop)}]");
+        testGrouseDebrisBefore = location.debris.Count;
+        NextPhase();
+    }
+
+    // Phase 8: shake the tree through the real engine path (exercises the
+    // Harmony hook) and wait for the surprise.
+    private void TestGrouseTrigger()
+    {
+        GameLocation location = Game1.currentLocation;
+        if (testFlyer is not Grouse g)
+        {
+            GiveUp("g-trigger", "no test grouse");
+            return;
+        }
+        if (testPhaseTicks == 1)
+        {
+            if (TreeHelper.GetTreeFromId(location, g.TreePosition) is not Tree tree)
+            {
+                GiveUp("g-trigger", "home tree missing");
+                return;
+            }
+            tree.shake(tree.Tile, true);
+        }
+        if (g.State == GrouseState.Surprised || g.State == GrouseState.Flushing || g.State == GrouseState.Flying)
+            NextPhase();
+        else if (testPhaseTicks > 600)
+            GiveUp("g-trigger", $"still perched (state={g.State})");
+    }
+
+    // Phase 9: wait for the flush and its egg drop.
+    private void TestGrouseFlush()
+    {
+        GameLocation location = Game1.currentLocation;
+        if (testFlyer is not Grouse g)
+        {
+            GiveUp("g-flush", "no test grouse");
+            return;
+        }
+        if (g.State == GrouseState.Flushing || g.State == GrouseState.Flying || g.State == GrouseState.Landing
+            || (g.State == GrouseState.Perched && g.TreePosition != testGrouseStartTree))
+        {
+            Check(g.InitialObjectToDrop.Count == 0, "g-flush-eggs-drained",
+                $"eggs left=[{string.Join(",", g.InitialObjectToDrop)}]");
+            Check(location.debris.Count >= testGrouseDebrisBefore + testGrouseEggs, "g-flush-debris",
+                $"debris grew by {location.debris.Count - testGrouseDebrisBefore}, eggs had {testGrouseEggs}");
+            testGrouseLeavesBefore = TreeHelper.leaves.Count;
+            NextPhase();
+        }
+        else if (testPhaseTicks > 600)
+            GiveUp("g-flush", $"never flushed (state={g.State})");
+    }
+
+    // Phase 10: wait for landing at a new tree.
+    private void TestGrouseLand()
+    {
+        if (testFlyer is not Grouse g)
+        {
+            GiveUp("g-land", "no test grouse");
+            return;
+        }
+        if (g.State == GrouseState.Perched)
+        {
+            Check(g.TreePosition != testGrouseStartTree, "g-land-newtree",
+                $"tree={g.TreePosition} start={testGrouseStartTree}");
+            Check(TreeHelper.GetTreeFromId(Game1.currentLocation, g.TreePosition) is Tree, "g-land-tree-exists",
+                $"tree={g.TreePosition}");
+            Check(TreeHelper.leaves.Count > testGrouseLeavesBefore, "g-land-leaves", "no landing leaves spawned");
+            NextPhase();
+        }
+        else if (testPhaseTicks > 3600)
+            GiveUp("g-land", $"never landed (state={g.State})");
+    }
+
+    // Phase 11: snack shape + real engine kill (damageMonster, bomb hitbox).
+    private void TestGrouseKill()
+    {
+        GameLocation location = Game1.currentLocation;
+        if (testPhaseTicks == 1)
+        {
+            if (GetNPCsAtCurrentLocation() is not NetCollection<NPC> npc)
+            {
+                GiveUp("g-kill", "no NPC list");
+                return;
+            }
+            var occupied = location.characters.OfType<Grouse>().Select(g => g.TreePosition).ToHashSet();
+            Tree? tree = TreeHelper.GetAvailableTreePositions(location)
+                .FirstOrDefault(t => !occupied.Contains(TreeHelper.GetTreePosition(t)));
+            if (tree == null)
+            {
+                GiveUp("g-kill", "no free tree");
+                return;
+            }
+            testGrouseVictim = SpawnGrouse(npc, TreeHelper.GetTreePosition(tree),
+                TreeHelper.GetGrouseSpawnPosition(tree), location, null, false);
+            testGrouseVictim.State = GrouseState.Flying;
+        }
+        if (testGrouseVictim is not Grouse v)
+        {
+            GiveUp("g-kill", "no victim");
+            return;
+        }
+        List<string> loot = v.ObjectToDrop;
+        Check(loot.All(id => !string.IsNullOrEmpty(id)), "g-kill-loot-shape", $"loot=[{string.Join(",", loot)}]");
+        int debrisBefore = location.debris.Count;
+        for (int i = 0; i < 25 && v.Health > 0; i++)
+            location.damageMonster(v.GetBoundingBox(), 0, 0, true, Game1.player, false);
+        Check(v.Health <= 0, "g-kill-dead", $"health={v.Health}");
+        Check(location.debris.Count >= debrisBefore + loot.Count, "g-kill-debris",
+            $"debris grew by {location.debris.Count - debrisBefore}, loot had {loot.Count}");
+        NextPhase();
+    }
+
+    // Phase 12: report and exit without saving.
     private void TestFinish()
     {
-        testPhase = 8; // run once
+        testPhase = 99; // run once
         testResults.Add($"RESULT: PASS {testResults.Count(r => r.StartsWith("PASS"))} FAIL {testFailures}");
         try
         {
