@@ -80,17 +80,14 @@ if [ ! -f "$RESULTS_LIN" ]; then
     exit 1
 fi
 
-cat "$RESULTS_LIN"
-result=$(tail -1 "$RESULTS_LIN")
-case "$result" in
-    "RESULT: PASS "*|"RESULT: PASS "*" FAIL 0")
-        fails=$(echo "$result" | sed 's/.*FAIL //')
-        if [ "$fails" = "0" ]; then
-            echo "HEADLESS TEST PASSED"
-            exit 0
-        fi
-        ;;
-esac
+tr -d '\r' < "$RESULTS_LIN"
+# Note: the file has Windows line endings; strip CR before parsing.
+result=$(tail -1 "$RESULTS_LIN" | tr -d '\r')
+fails=$(echo "$result" | sed -n 's/^RESULT: PASS [0-9][0-9]* FAIL //p')
+if [ "$fails" = "0" ]; then
+    echo "HEADLESS TEST PASSED"
+    exit 0
+fi
 echo "HEADLESS TEST FAILED"
 echo "SMAPI errors:"
 grep -a "TEST FAIL" "$SMAPI_LOG" 2>/dev/null | head -20
