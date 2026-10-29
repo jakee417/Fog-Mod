@@ -12,12 +12,16 @@
 #   HEADLESS_SAVE=pickles_434696114 ./run_headless_test.sh
 #   HEADLESS_TIMEOUT=600 ./run_headless_test.sh
 #   ./run_headless_test.sh --watch             # visible window, watch it play
+#   ./run_headless_test.sh --record            # headless, but save the run as video
+#   ./run_headless_test.sh --record /path/out.mp4
 #
 # Env overrides: STEAM_ROOT, GAME_DIR, PROTON_VERSION, PROTON_EXE (full path
 # to a proton script, wins over PROTON_VERSION), HEADLESS_PREFIX,
 # HEADLESS_MODS_PATH (Windows-style, e.g. 'Z:\tmp\headless-mods'),
 # HEADLESS_SAVE, HEADLESS_TIMEOUT (seconds), HEADLESS_RESULTS_LIN (results
-# file, Linux path), HEADLESS_WATCH=1 (same as --watch).
+# file, Linux path), HEADLESS_WATCH=1 (same as --watch),
+# HEADLESS_RECORD=/path/out.mp4 (same as --record),
+# HEADLESS_XVFB_DISPLAY=:99 (display used for a recorded run).
 
 set -u
 
@@ -33,6 +37,10 @@ RESULTS_LIN="${HEADLESS_RESULTS_LIN:-/tmp/fogmod-test-results.txt}"
 RESULTS_WIN="Z:$(echo "$RESULTS_LIN" | sed 's|/|\\|g')"
 WATCH="${HEADLESS_WATCH:-0}"
 [ "${1:-}" = "--watch" ] && WATCH=1
+RECORD="${HEADLESS_RECORD:-}"
+if [ "${1:-}" = "--record" ]; then
+    RECORD="${2:-/tmp/fogmod-test-recording.mp4}"
+fi
 
 PROTON="${PROTON_EXE:-$STEAM_ROOT/steamapps/common/$PROTON_VERSION/proton}"
 EXE="$GAME_DIR/Stardew Valley.exe"
@@ -71,11 +79,51 @@ fi
 if [ "$WATCH" = "1" ]; then
     echo "(visible window - sit back)"
     timeout "$TIMEOUT" "$@" > /tmp/fogmod-headless-console.log 2>&1
+    game_exit=$?
+elif [ -n "$RECORD" ]; then
+    # Recorded headless run: xvfb-run picks a display we cannot address,
+    # so start our own Xvfb on a fixed display and point ffmpeg at it.
+    XDISP="${HEADLESS_XVFB_DISPLAY:-:99}"
+    XSOCK="/tmp/.X${XDISP#:}-unix/X${XDISP#:}"
+    XLOCK="/tmp/.X${XDISP#:}-lock"
+    if [ -S "$XSOCK" ]; then
+        echo "Display $XDISP is in use; set HEADLESS_XVFB_DISPLAY to a free one." >&2
+        exit 1
+    fi
+    rm -f "$XLOCK"  # stale lock with no server behind it
+    echo "Recording to $RECORD (display $XDISP)"
+    Xvfb "$XDISP" -screen 0 1280x720x24 > /tmp/fogmod-xvfb.log 2>&1 &
+    XVFB_PID=$!
+    for _ in $(seq 1 100); do
+        [ -S "$XSOCK" ] && break
+        sleep 0.1
+    done
+    ffmpeg -f x11grab -video_size 1280x720 -framerate 30 -i "$XDISP" \
+        -c:v libx264 -preset veryfast -crf 23 -pix_fmt yuv420p -an -y \
+        "$RECORD" > /tmp/fogmod-ffmpeg.log 2>&1 &
+    FF_PID=$!
+    trap 'kill "$FF_PID" "$XVFB_PID" 2>/dev/null' EXIT
+    sleep 1
+    if ! kill -0 "$FF_PID" 2>/dev/null; then
+        echo "ffmpeg failed to start; see /tmp/fogmod-ffmpeg.log:" >&2
+        tail -10 /tmp/fogmod-ffmpeg.log >&2
+        kill "$XVFB_PID" 2>/dev/null
+        exit 1
+    fi
+    DISPLAY="$XDISP" timeout "$TIMEOUT" "$@" > /tmp/fogmod-headless-console.log 2>&1
+    game_exit=$?
+    kill "$FF_PID" 2>/dev/null; wait "$FF_PID" 2>/dev/null
+    kill "$XVFB_PID" 2>/dev/null; wait "$XVFB_PID" 2>/dev/null
+    if [ -f "$RECORD" ]; then
+        echo "Video: $RECORD ($(du -h "$RECORD" | cut -f1))"
+    else
+        echo "WARNING: no video at $RECORD (see /tmp/fogmod-ffmpeg.log)"
+    fi
 else
     timeout "$TIMEOUT" xvfb-run -a -s "-screen 0 1280x720x24" \
         "$@" > /tmp/fogmod-headless-console.log 2>&1
+    game_exit=$?
 fi
-game_exit=$?
 
 echo "---"
 if [ ! -f "$RESULTS_LIN" ]; then
