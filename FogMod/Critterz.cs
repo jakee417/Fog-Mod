@@ -292,24 +292,58 @@ public partial class FogMod : Mod
     {
         if (BushHelper.GetAvailableBushes(location).FirstOrDefault(b => b.Tile == r.HomeBush) is Bush bush)
         {
-            bush.shake(bush.Tile, true);
-            BushHelper.TriggerBushLeaves(bush);
+            PlayCritterzBushFx(location, bush);
+            Utils.Multiplayer.SendMessage(new CritterzBushFxInfo(location.NameOrUniqueName, bush.Tile));
         }
     }
 
     private void ArriveCritterz(Critterz r, GameLocation location)
     {
         Vector2 dest = r.DestBush ?? r.HomeBush;
-        // Rustle while still Running so the shake hook skips this Critterz.
         if (BushHelper.GetAvailableBushes(location).FirstOrDefault(b => b.Tile == dest) is Bush bush)
         {
-            bush.shake(bush.Tile, true);
-            BushHelper.TriggerBushLeaves(bush);
+            PlayCritterzBushFx(location, bush);
+            Utils.Multiplayer.SendMessage(new CritterzBushFxInfo(location.NameOrUniqueName, bush.Tile));
         }
         r.Path = null;
         r.HomeBush = dest;
         r.DestBush = null;
         r.State = CritterzState.Sitting;
+    }
+
+    public static void HandleCritterzBushFx(CritterzBushFxInfo info)
+    {
+        if (Game1.currentLocation is GameLocation location
+            && location.NameOrUniqueName == info.LocationName
+            && BushHelper.GetAvailableBushes(location).FirstOrDefault(b => b.Tile == info.BushTile) is Bush bush)
+        {
+            PlayCritterzBushFx(location, bush);
+        }
+    }
+
+    // Local-only bush fx: wobble + leaves + rustle, with no harvest.
+    // Bush.shake would drop fruit (and grant XP), and neither the wobble
+    // (plain fields) nor our leaves (local list) sync, so every client plays
+    // this locally: the updater directly, farmhands via CritterzBushFxInfo.
+    public static void PlayCritterzBushFx(GameLocation location, Bush bush)
+    {
+        try
+        {
+            // Same visual writes as Bush.shake, minus the harvest.
+            bool shakeLeft = Game1.player.Tile.X > bush.Tile.X
+                || (Game1.player.Tile.X == bush.Tile.X && Game1.random.NextBool());
+            var reflection = Instance?.Helper.Reflection;
+            reflection?.GetField<bool>(bush, "shakeLeft").SetValue(shakeLeft);
+            reflection?.GetField<float>(bush, "maxShake").SetValue(0.024543693f);
+            bush.NeedsUpdate = true;
+        }
+        catch (Exception ex)
+        {
+            Instance?.Monitor.Log($"Critterz bush wobble failed: {ex.Message}", LogLevel.Trace);
+        }
+        if (bush.size.Value != 3)
+            location.localSound("leafrustle", bush.Tile);
+        BushHelper.TriggerBushLeaves(bush);
     }
 
     // Pick a destination bush grouse-style (farther bushes preferred), with

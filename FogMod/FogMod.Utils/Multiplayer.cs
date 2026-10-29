@@ -16,6 +16,7 @@ public static class Multiplayer
     {
         public const string Explosion = "Explosion";
         public const string GrouseEvent = "GrouseEvent";
+        public const string CritterzBushFx = "CritterzBushFx";
     }
 
     public static bool IsAbleToUpdateOwnWorld()
@@ -66,6 +67,10 @@ public static class Multiplayer
             {
                 messageType = MessageType.GrouseEvent;
             }
+            else if (message is CritterzBushFxInfo)
+            {
+                messageType = MessageType.CritterzBushFx;
+            }
             else
             {
                 Instance?.Monitor.Log($"🚀 Unknown message type: {message?.GetType().Name}", LogLevel.Warn);
@@ -98,6 +103,11 @@ public static class Multiplayer
                     var grouseEventData = e.ReadAs<GrouseEventInfo>();
                     HandleGrouseEventFromMessage(e.FromPlayerID, grouseEventData);
                     break;
+                case MessageType.CritterzBushFx:
+                    var bushFxData = e.ReadAs<CritterzBushFxInfo>();
+                    if (Utilities.IsColocatedWithPlayer(Game1.player, bushFxData.LocationName))
+                        HandleCritterzBushFxFromMessage(bushFxData);
+                    break;
                 default:
                     Instance?.Monitor.Log($"OnModMessageReceived: Unknown message type '{e.Type}' from mod '{e.FromModID}'", LogLevel.Warn);
                     break;
@@ -118,6 +128,18 @@ public static class Multiplayer
         catch (Exception ex)
         {
             Instance?.Monitor.Log($"🚀 Error handling explosion message: {ex.Message}", LogLevel.Error);
+        }
+    }
+
+    public static void HandleCritterzBushFxFromMessage(CritterzBushFxInfo msg)
+    {
+        try
+        {
+            FogMod.HandleCritterzBushFx(msg);
+        }
+        catch (Exception ex)
+        {
+            Instance?.Monitor.Log($"Error handling critterz bush fx message: {ex.Message}", LogLevel.Error);
         }
     }
 
