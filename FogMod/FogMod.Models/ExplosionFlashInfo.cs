@@ -1,4 +1,6 @@
 #nullable enable
+using System;
+using System.Collections.Generic;
 using Microsoft.Xna.Framework;
 
 namespace FogMod.Models;
@@ -16,5 +18,20 @@ public struct ExplosionFlashInfo
         CenterWorld = centerWorld;
         RadiusPixels = radiusPixels;
         TimeLeft = timeLeft;
+    }
+
+    public static void TickFlashes(List<ExplosionFlashInfo> flashes, float deltaSeconds)
+    {
+        for (int i = flashes.Count - 1; i >= 0; i--)
+        {
+            var ef = flashes[i];
+            ef.TimeLeft = Math.Max(0f, ef.TimeLeft - deltaSeconds);
+            if (ef.TimeLeft <= 0f)
+            {
+                flashes.RemoveAt(i);
+                continue;
+            }
+            flashes[i] = ef;
+        }
     }
 }

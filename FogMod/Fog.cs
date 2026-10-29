@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using StardewValley;
 using FogMod.Models;
+using FogMod.Utils;
 
 namespace FogMod;
 
@@ -56,44 +57,12 @@ public partial class FogMod : Mod
 
     public static FogForecast ComputeFogForecast(int daysPlayed)
     {
-        int seed = daysPlayed ^ (int)(Game1.uniqueIDForThisGame & 0x7FFFFFFF);
-        var rng = new Random(seed);
-        float probabilityOfFogRoll = (float)rng.NextDouble();
-        float probabilityOfFogForADay = ComputeProbabilityOfFogForADay();
-        bool isFogDay = probabilityOfFogRoll <= probabilityOfFogForADay;
-        float strengthRoll = (float)rng.NextDouble();
-        float dailyFogStrength = MathHelper.Lerp(Constants.DailyRandomFogMin, Constants.DailyRandomFogMax, strengthRoll);
-        return new FogForecast(
-            isFogDay: isFogDay,
-            dailyFogStrength: dailyFogStrength,
-            probabilityOfFogForADay: probabilityOfFogForADay,
-            probabilityOfFogRoll: probabilityOfFogRoll
-        );
+        return FogMath.ComputeFogForecast(daysPlayed, Game1.uniqueIDForThisGame, Game1.currentSeason);
     }
 
     public static float ComputeProbabilityOfFogForADay()
     {
-        string season = Game1.currentSeason;
-        float seasonalProbability;
-        switch (season)
-        {
-            case "spring":
-                seasonalProbability = 0.05f;
-                break;
-            case "summer":
-                seasonalProbability = 0.1f;
-                break;
-            case "fall":
-                seasonalProbability = 0.2f;
-                break;
-            case "winter":
-                seasonalProbability = 0.18f;
-                break;
-            default:
-                seasonalProbability = 0.08f;
-                break;
-        }
-        return seasonalProbability;
+        return FogMath.FogProbabilityForSeason(Game1.currentSeason);
     }
 
     private void InitializeFloatingFogParticles()

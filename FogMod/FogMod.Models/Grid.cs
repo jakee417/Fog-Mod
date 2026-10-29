@@ -16,13 +16,20 @@ public readonly struct Grid
     public int BufferCells { get; }
 
     public Grid(float cellSize, int bufferCells)
+        : this(Game1.viewport.Width, Game1.viewport.Height, Game1.viewport.X, Game1.viewport.Y, cellSize, bufferCells)
+    {
+    }
+
+    // Pure overload: same math with an explicit viewport, so grid math can
+    // run under dotnet test.
+    public Grid(int viewportWidth, int viewportHeight, int viewportX, int viewportY, float cellSize, int bufferCells)
     {
         CellSize = Math.Max(1f, cellSize);
         BufferCells = Math.Max(0, bufferCells);
 
-        int width = Math.Max(1, Game1.viewport.Width);
-        int height = Math.Max(1, Game1.viewport.Height);
-        Vector2 viewportTopLeftWorld = new Vector2(Game1.viewport.X, Game1.viewport.Y);
+        int width = Math.Max(1, viewportWidth);
+        int height = Math.Max(1, viewportHeight);
+        Vector2 viewportTopLeftWorld = new Vector2(viewportX, viewportY);
         Cols = Math.Max(1, (int)Math.Ceiling(width / CellSize));
         Rows = Math.Max(1, (int)Math.Ceiling(height / CellSize));
         int gridLeftIndex = (int)Math.Floor(viewportTopLeftWorld.X / CellSize) - BufferCells;

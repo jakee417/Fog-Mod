@@ -171,12 +171,7 @@ public partial class FogMod : Mod
             salt: (int)Random.NextInt64()
         );
         // Skin only: squirrel, bunny (grey/white by season), or raccoon row.
-        int skin = Game1.random.Next(3) switch
-        {
-            0 => Constants.SquirrelRow,
-            2 => Constants.RaccoonRow,
-            _ => location.IsWinterHere() ? Constants.WhiteBunnyRow : Constants.GreyBunnyRow,
-        };
+        int skin = CritterzLogic.PickSkin(Game1.random.Next(3), location.IsWinterHere());
         Critterz newCritterz = new Critterz(
             critterzId: critterzId,
             location: location,
@@ -379,107 +374,16 @@ public partial class FogMod : Mod
         {
             Bush bush = PickWeightedBush(candidates, r.Position);
             candidates.Remove(bush);
-            if (FindCritterzPath(startTile, bush.Tile, reachable) is List<Vector2> tilePath)
-                return (bush.Tile, ExpandPathWithZigZag(r.Position, tilePath));
+            if (CritterzLogic.FindPath(startTile, bush.Tile, reachable) is List<Vector2> tilePath)
+                return (bush.Tile, CritterzLogic.ExpandPathWithZigZag(r.Position, tilePath,
+                    Game1.tileSize, Game1.random.NextBool() ? 1 : -1));
         }
         return null;
     }
 
     private Bush PickWeightedBush(List<Bush> candidates, Vector2 fromPosition)
     {
-        var weighted = candidates
-            .Select(bush =>
-            {
-                float distance = Vector2.Distance(fromPosition, bush.Tile * Game1.tileSize);
-                return (bush, weight: distance * distance);
-            })
-            .OrderBy(_ => Game1.random.Next())
-            .ToList();
-        float totalWeight = weighted.Sum(t => t.weight);
-        if (totalWeight == 0f)
-            return candidates[0];
-        float roll = (float)Game1.random.NextDouble() * totalWeight;
-        float cumulative = 0f;
-        foreach (var (bush, weight) in weighted)
-        {
-            cumulative += weight;
-            if (roll <= cumulative)
-                return bush;
-        }
-        return candidates[0];
-    }
-
-    // BFS over reachable tiles; 4-directional so paths never clip corners.
-    // Endpoint bush tiles are exempt (Critterz burst out of / dive into
-    // bushes), but paths never route through other bushes.
-    private List<Vector2>? FindCritterzPath(Vector2 startTile, Vector2 goalTile, HashSet<Vector2> reachable)
-    {
-        if (startTile == goalTile)
-            return new List<Vector2>();
-        var prev = new Dictionary<Vector2, Vector2> { [startTile] = startTile };
-        var queue = new Queue<Vector2>();
-        queue.Enqueue(startTile);
-        bool found = false;
-        int guard = 0;
-        while (queue.Count > 0 && guard++ < 40000)
-        {
-            Vector2 current = queue.Dequeue();
-            if (current == goalTile)
-            {
-                found = true;
-                break;
-            }
-            TryStep(current + new Vector2(1, 0));
-            TryStep(current + new Vector2(-1, 0));
-            TryStep(current + new Vector2(0, 1));
-            TryStep(current + new Vector2(0, -1));
-
-            void TryStep(Vector2 next)
-            {
-                if ((reachable.Contains(next) || next == goalTile) && !prev.ContainsKey(next))
-                {
-                    prev[next] = current;
-                    queue.Enqueue(next);
-                }
-            }
-        }
-        if (!found)
-            return null;
-        List<Vector2> path = new List<Vector2>();
-        Vector2 step = goalTile;
-        while (step != startTile)
-        {
-            path.Add(step);
-            step = prev[step];
-        }
-        path.Reverse();
-        return path;
-    }
-
-    // Expand tile centers into pixel waypoints. The sprite only faces
-    // left/right, so vertical legs split into alternating 45-degree hops
-    // (inside the 60-degree cone around the x-axis), which reads as a
-    // zig-zag instead of straight up/down movement.
-    private List<Vector2> ExpandPathWithZigZag(Vector2 startPixel, List<Vector2> tilePath)
-    {
-        List<Vector2> waypoints = new List<Vector2>();
-        Vector2 current = startPixel;
-        int side = Game1.random.NextBool() ? 1 : -1;
-        foreach (Vector2 tile in tilePath)
-        {
-            Vector2 target = tile * Game1.tileSize + new Vector2(32f, 32f);
-            if (Math.Abs(target.X - current.X) < 0.5f && Math.Abs(target.Y - current.Y) > 0.5f)
-            {
-                Vector2 mid = new Vector2(
-                    current.X + side * Constants.CritterzZigZagAmplitudePx,
-                    (current.Y + target.Y) / 2f
-                );
-                waypoints.Add(mid);
-                side = -side;
-            }
-            waypoints.Add(target);
-            current = target;
-        }
-        return waypoints;
+        var positions = candidates.Select(bush => bush.Tile * Game1.tileSize).ToList();
+        return candidates[CritterzLogic.PickWeightedIndex(positions, fromPosition, Game1.random)];
     }
 }

@@ -137,48 +137,11 @@ public partial class FogMod : Mod
 
     private void UpdateExplosionFlashInfos(float deltaSeconds)
     {
-        for (int i = explosionFlashInfos.Count - 1; i >= 0; i--)
-        {
-            var ef = explosionFlashInfos[i];
-            ef.TimeLeft = Math.Max(0f, ef.TimeLeft - deltaSeconds);
-            if (ef.TimeLeft <= 0f)
-            {
-                explosionFlashInfos.RemoveAt(i);
-                continue;
-            }
-            explosionFlashInfos[i] = ef;
-        }
+        ExplosionFlashInfo.TickFlashes(explosionFlashInfos, deltaSeconds);
     }
 
     private void RemoveExtraSmokeOverTarget(CellOccupancy occupancy)
     {
-        for (int row = 0; row < grid.ExtRows; row++)
-        {
-            for (int col = 0; col < grid.ExtCols; col++)
-            {
-                var list = occupancy.Indices != null ? occupancy.Indices[col, row] : null;
-                int eligible = list != null ? list.Count : 0;
-                int extra = eligible - Constants.MaximumSmokeParticlesPerCell;
-                if (extra <= 0)
-                    continue;
-
-                if (list == null || list.Count == 0)
-                    continue;
-
-                list.Sort((a, b) => explosionSmokeParticles[b].AgeSeconds.CompareTo(explosionSmokeParticles[a].AgeSeconds));
-                int toFade = Math.Min(extra, list.Count);
-                for (int k = 0; k < toFade; k++)
-                {
-                    int idx = list[k];
-                    var p = explosionSmokeParticles[idx];
-                    if (!p.IsFadingOut)
-                    {
-                        p.IsFadingOut = true;
-                        p.FadeOutSecondsLeft = Constants.ParticleFadeOutSeconds;
-                        explosionSmokeParticles[idx] = p;
-                    }
-                }
-            }
-        }
+        occupancy.FadeExtraSmoke(explosionSmokeParticles, grid.ExtCols, grid.ExtRows);
     }
 }

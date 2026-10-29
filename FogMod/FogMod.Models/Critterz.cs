@@ -8,6 +8,7 @@ using StardewValley.Monsters;
 using StardewValley.Tools;
 using StardewModdingAPI;
 using System.Collections.Generic;
+using FogMod.Utils;
 
 namespace FogMod.Models;
 
@@ -393,34 +394,8 @@ public class Critterz : Monster
     // rabbit goods, squirrels drop nuts, raccoons drop trash.
     protected static List<string> GetCritterzLootToDrop(int skin)
     {
-        List<string> loot = new List<string>();
         bool lucky = (float)Game1.player.DailyLuck > 0.0f;
-        int maxCommons = lucky ? 3 : 2;
-        switch (skin)
-        {
-            case Constants.GreyBunnyRow:
-            case Constants.WhiteBunnyRow:
-                for (int i = 0, n = FogMod.Random.Next(0, maxCommons); i < n; i++)
-                    loot.Add("78"); // Cave Carrot
-                if (FogMod.Random.NextDouble() < (lucky ? 0.15 : 0.10))
-                    loot.Add("440"); // Wool
-                // Rare chase item (cf. Serpent 0.8%).
-                if (FogMod.Random.NextDouble() < (lucky ? 0.05 : 0.03))
-                    loot.Add("446"); // Rabbit's Foot
-                break;
-            case Constants.SquirrelRow:
-                string[] nuts = { "408", "309", "311" }; // Hazelnut, acorn, pine cone
-                for (int i = 0, n = FogMod.Random.Next(0, maxCommons); i < n; i++)
-                    loot.Add(nuts[FogMod.Random.Next(nuts.Length)]);
-                break;
-            case Constants.RaccoonRow:
-            default:
-                string[] trash = { "168", "169", "170", "171", "172" };
-                for (int i = 0, n = FogMod.Random.Next(0, maxCommons); i < n; i++)
-                    loot.Add(trash[FogMod.Random.Next(trash.Length)]);
-                break;
-        }
-        return loot;
+        return CritterzLogic.RollLootToDrop(skin, lucky, FogMod.Random);
     }
 
     public bool RemoveCritterzForPosition()

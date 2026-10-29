@@ -49,4 +49,37 @@ public struct CellOccupancy
             indices: indices
         );
     }
+
+    // Fade the oldest extras over the smoke target, cell by cell.
+    public void FadeExtraSmoke(List<FogParticle> smoke, int extCols, int extRows)
+    {
+        for (int row = 0; row < extRows; row++)
+        {
+            for (int col = 0; col < extCols; col++)
+            {
+                var list = Indices != null ? Indices[col, row] : null;
+                int eligible = list != null ? list.Count : 0;
+                int extra = eligible - Constants.MaximumSmokeParticlesPerCell;
+                if (extra <= 0)
+                    continue;
+
+                if (list == null || list.Count == 0)
+                    continue;
+
+                list.Sort((a, b) => smoke[b].AgeSeconds.CompareTo(smoke[a].AgeSeconds));
+                int toFade = Math.Min(extra, list.Count);
+                for (int k = 0; k < toFade; k++)
+                {
+                    int idx = list[k];
+                    var p = smoke[idx];
+                    if (!p.IsFadingOut)
+                    {
+                        p.IsFadingOut = true;
+                        p.FadeOutSecondsLeft = Constants.ParticleFadeOutSeconds;
+                        smoke[idx] = p;
+                    }
+                }
+            }
+        }
+    }
 }
