@@ -261,6 +261,7 @@ public partial class FogMod : Mod
                 GiveUp("trigger-homebush-only", $"state={r.State} after wrong-bush shake");
                 return;
             }
+            Check(true, "trigger-homebush-only");
             Bush? bush = BushHelper.GetAvailableBushes(location).FirstOrDefault(b => b.Tile == r.HomeBush);
             if (bush == null)
             {
@@ -465,6 +466,7 @@ public partial class FogMod : Mod
                 GiveUp("g-trigger-hometree-only", $"state={g.State} after wrong-tree shake");
                 return;
             }
+            Check(true, "g-trigger-hometree-only");
             if (TreeHelper.GetTreeFromId(location, g.TreePosition) is not Tree tree)
             {
                 GiveUp("g-trigger", "home tree missing");
