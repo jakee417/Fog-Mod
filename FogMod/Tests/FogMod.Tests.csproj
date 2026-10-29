@@ -1,0 +1,48 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <PlatformTarget>x64</PlatformTarget>
+  </PropertyGroup>
+
+  <!-- Same game-folder lookup as FogMod.csproj; only MonoGame is needed at test runtime. -->
+  <PropertyGroup>
+    <StardewValleyDir Condition="'$(StardewValleyDir)' == '' and $([MSBuild]::IsOSPlatform('OSX'))">$(HOME)/Library/Application Support/Steam/steamapps/common/Stardew Valley/Contents/MacOS</StardewValleyDir>
+    <StardewValleyDir Condition="'$(StardewValleyDir)' == '' and $([MSBuild]::IsOSPlatform('Linux'))">$(HOME)/.local/share/Steam/steamapps/common/Stardew Valley</StardewValleyDir>
+    <StardewValleyDir Condition="'$(StardewValleyDir)' == '' and $([MSBuild]::IsOSPlatform('Windows'))">$(ProgramFiles(x86))/Steam/steamapps/common/Stardew Valley</StardewValleyDir>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\FogMod.csproj" />
+  </ItemGroup>
+
+  <!-- Test sources live in Tests/ dirs next to the code they cover. -->
+  <ItemGroup>
+    <Compile Include="..\FogMod.Models\Tests\**\*.cs" />
+    <Compile Include="..\FogMod.Utils\Tests\**\*.cs" />
+    <Compile Include="..\FogMod.GMCM\Tests\**\*.cs" />
+  </ItemGroup>
+
+  <!-- XNA types (Vector2/Color) must resolve when the pure helpers run; copy locally. -->
+  <ItemGroup>
+    <Reference Include="Microsoft.Xna.Framework">
+      <HintPath>$(StardewValleyDir)/MonoGame.Framework.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="Microsoft.Xna.Framework.Graphics">
+      <HintPath>$(StardewValleyDir)/MonoGame.Framework.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.8.0" />
+    <PackageReference Include="xunit" Version="2.9.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
+    <PackageReference Include="coverlet.collector" Version="6.0.0" />
+  </ItemGroup>
+
+</Project>

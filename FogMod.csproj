@@ -62,6 +62,7 @@
 
   <ItemGroup>
     <Compile Remove="Archery/**" />
+    <Compile Remove="FogMod/**/Tests/**" />
   </ItemGroup>
 
   <ItemGroup>
