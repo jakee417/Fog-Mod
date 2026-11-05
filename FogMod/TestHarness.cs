@@ -54,6 +54,17 @@ public partial class FogMod : Mod
     private Critterz? testNowhere;
     private bool testFogResetChecked;
     private string? testWarpedTo;
+    // Sleep-save track (FOGMOD_TEST_SLEEP=1): warp to Town with live
+    // subjects, collapse at 2am, and require the new day (i.e. the save
+    // succeeded). Phases 100+ so the main 0-24 track never renumbers.
+    private const int TestSleepWarpPhase = 100;
+    private const int TestSleepAwaitPhase = 101;
+    private bool testSleepMode;
+    private bool testSleepSawNewDay;
+    private string? testSleepLastMenu;
+    private bool testSleepLastEvent;
+    private int testSleepLastC = -1;
+    private int testSleepLastG = -1;
     private Vector2 testCycleHome;
     private bool testCycleSawRun;
     private Vector2 testFlightTree;
@@ -96,6 +107,16 @@ public partial class FogMod : Mod
         Helper.Events.GameLoop.UpdateTicked += OnTestTick;
         Helper.Events.Display.Rendering += OnTestRendering;
         Helper.Events.Player.Warped += OnTestWarped;
+        testSleepMode = Environment.GetEnvironmentVariable("FOGMOD_TEST_SLEEP") == "1";
+        if (testSleepMode)
+        {
+            // Subscribed after the production handlers (InitTestHarness runs
+            // last in Entry), so these log post-handler wildlife counts.
+            Helper.Events.GameLoop.DayStarted += OnTestSleepDayStarted;
+            Helper.Events.GameLoop.DayEnding += OnTestSleepDayEnding;
+            Helper.Events.GameLoop.TimeChanged += OnTestSleepTimeChanged;
+            Helper.Events.GameLoop.Saving += OnTestSleepSaving;
+        }
         testHideFarmer = true;
         try
         {
@@ -110,7 +131,7 @@ public partial class FogMod : Mod
         {
             Monitor.Log($"Test farmer-hide patch failed (cosmetic): {ex.Message}", LogLevel.Warn);
         }
-        Monitor.Log($"Test harness active (save={testSaveName}, results={testResultsPath})", LogLevel.Info);
+        Monitor.Log($"Test harness active (save={testSaveName}, results={testResultsPath}, sleep={testSleepMode})", LogLevel.Info);
     }
 
     private void Check(bool cond, string name, string detail = "")
@@ -192,9 +213,11 @@ public partial class FogMod : Mod
         testPhaseTicks = 0;
     }
 
+    private bool IsSleepPhase(int phase) => phase >= TestSleepWarpPhase && phase <= TestSleepAwaitPhase;
+
     private void OnTestTick(object? sender, UpdateTickedEventArgs e)
     {
-        if (!testActive || testPhase > TestFinishPhase)
+        if (!testActive || testPhase == 99 || (testPhase > TestFinishPhase && !IsSleepPhase(testPhase)))
             return;
         testPhaseTicks++;
         int scenario = ScenarioForPhase(testPhase);
@@ -243,6 +266,8 @@ public partial class FogMod : Mod
                 case 21: TestFxAndSnacks(); break;
                 case 22: TestFog(); break;
                 case 23: TestScattergun(); break;
+                case TestSleepWarpPhase: TestSleepWarp(); break;
+                case TestSleepAwaitPhase: TestSleepAwait(); break;
                 case TestFinishPhase: TestFinish(); break;
             }
         }
@@ -281,8 +306,180 @@ public partial class FogMod : Mod
             GiveUp("load", $"save {testSaveName} never became ready");
             return;
         }
-        if (Context.IsWorldReady)
-            NextPhase();
+        if (!Context.IsWorldReady)
+            return;
+        if (testSleepMode)
+        {
+            testPhase = TestSleepWarpPhase;
+            testPhaseTicks = 0;
+            return;
+        }
+        TestSaveSafety();
+        NextPhase();
+    }
+
+    // Non-destructive save-safety regression (Setup scenario): mass-spawn
+    // must populate the world, and the pre-save cleanup must leave zero
+    // wildlife behind. Counts use a fresh Game1.locations query over ALL
+    // locations (what the save serializer walks), independent of the
+    // outdoorLocations filter the spawn/clear paths use.
+    private void TestSaveSafety()
+    {
+        InitializeCritterz();
+        InitializeGrouse();
+        var (spawnedC, spawnedG, spawnedWhere) = CountWildlife();
+        Monitor.Log($"TEST savesafety after spawn: {spawnedC} critterz, {spawnedG} grouse ({spawnedWhere})", LogLevel.Info);
+        Check(spawnedC > 0, "savesafety-spawned-critterz", "mass spawn populated nothing");
+        Check(spawnedG > 0, "savesafety-spawned-grouse", "mass spawn populated nothing");
+        OnDayEnding(null, null!);
+        var (leftC, leftG, leftWhere) = CountWildlife();
+        Check(leftC == 0, "savesafety-cleared-critterz", $"{leftC} survivors ({leftWhere})");
+        Check(leftG == 0, "savesafety-cleared-grouse", $"{leftG} survivors ({leftWhere})");
+    }
+
+    private static (int critterz, int grouse, string where) CountWildlife()
+    {
+        int c = 0, g = 0;
+        List<string> names = new();
+        foreach (GameLocation loc in Game1.locations.Where(l => l != null))
+        {
+            int lc = loc.characters?.OfType<Critterz>().Count() ?? 0;
+            int lg = loc.characters?.OfType<Grouse>().Count() ?? 0;
+            if (lc + lg > 0)
+            {
+                c += lc;
+                g += lg;
+                names.Add($"{loc.NameOrUniqueName}:{lc}c/{lg}g");
+            }
+        }
+        return (c, g, string.Join(",", names));
+    }
+
+    // Sleep track: reproduce the play session — visit Town so warp-spawns
+    // populate it, top up guaranteed subjects, then collapse.
+    private void TestSleepWarp()
+    {
+        if (testPhaseTicks == 1)
+        {
+            Game1.warpFarmer("Town", 48, 42, false);
+            return;
+        }
+        if (Game1.currentLocation?.NameOrUniqueName != "Town")
+        {
+            if (testPhaseTicks > 600)
+                GiveUp("sleep-warp", "never arrived in Town");
+            return;
+        }
+        GameLocation town = Game1.currentLocation;
+        int wildCritterz = town.characters.OfType<Critterz>().Count();
+        if (wildCritterz == 0)
+        {
+            Bush? bush = NearestReachableBush(town, Game1.player.Tile);
+            if (bush == null)
+            {
+                GiveUp("sleep-setup", "no reachable bush in Town");
+                return;
+            }
+            SpawnCritterz(town, bush.Tile, false, bush.Tile);
+            wildCritterz = 1;
+        }
+        int wildGrouse = town.characters.OfType<Grouse>().Count();
+        if (wildGrouse == 0)
+        {
+            if (GetNPCsAtCurrentLocation() is not NetCollection<NPC> npc)
+            {
+                GiveUp("sleep-setup", "no NPC list");
+                return;
+            }
+            var occupied = town.characters.OfType<Grouse>().Select(g => g.TreePosition).ToHashSet();
+            Tree? tree = TreeHelper.GetAvailableTreePositions(town)
+                .FirstOrDefault(t => !occupied.Contains(TreeHelper.GetTreePosition(t)));
+            if (tree == null)
+            {
+                GiveUp("sleep-setup", "no free tree in Town");
+                return;
+            }
+            SpawnGrouse(npc, TreeHelper.GetTreePosition(tree), TreeHelper.GetGrouseSpawnPosition(tree), town, null, false);
+            wildGrouse = 1;
+        }
+        Check(wildCritterz > 0 && wildGrouse > 0, "sleep-setup", $"town subjects c={wildCritterz} g={wildGrouse}");
+        NextPhase();
+    }
+
+    // Collapse at 2am through the vanilla clock: 2550 -> next ten-minute
+    // tick hits 2600 -> pass out -> day end -> save -> new day. Reaching
+    // DayStarted proves the save serialized with live subjects around.
+    private void TestSleepAwait()
+    {
+        if (testPhaseTicks == 1)
+        {
+            Game1.timeOfDay = 2550;
+            Monitor.Log("TEST collapsing: time set to 2550, awaiting new day", LogLevel.Info);
+            return;
+        }
+        if (testSleepSawNewDay)
+        {
+            Check(true, "sleep-new-day", $"{Game1.currentSeason} {Game1.dayOfMonth}");
+            testPhase = TestFinishPhase;
+            testPhaseTicks = 0;
+            return;
+        }
+        // Headless stand-in for the player: dismiss end-of-day menus
+        // (shipping, level-ups, SpaceCore skill screens) through their own
+        // exit path so the chained day-end flow advances. Never touch the
+        // save menu itself — it exits on its own when the save completes.
+        if (testPhaseTicks % 30 == 0)
+        {
+            string? menuName = Game1.activeClickableMenu?.GetType().FullName;
+            bool inEvent = Game1.CurrentEvent != null;
+            var (wc, wg, _) = CountWildlife();
+            GameLocation? town = Game1.getLocationFromName("Town");
+            int townC = town?.characters?.OfType<Critterz>().Count() ?? -1;
+            int townG = town?.characters?.OfType<Grouse>().Count() ?? -1;
+            if (menuName != testSleepLastMenu || inEvent != testSleepLastEvent || wc != testSleepLastC || wg != testSleepLastG)
+            {
+                testSleepLastMenu = menuName;
+                testSleepLastEvent = inEvent;
+                testSleepLastC = wc;
+                testSleepLastG = wg;
+                Monitor.Log($"TEST sleep waiting: menu={menuName ?? "none"} event={inEvent} t={Game1.timeOfDay} wild={wc}c/{wg}g town={townC}c/{townG}g", LogLevel.Info);
+            }
+            if (Game1.activeClickableMenu is IClickableMenu menu && menu is not SaveGameMenu)
+            {
+                try { menu.exitThisMenu(false); }
+                catch (Exception ex) { Monitor.Log($"TEST sleep dismiss failed: {ex.Message}", LogLevel.Warn); }
+            }
+        }
+        if (testPhaseTicks > 10800)
+            GiveUp("sleep-new-day", "no new day within 3 min — save likely crashed (check saveTask error above)");
+    }
+
+    private void OnTestSleepDayStarted(object? sender, DayStartedEventArgs e)
+    {
+        var (wc, wg, _) = CountWildlife();
+        Monitor.Log($"TEST EVENT DayStarted (phase={testPhase} wild={wc}c/{wg}g)", LogLevel.Info);
+        // The load-day DayStarted (if SMAPI fires one) lands in phase 1;
+        // any DayStarted during the await phase is the post-collapse day.
+        if (testActive && testSleepMode && testPhase == TestSleepAwaitPhase)
+            testSleepSawNewDay = true;
+    }
+
+    private void OnTestSleepDayEnding(object? sender, DayEndingEventArgs e)
+    {
+        var (wc, wg, _) = CountWildlife();
+        Monitor.Log($"TEST EVENT DayEnding (phase={testPhase} wild={wc}c/{wg}g)", LogLevel.Info);
+    }
+
+    private void OnTestSleepTimeChanged(object? sender, TimeChangedEventArgs e)
+    {
+        var (wc, wg, _) = CountWildlife();
+        Monitor.Log($"TEST EVENT TimeChanged {e.OldTime}->{e.NewTime} (phase={testPhase} wild={wc}c/{wg}g)", LogLevel.Info);
+    }
+
+    private void OnTestSleepSaving(object? sender, SavingEventArgs e)
+    {
+        var (wc, wg, where) = CountWildlife();
+        Monitor.Log($"TEST EVENT Saving (phase={testPhase} wild={wc}c/{wg}g [{where}])", LogLevel.Info);
     }
 
     // Backwoods is the test sandbox: TestPinLayout rewrites it to a
@@ -1291,6 +1488,12 @@ public partial class FogMod : Mod
             }
             lines.Add($"## Scenario {i + 1}/{TestScenarios.Length}: {TestScenarios[i].Name} ({passed}/{checks.Count}){wall}");
             lines.AddRange(checks.Select(r => r.Line));
+        }
+        var ungrouped = testResults.Where(r => ScenarioForPhase(r.Phase) == -1).ToList();
+        if (ungrouped.Count > 0)
+        {
+            lines.Add($"## Ungrouped ({ungrouped.Count(r => r.Line.StartsWith("PASS"))}/{ungrouped.Count})");
+            lines.AddRange(ungrouped.Select(r => r.Line));
         }
         int totalPass = testResults.Count(r => r.Line.StartsWith("PASS"));
         if (testWall != null)

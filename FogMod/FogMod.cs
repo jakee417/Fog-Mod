@@ -53,6 +53,7 @@ public partial class FogMod : Mod
         helper.Events.GameLoop.UpdateTicked += OnUpdateTicked;
         helper.Events.Display.Rendered += OnRendered;
         helper.Events.GameLoop.DayEnding += OnDayEnding;
+        helper.Events.GameLoop.Saving += OnSaving;
 
         // Console commands
         helper.ConsoleCommands.Add("reload_scattergun", "Reload scattergun_offsets.json", (_, _) =>
@@ -546,6 +547,11 @@ public partial class FogMod : Mod
 
     private void OnTimeChanged(object? sender, TimeChangedEventArgs e)
     {
+        // The clock only runs backward for the new-day reset, which lands
+        // between DayEnding and the save: spawning there re-adds wildlife
+        // the serializer chokes on (custom types aren't save-serializable).
+        if (e.NewTime < e.OldTime)
+            return;
         // Mirror vanilla critter spawns, which run on the ten-minute update.
         if (Context.IsMainPlayer && Config.EnableCritterz)
             SpawnCritterzInBushes(outdoorLocations);
@@ -553,9 +559,22 @@ public partial class FogMod : Mod
 
     private void OnDayEnding(object? sender, DayEndingEventArgs e)
     {
+        ClearWildlifeForSave();
+        ResetAllParticlesOnLocationChange();
+    }
+
+    // Last line of defense before serialization: whatever spawned or
+    // survived after DayEnding (a day-end warp, a time jump, a future
+    // spawn path) is stripped here so the save never sees a custom type.
+    private void OnSaving(object? sender, SavingEventArgs e)
+    {
+        ClearWildlifeForSave();
+    }
+
+    private void ClearWildlifeForSave()
+    {
         ClearGrouseFromAllLocations();
         ClearCritterzFromAllLocations();
-        ResetAllParticlesOnLocationChange();
     }
 
     private void OnWarped(object? sender, WarpedEventArgs e)

@@ -4,15 +4,15 @@
 # source area) with Cobertura line/branch coverage of the FogMod assembly.
 #
 # Usage:
-#   ./run_unit_tests.sh              # full suite + coverage summary
-#   ./run_unit_tests.sh -- --filter 'FullyQualifiedName~Utilities'
+#   ./scripts/run_unit_tests.sh              # full suite + coverage summary
+#   ./scripts/run_unit_tests.sh -- --filter 'FullyQualifiedName~Utilities'
 #
 # Game-coupled code (anything touching Game1) can't run under dotnet test;
-# that stays covered by the headless in-game harness (run_headless_test.sh).
+# that stays covered by the headless in-game harness (scripts/run_headless_test.sh).
 
 set -u
 
-cd "$(dirname "$0")" || exit 1
+cd "$(dirname "$0")/.." || exit 1  # repo root
 
 # Pick up a user-local .NET SDK install if dotnet isn't on PATH
 if ! command -v dotnet >/dev/null 2>&1 && [ -x "$HOME/.dotnet/dotnet" ]; then
@@ -52,5 +52,5 @@ for name in sorted(agg):
     if valid and hit:
         print(f"{hit/valid*100:5.1f}%  {hit:4d}/{valid:<4d}  {name}")
         shown += 1
-print(f"({shown} files with hits; run_headless_test.sh covers the game-coupled rest)")
+print(f"({shown} files with hits; scripts/run_headless_test.sh covers the game-coupled rest)")
 EOF

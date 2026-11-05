@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+- Save crash (`The type FogMod.Models.Critterz was not expected`) when wildlife was present at save time. The new-day clock reset fired a time-change respawn between the day-end clear and serialization; respawns on backward clock jumps are now skipped, and remaining wildlife is stripped in a `Saving` handler (new minimum SMAPI version 4.0.0).
+
 ## [1.0.0] - 2026-03-30
 
 ### Added

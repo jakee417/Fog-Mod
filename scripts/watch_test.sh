@@ -4,20 +4,20 @@
 # window on the test farm. The scenario exits on its own without saving.
 #
 # Usage:
-#   ./watch_test.sh                  # Tim's farm (default)
-#   ./watch_test.sh pickles_434696114  # a different save
+#   ./scripts/watch_test.sh                  # Tim's farm (default)
+#   ./scripts/watch_test.sh pickles_434696114  # a different save
 #
 # Results go to /tmp/fogmod-test-results.txt. HEADLESS_TIMEOUT and other
 # run_headless_test.sh env overrides pass through untouched.
 
 set -u
 
-cd "$(dirname "$0")" || exit 1
+cd "$(dirname "$0")/.." || exit 1  # repo root
 
-./build_debug.sh || exit 1
+./scripts/build_debug.sh || exit 1
 
 if [ $# -gt 0 ]; then
-    HEADLESS_SAVE="$1" ./run_headless_test.sh --watch
+    HEADLESS_SAVE="$1" ./scripts/run_headless_test.sh --watch
 else
-    ./run_headless_test.sh --watch
+    ./scripts/run_headless_test.sh --watch
 fi

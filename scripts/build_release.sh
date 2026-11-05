@@ -2,8 +2,10 @@
 
 # Fog Mod Release Build Script
 # This script builds the mod in release configuration, renames the output folder, and creates a zip file
-# Usage: ./build_release.sh [version]
+# Usage: ./scripts/build_release.sh [version]
 # If no version is provided, defaults to 0.3
+
+cd "$(dirname "$0")/.." || exit 1  # repo root
 
 # Pick up a user-local .NET SDK install if dotnet isn't on PATH
 if ! command -v dotnet >/dev/null 2>&1 && [ -x "$HOME/.dotnet/dotnet" ]; then

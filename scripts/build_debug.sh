@@ -3,6 +3,8 @@
 # Fog Mod Build Script
 # This script builds the mod and copies all necessary files to the Mods directory
 
+cd "$(dirname "$0")/.." || exit 1  # repo root
+
 echo "🔨 Building Fog Mod..."
 
 # Pick up a user-local .NET SDK install if dotnet isn't on PATH

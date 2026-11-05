@@ -8,10 +8,10 @@
 # this for instance 2 (Co-op -> Join LAN Game, leave the IP box empty).
 #
 # Examples:
-#   ./launch_game.sh                        # 2nd instance, same Mods folder
-#   ./launch_game.sh --mods-path Mods-P2    # 2nd instance, separate mods folder
-#   ./launch_game.sh --proton "Proton 11.0" # override Proton version
-#   ./launch_game.sh --dry-run              # print the command without running
+#   ./scripts/launch_game.sh                        # 2nd instance, same Mods folder
+#   ./scripts/launch_game.sh --mods-path Mods-P2    # 2nd instance, separate mods folder
+#   ./scripts/launch_game.sh --proton "Proton 11.0" # override Proton version
+#   ./scripts/launch_game.sh --dry-run              # print the command without running
 #
 # Env overrides: STEAM_ROOT, GAME_DIR, PROTON_VERSION.
 

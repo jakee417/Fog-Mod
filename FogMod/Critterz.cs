@@ -33,9 +33,19 @@ public partial class FogMod : Mod
 
     private void ClearCritterzFromAllLocations()
     {
-        foreach (GameLocation loc in outdoorLocations)
+        // Every location, not just outdoors: the save serializer walks them
+        // all, so one stray anywhere crashes the save. Per-location
+        // isolation so one bad location can't abort the rest of the clear.
+        foreach (GameLocation loc in Game1.locations.Where(l => l != null))
         {
-            loc.characters.RemoveWhere(p => p is Critterz);
+            try
+            {
+                loc.characters?.RemoveWhere(p => p is Critterz);
+            }
+            catch (Exception ex)
+            {
+                Monitor.Log($"Failed to clear Critterz from {loc.NameOrUniqueName}: {ex.Message}", LogLevel.Warn);
+            }
         }
     }
 
