@@ -281,6 +281,9 @@ public partial class FogMod : Mod
         if (Helper.ModRegistry.GetApi<GMCM.IGenericModConfigMenuApi>("spacechase0.GenericModConfigMenu") is GMCM.IGenericModConfigMenuApi gmcmApi)
             GMCM.GMCM.RegisterModConfig(gmcmApi);
 
+        // Pelipper Town: patch its companion targeting gate once all mods are loaded.
+        TryPatchPelipperTargeting();
+
         // Normalize global wind direction once
         if (globalWindDirection.LengthSquared() > 0f)
             globalWindDirection.Normalize();

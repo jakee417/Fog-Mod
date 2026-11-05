@@ -10,6 +10,9 @@ using System.Collections.Generic;
 using System.Linq;
 using FogMod.Models;
 using FogMod.Utils;
+using HarmonyLib;
+using StardewValley.Monsters;
+using System.Reflection;
 
 namespace FogMod;
 
@@ -345,5 +348,55 @@ public partial class FogMod : Mod
         {
             FogMod.Instance?.Monitor.Log($"OnSlingshotGetHoverBoxTextPostfix failed: {ex.Message}", LogLevel.Error);
         }
+    }
+
+    // Pelipper Town compatibility (Griff.PelipperTown): its companion Pokemon
+    // acquire targets in PokemonCombatController.FindTarget, which accepts
+    // every live Monster that IsTargetValid returns true for. Fog-Mod wildlife
+    // are Monsters, so companions auto-target grouse/critterz. Pelipper reads
+    // no public opt-out flag on a monster (its WildProxy/BattleProxy modData
+    // gates only apply to its own Pokemon, and spoofing them would make
+    // Pelipper treat wildlife as combat proxies), so patch that one gate
+    // instead: a prefix that answers "not a valid target" for Grouse/Critterz
+    // only. Applied at GameLaunched, when all mod assemblies are loaded;
+    // skipped silently when Pelipper Town is absent, and only warned (never
+    // crashed) if Pelipper changes the method.
+    private static void TryPatchPelipperTargeting()
+    {
+        try
+        {
+            Type? controllerType = AccessTools.TypeByName("PelipperTown.PokemonCombatController");
+            if (controllerType == null)
+                return; // Pelipper Town not loaded; nothing to patch.
+            MethodInfo? original = AccessTools.Method(controllerType, "IsTargetValid", new Type[] { typeof(Monster), typeof(GameLocation) });
+            if (original == null)
+            {
+                FogMod.Instance?.Monitor.Log("Pelipper Town compatibility: PokemonCombatController.IsTargetValid not found (Pelipper Town may have changed); companion Pokemon may still target grouse/critterz.", LogLevel.Warn);
+                return;
+            }
+            var harmony = new Harmony(FogMod.Instance?.ModManifest.UniqueID ?? "jakeetaylor.FoggyGrouse");
+            harmony.Patch(
+                original: original,
+                prefix: new HarmonyMethod(typeof(FogMod), nameof(OnPelipperIsTargetValidPrefix))
+            );
+            FogMod.Instance?.Monitor.Log("Pelipper Town compatibility: companion Pokemon will ignore grouse and critterz.", LogLevel.Info);
+        }
+        catch (Exception ex)
+        {
+            FogMod.Instance?.Monitor.Log($"Pelipper Town compatibility patch failed (companions may still target grouse/critterz): {ex.Message}", LogLevel.Warn);
+        }
+    }
+
+    // Prefix for PelipperTown.PokemonCombatController.IsTargetValid(Monster, GameLocation).
+    // Returning false skips Pelipper's check and answers "not a valid target";
+    // returning true runs Pelipper's own check unchanged.
+    public static bool OnPelipperIsTargetValidPrefix(Monster? monster, ref bool __result)
+    {
+        if (monster is Grouse || monster is Critterz)
+        {
+            __result = false;
+            return false;
+        }
+        return true;
     }
 }

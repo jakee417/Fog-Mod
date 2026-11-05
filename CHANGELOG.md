@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Save crash (`The type FogMod.Models.Critterz was not expected`) when wildlife was present at save time. The new-day clock reset fired a time-change respawn between the day-end clear and serialization; respawns on backward clock jumps are now skipped, and remaining wildlife is stripped in a `Saving` handler (new minimum SMAPI version 4.0.0).
+- Pelipper Town compatibility: companion Pokemon no longer auto-target grouse and critterz. A Harmony prefix on Pelipper's `PokemonCombatController.IsTargetValid` answers "not a valid target" for Fog-Mod wildlife only (applied at `GameLaunched`, skipped when Pelipper Town is absent).
 
 ## [1.0.0] - 2026-03-30
 

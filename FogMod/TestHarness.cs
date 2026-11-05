@@ -314,6 +314,7 @@ public partial class FogMod : Mod
             testPhaseTicks = 0;
             return;
         }
+        TestPelipperCompat();
         TestSaveSafety();
         NextPhase();
     }
@@ -323,6 +324,44 @@ public partial class FogMod : Mod
     // wildlife behind. Counts use a fresh Game1.locations query over ALL
     // locations (what the save serializer walks), independent of the
     // outdoorLocations filter the spawn/clear paths use.
+
+    // Pelipper Town compatibility: when Pelipper is loaded, its companion
+    // targeting gate must carry Fog-Mod's prefix, and the prefix must exclude
+    // grouse/critterz while letting vanilla monsters through. Skipped when
+    // Pelipper is not loaded. Runs before TestSaveSafety clears the subjects
+    // it spawns here.
+    private void TestPelipperCompat()
+    {
+        if (!Helper.ModRegistry.IsLoaded("Griff.PelipperTown"))
+        {
+            Monitor.Log("TEST pelipper: Pelipper Town not loaded, skipping compat checks", LogLevel.Info);
+            return;
+        }
+        Type? controllerType = HarmonyLib.AccessTools.TypeByName("PelipperTown.PokemonCombatController");
+        Check(controllerType != null, "pelipper-controller-found", "PelipperTown.PokemonCombatController type not found");
+        if (controllerType == null)
+            return;
+        System.Reflection.MethodInfo? original = HarmonyLib.AccessTools.Method(controllerType, "IsTargetValid", new Type[] { typeof(StardewValley.Monsters.Monster), typeof(GameLocation) });
+        Check(original != null, "pelipper-targetvalid-found", "IsTargetValid method not found");
+        if (original == null)
+            return;
+        HarmonyLib.Patches? patches = HarmonyLib.Harmony.GetPatchInfo(original);
+        bool patched = patches?.Prefixes.Any(patch => patch.owner == ModManifest.UniqueID) ?? false;
+        Check(patched, "pelipper-targetvalid-patched", "Fog-Mod prefix not applied to IsTargetValid");
+        InitializeCritterz();
+        InitializeGrouse();
+        StardewValley.Monsters.Monster? grouse = Game1.locations.SelectMany(loc => loc.characters?.OfType<Grouse>() ?? Enumerable.Empty<Grouse>()).FirstOrDefault();
+        StardewValley.Monsters.Monster? critterz = Game1.locations.SelectMany(loc => loc.characters?.OfType<Critterz>() ?? Enumerable.Empty<Critterz>()).FirstOrDefault();
+        Check(grouse != null, "pelipper-subject-grouse", "no grouse spawned to test the prefix");
+        Check(critterz != null, "pelipper-subject-critterz", "no critterz spawned to test the prefix");
+        bool result = true;
+        Check(grouse != null && !OnPelipperIsTargetValidPrefix(grouse, ref result) && !result, "pelipper-excludes-grouse", "prefix did not exclude a grouse");
+        result = true;
+        Check(critterz != null && !OnPelipperIsTargetValidPrefix(critterz, ref result) && !result, "pelipper-excludes-critterz", "prefix did not exclude a critterz");
+        result = false;
+        Check(OnPelipperIsTargetValidPrefix(new StardewValley.Monsters.GreenSlime(Vector2.Zero), ref result) && !result, "pelipper-allows-vanilla", "prefix wrongly excluded a vanilla monster");
+    }
+
     private void TestSaveSafety()
     {
         InitializeCritterz();
