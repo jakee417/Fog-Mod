@@ -327,7 +327,7 @@ public partial class FogMod : Mod
 
     // Pelipper Town compatibility: when Pelipper is loaded, its companion
     // targeting gate must carry Fog-Mod's prefix, and the prefix must exclude
-    // grouse/critterz while letting vanilla monsters through. Skipped when
+    // grouse/critterz while letting native monsters through. Skipped when
     // Pelipper is not loaded. Runs before TestSaveSafety clears the subjects
     // it spawns here.
     private void TestPelipperCompat()
@@ -359,7 +359,7 @@ public partial class FogMod : Mod
         result = true;
         Check(critterz != null && !OnPelipperIsTargetValidPrefix(critterz, ref result) && !result, "pelipper-excludes-critterz", "prefix did not exclude a critterz");
         result = false;
-        Check(OnPelipperIsTargetValidPrefix(new StardewValley.Monsters.GreenSlime(Vector2.Zero), ref result) && !result, "pelipper-allows-vanilla", "prefix wrongly excluded a vanilla monster");
+        Check(OnPelipperIsTargetValidPrefix(new StardewValley.Monsters.GreenSlime(Vector2.Zero), ref result) && !result, "pelipper-allows-native", "prefix wrongly excluded a native monster");
     }
 
     private void TestSaveSafety()
@@ -445,7 +445,7 @@ public partial class FogMod : Mod
         NextPhase();
     }
 
-    // Collapse at 2am through the vanilla clock: 2550 -> next ten-minute
+    // Collapse at 2am through the native clock: 2550 -> next ten-minute
     // tick hits 2600 -> pass out -> day end -> save -> new day. Reaching
     // DayStarted proves the save serialized with live subjects around.
     private void TestSleepAwait()

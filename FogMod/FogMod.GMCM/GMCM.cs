@@ -129,7 +129,7 @@ public static class GMCM
                 () => Config.EnableCritterz,
                 value => Config.EnableCritterz = value,
                 () => "Enable Critterz",
-                () => "Hide shootable Critterz in bushes. Shake a bush to flush one out. Requires restart to take full effect."
+                () => "Hide shootable Critterz in bushes. Shake a bush to flush one out. Native rabbits and squirrels stay off while Critterz are on. Requires restart to take full effect."
             );
 
 

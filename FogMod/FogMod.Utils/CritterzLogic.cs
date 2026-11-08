@@ -124,7 +124,7 @@ public static class CritterzLogic
         };
     }
 
-    // Kill loot, pre-rolled at spawn into the vanilla objectsToDrop list
+    // Kill loot, pre-rolled at spawn into the native objectsToDrop list
     // (dropped by GameLocation.monsterDrop, like the grouse snacks). The
     // critter stays generic, but the loot is skin-specific: bunnies drop
     // rabbit goods, squirrels drop nuts, raccoons drop trash.

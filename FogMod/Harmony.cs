@@ -3,6 +3,7 @@ using Microsoft.Xna.Framework;
 using Netcode;
 using StardewModdingAPI;
 using StardewValley;
+using StardewValley.BellsAndWhistles;
 using StardewValley.Objects;
 using StardewValley.TerrainFeatures;
 using System;
@@ -348,6 +349,24 @@ public partial class FogMod : Mod
         {
             FogMod.Instance?.Monitor.Log($"OnSlingshotGetHoverBoxTextPostfix failed: {ex.Message}", LogLevel.Error);
         }
+    }
+
+    // Native rabbits/squirrels: GameLocation.addCritter is the single spawn
+    // choke point (no location subclass overrides it), so a prefix here cuts
+    // them off at the source while Critterz are on. Everything else passes
+    // through to the original.
+    public static bool OnAddCritterPrefix(Critter critter)
+    {
+        try
+        {
+            if (FogMod.Config.EnableCritterz && Utils.NativeCritters.ShouldSuppress(critter.GetType()))
+                return false;
+        }
+        catch (Exception ex)
+        {
+            FogMod.Instance?.Monitor.Log($"OnAddCritterPrefix failed: {ex.Message}", LogLevel.Error);
+        }
+        return true;
     }
 
     // Pelipper Town compatibility (Griff.PelipperTown): its companion Pokemon

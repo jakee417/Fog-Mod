@@ -7,9 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Critterz: shootable critters (squirrel, grey/white bunny, raccoon) hide in bushes, flush when a bush is shaken, hit, or used, then run to another bush. Toggle with the `EnableCritterz` option; flushing bursts can drop snacks, and kills drop skin-specific loot.
+- Native rabbits and squirrels no longer appear while Critterz are enabled. Other critters (butterflies, birds, other mods' critters) are unaffected.
+- `give_scattergun` console command: adds the Scattergun to your inventory.
+
 ### Fixed
-- Save crash (`The type FogMod.Models.Critterz was not expected`) when wildlife was present at save time. The new-day clock reset fired a time-change respawn between the day-end clear and serialization; respawns on backward clock jumps are now skipped, and remaining wildlife is stripped in a `Saving` handler (new minimum SMAPI version 4.0.0).
-- Pelipper Town compatibility: companion Pokemon no longer auto-target grouse and critterz. A Harmony prefix on Pelipper's `PokemonCombatController.IsTargetValid` answers "not a valid target" for Fog-Mod wildlife only (applied at `GameLaunched`, skipped when Pelipper Town is absent).
+- Fixed a save crash when grouse or critterz were alive at end of day (requires SMAPI 4.0.0 or later).
+- Pelipper Town compatibility: companion Pokemon no longer attack grouse and critterz.
 
 ## [1.0.0] - 2026-03-30
 

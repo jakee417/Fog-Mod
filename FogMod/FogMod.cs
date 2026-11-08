@@ -4,6 +4,7 @@ using Microsoft.Xna.Framework.Graphics;
 using StardewModdingAPI;
 using StardewModdingAPI.Events;
 using StardewValley;
+using StardewValley.BellsAndWhistles;
 using System;
 using System.Collections.Generic;
 using HarmonyLib;
@@ -185,6 +186,11 @@ public partial class FogMod : Mod
             original: AccessTools.Method(typeof(StardewValley.Tools.Slingshot), nameof(StardewValley.Tools.Slingshot.tickUpdate),
                 new[] { typeof(GameTime), typeof(Farmer) }),
             prefix: new HarmonyMethod(typeof(FogMod), nameof(OnSlingshotTickUpdatePrefix))
+        );
+        // Cut native rabbit/squirrel spawns off at the source
+        harmony.Patch(
+            original: AccessTools.Method(typeof(GameLocation), nameof(GameLocation.addCritter), new Type[] { typeof(Critter) }),
+            prefix: new HarmonyMethod(typeof(FogMod), nameof(OnAddCritterPrefix))
         );
 
         // Headless test harness (inert unless FOGMOD_TEST=1).
@@ -555,7 +561,7 @@ public partial class FogMod : Mod
         // the serializer chokes on (custom types aren't save-serializable).
         if (e.NewTime < e.OldTime)
             return;
-        // Mirror vanilla critter spawns, which run on the ten-minute update.
+        // Mirror native critter spawns, which run on the ten-minute update.
         if (Context.IsMainPlayer && Config.EnableCritterz)
             SpawnCritterzInBushes(outdoorLocations);
     }
@@ -589,9 +595,12 @@ public partial class FogMod : Mod
         {
             ResetAllParticlesOnLocationChange();
             RecolorArmsTexture(Game1.player);
-            // Mirror vanilla critter spawns, which also run on warp.
+            // Mirror native critter spawns, which also run on warp.
             if (Context.IsMainPlayer && Config.EnableCritterz && e.NewLocation.IsOutdoors)
                 TrySpawnCritterz(e.NewLocation);
+            // Clear native rabbits/squirrels already present in the new location.
+            if (Config.EnableCritterz)
+                Utils.NativeCritters.SweepSuppressedCritters(e.NewLocation);
         }
     }
 
@@ -615,6 +624,11 @@ public partial class FogMod : Mod
         if (isFogDay && Game1.currentLocation != null && Game1.currentLocation.IsOutdoors)
             UpdateFloatingFogParticles(deltaSeconds);
         TreeHelper.UpdateLeaves();
+        // Safety net for rabbits/squirrels that bypass addCritter (and for
+        // toggling Critterz on mid-session): sweep the current location
+        // every ~5 seconds.
+        if (e.IsMultipleOf(300) && Config.EnableCritterz && Game1.currentLocation != null)
+            Utils.NativeCritters.SweepSuppressedCritters(Game1.currentLocation);
         if (Utils.Multiplayer.IsAbleToUpdateOwnWorld())
         {
             UpdateGrouse(deltaSeconds);

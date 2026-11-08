@@ -306,7 +306,7 @@ public class Critterz : Monster
         if (State == CritterzState.Sitting)
             return;
 
-        // Vanilla critters animate in update(); the mod drives movement from
+        // Native critters animate in update(); the mod drives movement from
         // the update tick instead, so animate here like the grouse does. This
         // also keeps farmhands animating without running the update loop.
         Sprite.animateOnce(Game1.currentGameTime);
@@ -388,7 +388,7 @@ public class Critterz : Monster
         Sprite.loop = true;
     }
 
-    // Kill loot, pre-rolled at spawn into the vanilla objectsToDrop list
+    // Kill loot, pre-rolled at spawn into the native objectsToDrop list
     // (dropped by GameLocation.monsterDrop, like the grouse snacks). The
     // critter stays generic, but the loot is skin-specific: bunnies drop
     // rabbit goods, squirrels drop nuts, raccoons drop trash.
@@ -411,7 +411,7 @@ public class Critterz : Monster
 
     public static bool IsCritterzOffLocation(Critterz r, GameLocation location)
     {
-        // Mirror the vanilla Critter.update out-of-bounds check.
+        // Mirror the native Critter.update out-of-bounds check.
         Rectangle locationBounds = new Rectangle(0, 0, location.Map.Layers[0].LayerWidth * Game1.tileSize, location.Map.Layers[0].LayerHeight * Game1.tileSize);
         return r.Position.X < -128f
             || r.Position.Y < -128f

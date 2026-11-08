@@ -138,7 +138,7 @@ public partial class FogMod : Mod
         return (float)Math.Atan2(point.Y - shootOrigin.Y, point.X - shootOrigin.X);
     }
 
-    // === FarmerRenderer.draw prefix — suppress vanilla slingshot rendering ===
+    // === FarmerRenderer.draw prefix — suppress native slingshot rendering ===
     public static void OnFarmerRendererDrawPrefix(Farmer who)
     {
         SuppressSlingshotDraw = false;
@@ -314,7 +314,7 @@ public partial class FogMod : Mod
         location.playSound(Constants.ClickAudioCueId, who.Tile);
     }
 
-    // === Slingshot.tickUpdate prefix — suppress vanilla drawback sound, keep charge timer running ===
+    // === Slingshot.tickUpdate prefix — suppress native drawback sound, keep charge timer running ===
     public static void OnSlingshotTickUpdatePrefix(Slingshot __instance, ref bool ___canPlaySound)
     {
         if (!IsScattergunId(__instance.ItemId))
@@ -349,7 +349,7 @@ public partial class FogMod : Mod
             layerDepth
         );
 
-        // Draw ammo count like vanilla slingshot
+        // Draw ammo count like native slingshot
         if (drawStackNumber != StackDrawType.Hide && __instance.attachments[0] is StardewValley.Object ammo)
         {
             Utility.drawTinyDigits(
