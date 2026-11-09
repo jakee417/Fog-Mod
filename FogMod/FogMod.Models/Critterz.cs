@@ -2,9 +2,11 @@
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using System;
+using System.Linq;
 using Netcode;
 using StardewValley;
 using StardewValley.Monsters;
+using StardewValley.TerrainFeatures;
 using StardewValley.Tools;
 using StardewModdingAPI;
 using System.Collections.Generic;
@@ -160,6 +162,21 @@ public class Critterz : Monster
                 SetHopAnimation();
             else
                 SetSittingFrame();
+            // Burst fx, grouse-style: the updater only writes Running once
+            // it commits to a run, so every client derives the burst from
+            // the transition instead of a broadcast.
+            if (oldValue == CritterzState.Sitting && newValue == CritterzState.Running)
+                PlayBushFxAt(HomeBush);
+        };
+
+        homeBush.fieldChangeEvent += (NetVector2 field, Vector2 oldValue, Vector2 newValue) =>
+        {
+            // Arrival fx, grouse-style: the updater moves HomeBush to the
+            // destination exactly when the run completes. Zero->tile is the
+            // spawn assignment, not an arrival.
+            if (oldValue == Vector2.Zero || oldValue == newValue)
+                return;
+            PlayBushFxAt(newValue);
         };
     }
 
@@ -386,6 +403,19 @@ public class Critterz : Monster
             new FarmerSprite.AnimationFrame(SittingFrame, 100),
         });
         Sprite.loop = true;
+    }
+
+    // Local-only bush fx for this client's view, grouse-leaf style: the
+    // wobble writes plain fields and the leaves live in a local list, so
+    // every client plays it from the synced transition. Colocated only.
+    private void PlayBushFxAt(Vector2 bushTile)
+    {
+        if (currentLocation is GameLocation location
+            && Utilities.IsColocatedWithPlayer(Game1.player, location)
+            && BushHelper.GetAvailableBushes(location).FirstOrDefault(b => b.Tile == bushTile) is Bush bush)
+        {
+            FogMod.PlayCritterzBushFx(location, bush);
+        }
     }
 
     // Kill loot, pre-rolled at spawn into the native objectsToDrop list

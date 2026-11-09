@@ -2,6 +2,7 @@
 using StardewModdingAPI;
 using StardewValley;
 using System;
+using System.Linq;
 using FogMod.Models;
 using StardewModdingAPI.Events;
 
@@ -16,7 +17,7 @@ public static class Multiplayer
     {
         public const string Explosion = "Explosion";
         public const string GrouseEvent = "GrouseEvent";
-        public const string CritterzBushFx = "CritterzBushFx";
+        public const string CritterzStartle = "CritterzStartle";
     }
 
     public static bool IsAbleToUpdateOwnWorld()
@@ -67,9 +68,9 @@ public static class Multiplayer
             {
                 messageType = MessageType.GrouseEvent;
             }
-            else if (message is CritterzBushFxInfo)
+            else if (message is CritterzStartleInfo)
             {
-                messageType = MessageType.CritterzBushFx;
+                messageType = MessageType.CritterzStartle;
             }
             else
             {
@@ -103,10 +104,9 @@ public static class Multiplayer
                     var grouseEventData = e.ReadAs<GrouseEventInfo>();
                     HandleGrouseEventFromMessage(e.FromPlayerID, grouseEventData);
                     break;
-                case MessageType.CritterzBushFx:
-                    var bushFxData = e.ReadAs<CritterzBushFxInfo>();
-                    if (Utilities.IsColocatedWithPlayer(Game1.player, bushFxData.LocationName))
-                        HandleCritterzBushFxFromMessage(bushFxData);
+                case MessageType.CritterzStartle:
+                    var startleData = e.ReadAs<CritterzStartleInfo>();
+                    HandleCritterzStartleFromMessage(startleData);
                     break;
                 default:
                     Instance?.Monitor.Log($"OnModMessageReceived: Unknown message type '{e.Type}' from mod '{e.FromModID}'", LogLevel.Warn);
@@ -131,15 +131,28 @@ public static class Multiplayer
         }
     }
 
-    public static void HandleCritterzBushFxFromMessage(CritterzBushFxInfo msg)
+    public static void HandleCritterzStartleFromMessage(CritterzStartleInfo msg)
     {
         try
         {
-            FogMod.HandleCritterzBushFx(msg);
+            // Grouse-flush style: only the updater commits, and a startle
+            // is only ever sent when the updater is the host.
+            if (!Context.IsMainPlayer || Instance == null)
+                return;
+            foreach (GameLocation loc in Game1.locations.Where(l => l != null && l.IsOutdoors))
+            {
+                Critterz? r = loc.characters?.OfType<Critterz>().FirstOrDefault(c => c.CritterzId == msg.CritterzId);
+                if (r != null)
+                {
+                    Instance.TryCommitCritterzRun(r, loc);
+                    return;
+                }
+            }
+            Instance.Monitor.Log($"🚀 Could not find critterz {msg.CritterzId} to startle", LogLevel.Warn);
         }
         catch (Exception ex)
         {
-            Instance?.Monitor.Log($"Error handling critterz bush fx message: {ex.Message}", LogLevel.Error);
+            Instance?.Monitor.Log($"🚀 Error handling critterz startle message: {ex.Message}", LogLevel.Error);
         }
     }
 

@@ -198,7 +198,7 @@ public partial class FogMod : Mod
         foreach (Critterz r in location.characters.OfType<Critterz>())
         {
             if (r.HomeBush == bush.Tile)
-                FogMod.TriggerCritterz(r);
+                FogMod.TriggerCritterz(r, location);
         }
     }
 

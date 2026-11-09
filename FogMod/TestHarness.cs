@@ -589,7 +589,7 @@ public partial class FogMod : Mod
         testRunner = SpawnCritterz(location, bush.Tile, false, bush.Tile);
         testCritters.Add(testRunner);
         Check(testRunner.State == CritterzState.Sitting, "spawn-sitting", $"state={testRunner.State}");
-        Check(testRunner.Skin >= 0 && testRunner.Skin <= 3, "spawn-skin", $"skin={testRunner.Skin}");
+        Check(testRunner.Skin >= 0 && testRunner.Skin <= Constants.RedRaccoonRow, "spawn-skin", $"skin={testRunner.Skin}");
         Check(testRunner.HomeBush == bush.Tile, "spawn-homebush", $"home={testRunner.HomeBush} bush={bush.Tile}");
         SnapCam(testRunner.Position);
         NextPhase();
@@ -733,7 +733,7 @@ public partial class FogMod : Mod
             }
             testVictim = SpawnCritterz(location, bush.Tile, false, bush.Tile);
             testCritters.Add(testVictim);
-            TriggerCritterz(testVictim);
+            TriggerCritterz(testVictim, location);
             SnapCam(testVictim.Position);
         }
         if (testVictim is not Critterz v)
@@ -994,7 +994,7 @@ public partial class FogMod : Mod
             }
             testSitterA = SpawnCritterz(location, bush.Tile, false, bush.Tile);
             testRunnerB = SpawnCritterz(location, bush.Tile, false, bush.Tile);
-            TriggerCritterz(testRunnerB);
+            TriggerCritterz(testRunnerB, location);
             testCritters.Add(testSitterA);
             testCritters.Add(testRunnerB);
             Tree? tree = TreeHelper.GetAvailableTreePositions(location).FirstOrDefault();
@@ -1144,7 +1144,7 @@ public partial class FogMod : Mod
             }
             testMissCritterz = SpawnCritterz(location, bush.Tile, false, bush.Tile);
             testCritters.Add(testMissCritterz);
-            TriggerCritterz(testMissCritterz);
+            TriggerCritterz(testMissCritterz, location);
             SnapCam(testMissCritterz.Position);
         }
         if (testMissCritterz is not Critterz b)
@@ -1344,7 +1344,7 @@ public partial class FogMod : Mod
             foreach (Bush b in bushes)
                 SpawnCritterz(location, b.Tile, false, b.Tile);
             testNowhere = SpawnCritterz(location, home.Tile, false, home.Tile);
-            TriggerCritterz(testNowhere);
+            TriggerCritterz(testNowhere, location);
             SnapCam(home.Tile * Game1.tileSize + new Vector2(32f, 32f));
             return;
         }

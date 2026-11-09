@@ -220,13 +220,34 @@ public partial class FogMod : Mod
             || reachable.Contains(bushTile + new Vector2(0, -1));
     }
 
-    // Any client can spook a sitting Critterz; the synced state transition is
-    // picked up by whoever updates that location, which selects the
-    // destination and plays the burst there.
-    public static void TriggerCritterz(Critterz r)
+    // Any client can spook a sitting Critterz, grouse-flush style: the
+    // updater commits to the run (destination first, then the synced
+    // transition, which plays the burst on every client); anyone else asks
+    // the updater to commit.
+    public static void TriggerCritterz(Critterz r, GameLocation location)
     {
-        if (r.State == CritterzState.Sitting)
+        if (r.State != CritterzState.Sitting)
+            return;
+        if (Utils.Multiplayer.IsAbleToUpdateOwnWorld())
+            Instance?.TryCommitCritterzRun(r, location);
+        else
+            Utils.Multiplayer.SendMessage(new CritterzStartleInfo(r.CritterzId));
+    }
+
+    // Updater-only: pick a destination and start the run. Path first, then
+    // the synced transition, so the burst fx derived from it never plays
+    // for a run that isn't happening. No path, no commit: stay sitting.
+    public void TryCommitCritterzRun(Critterz r, GameLocation location)
+    {
+        if (r.State != CritterzState.Sitting)
+            return;
+        if (SelectDestination(r, location) is (Vector2 bush, List<Vector2> path))
+        {
+            r.DestBush = bush;
+            r.Path = path;
             r.State = CritterzState.Running;
+            DropCritterzSnacks(r, location);
+        }
     }
 
     private void UpdateCritterz(float deltaSeconds)
@@ -258,22 +279,24 @@ public partial class FogMod : Mod
     {
         if (r.Path == null)
         {
+            // Takeover only: commits always set a path before writing
+            // Running, so a missing path means this client took over the
+            // location mid-run. Re-path silently (the burst already played)
+            // or duck back if stuck.
             if (SelectDestination(r, location) is (Vector2 bush, List<Vector2> path))
             {
                 r.DestBush = bush;
                 r.Path = path;
-                BurstFromBush(r, location);
             }
             else
             {
-                // Nowhere to run: duck back into hiding, silently.
                 r.State = CritterzState.Sitting;
             }
             return;
         }
         if (r.Path.Count == 0)
         {
-            ArriveCritterz(r, location);
+            ArriveCritterz(r);
             return;
         }
 
@@ -290,7 +313,7 @@ public partial class FogMod : Mod
             if (r.Path.Count > 0 && Game1.random.NextDouble() < Constants.CritterzTurnSoundChance)
                 location.playSound(Constants.CritterzTurnAudioCueId, r.TilePosition);
             if (r.Path.Count == 0)
-                ArriveCritterz(r, location);
+                ArriveCritterz(r);
         }
         else
         {
@@ -298,18 +321,9 @@ public partial class FogMod : Mod
         }
     }
 
-    private void BurstFromBush(Critterz r, GameLocation location)
-    {
-        if (BushHelper.GetAvailableBushes(location).FirstOrDefault(b => b.Tile == r.HomeBush) is Bush bush)
-        {
-            PlayCritterzBushFx(location, bush);
-            Utils.Multiplayer.SendMessage(new CritterzBushFxInfo(location.NameOrUniqueName, bush.Tile));
-        }
-        DropCritterzSnacks(r, location);
-    }
-
     // Flush snacks, grouse-egg style: what the critter was nibbling. Single
     // snack at a flat chance per burst (bursts repeat, so no luck scaling).
+    // Updater-only; the debris syncs to farmhands through the engine.
     private static void DropCritterzSnacks(Critterz r, GameLocation location)
     {
         if (FogMod.Random.NextDouble() >= Constants.CritterzSnackChance)
@@ -319,34 +333,19 @@ public partial class FogMod : Mod
         Utilities.CreateItemDrop(r.Position, location, snack, 1, Game1.random.Next(4));
     }
 
-    private void ArriveCritterz(Critterz r, GameLocation location)
+    private void ArriveCritterz(Critterz r)
     {
-        Vector2 dest = r.DestBush ?? r.HomeBush;
-        if (BushHelper.GetAvailableBushes(location).FirstOrDefault(b => b.Tile == dest) is Bush bush)
-        {
-            PlayCritterzBushFx(location, bush);
-            Utils.Multiplayer.SendMessage(new CritterzBushFxInfo(location.NameOrUniqueName, bush.Tile));
-        }
+        // Home bush first: the arrival fx derives from its transition.
         r.Path = null;
-        r.HomeBush = dest;
+        r.HomeBush = r.DestBush ?? r.HomeBush;
         r.DestBush = null;
         r.State = CritterzState.Sitting;
-    }
-
-    public static void HandleCritterzBushFx(CritterzBushFxInfo info)
-    {
-        if (Game1.currentLocation is GameLocation location
-            && location.NameOrUniqueName == info.LocationName
-            && BushHelper.GetAvailableBushes(location).FirstOrDefault(b => b.Tile == info.BushTile) is Bush bush)
-        {
-            PlayCritterzBushFx(location, bush);
-        }
     }
 
     // Local-only bush fx: wobble + leaves + rustle, with no harvest.
     // Bush.shake would drop fruit (and grant XP), and neither the wobble
     // (plain fields) nor our leaves (local list) sync, so every client plays
-    // this locally: the updater directly, farmhands via CritterzBushFxInfo.
+    // this locally from the synced transitions, grouse-leaf style.
     public static void PlayCritterzBushFx(GameLocation location, Bush bush)
     {
         try
