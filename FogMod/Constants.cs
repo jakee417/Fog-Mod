@@ -74,7 +74,7 @@ public static class Constants
     public const float CritterzRunSpeed = 360f;
     public const float CritterzZigZagAmplitudePx = 32f;
     public const string CritterzTurnAudioCueId = "cowboy_gopher";
-    public const float CritterzTurnSoundChance = 0.25f;
+    public const float CritterzTurnSoundChance = 0.125f;
     public const int CritterzMaxPerLocation = 5;
     public const float CritterzSpawnChance = 0.2f;
     public const int CritterzDestinationTries = 3;
