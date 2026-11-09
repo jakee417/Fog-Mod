@@ -50,7 +50,6 @@ public partial class FogMod : Mod
         helper.Events.Multiplayer.ModMessageReceived += Utils.Multiplayer.OnModMessageReceived;
         helper.Events.Input.ButtonPressed += OnButtonPressed;
         helper.Events.Player.Warped += OnWarped;
-        helper.Events.GameLoop.TimeChanged += OnTimeChanged;
         helper.Events.GameLoop.UpdateTicked += OnUpdateTicked;
         helper.Events.Display.Rendered += OnRendered;
         helper.Events.GameLoop.DayEnding += OnDayEnding;
@@ -554,18 +553,6 @@ public partial class FogMod : Mod
             InitializeCritterz();
     }
 
-    private void OnTimeChanged(object? sender, TimeChangedEventArgs e)
-    {
-        // The clock only runs backward for the new-day reset, which lands
-        // between DayEnding and the save: spawning there re-adds wildlife
-        // the serializer chokes on (custom types aren't save-serializable).
-        if (e.NewTime < e.OldTime)
-            return;
-        // Mirror native critter spawns, which run on the ten-minute update.
-        if (Context.IsMainPlayer && Config.EnableCritterz)
-            SpawnCritterzInBushes(outdoorLocations);
-    }
-
     private void OnDayEnding(object? sender, DayEndingEventArgs e)
     {
         ClearWildlifeForSave();
@@ -595,9 +582,6 @@ public partial class FogMod : Mod
         {
             ResetAllParticlesOnLocationChange();
             RecolorArmsTexture(Game1.player);
-            // Mirror native critter spawns, which also run on warp.
-            if (Context.IsMainPlayer && Config.EnableCritterz && e.NewLocation.IsOutdoors)
-                TrySpawnCritterz(e.NewLocation);
             // Clear native rabbits/squirrels already present in the new location.
             if (Config.EnableCritterz)
                 Utils.NativeCritters.SweepSuppressedCritters(e.NewLocation);

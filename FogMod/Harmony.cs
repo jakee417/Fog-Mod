@@ -355,11 +355,11 @@ public partial class FogMod : Mod
     // choke point (no location subclass overrides it), so a prefix here cuts
     // them off at the source while Critterz are on. Everything else passes
     // through to the original.
-    public static bool OnAddCritterPrefix(Critter critter)
+    public static bool OnAddCritterPrefix(Critter c)
     {
         try
         {
-            if (FogMod.Config.EnableCritterz && Utils.NativeCritters.ShouldSuppress(critter.GetType()))
+            if (FogMod.Config.EnableCritterz && Utils.NativeCritters.ShouldSuppress(c.GetType()))
                 return false;
         }
         catch (Exception ex)

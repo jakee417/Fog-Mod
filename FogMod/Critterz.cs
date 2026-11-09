@@ -144,7 +144,11 @@ public partial class FogMod : Mod
         }
     }
 
-    // Preallocate hidden Critterz inside bushes, grouse-perch style.
+    // Preallocate hidden Critterz inside bushes, grouse-perch style: same
+    // day-start mass spawn as grouse (per-slot roll, deterministic
+    // per-location-per-day RNG, fog-day doubling, per-location cap). Bushes
+    // keep the reachable-exit filter grouse don't need: Critterz run on the
+    // ground, so a bush with no way out would hide one forever.
     public void TrySpawnCritterz(GameLocation location)
     {
         if (location is Farm || location is StardewValley.Locations.Desert)
@@ -152,20 +156,21 @@ public partial class FogMod : Mod
         if (location.largeTerrainFeatures == null || location.largeTerrainFeatures.Count == 0)
             return;
 
+        int locationSeed = location.NameOrUniqueName.GetHashCode();
+        int daySeed = (int)Game1.stats.DaysPlayed;
+        var locationRng = new Random(locationSeed ^ daySeed);
         int critterzCount = location.characters.Count(c => c is Critterz);
-        if (critterzCount >= Constants.CritterzMaxPerLocation)
-            return;
-
         HashSet<Vector2> reachable = GetReachableTiles(location);
-        List<Bush> bushes = BushHelper.GetAvailableBushes(location)
-            .Where(b => HasReachableExit(b.Tile, reachable))
-            .OrderBy(_ => Game1.random.Next())
-            .ToList();
-        foreach (Bush bush in bushes)
+        foreach (Bush bush in BushHelper.GetAvailableBushes(location))
         {
             if (critterzCount >= Constants.CritterzMaxPerLocation)
                 break;
-            if (Game1.random.NextDouble() >= Constants.CritterzSpawnChance)
+            if (!HasReachableExit(bush.Tile, reachable))
+                continue;
+
+            // More fog, more Critterz!
+            float probabilityOfCritterz = Constants.CritterzSpawnChance * (isFogDay ? 2f : 1f);
+            if (locationRng.NextDouble() >= probabilityOfCritterz)
                 continue;
             SpawnCritterz(location, bush.Tile, Game1.random.NextBool(), bush.Tile);
             critterzCount++;
