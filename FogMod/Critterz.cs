@@ -180,8 +180,8 @@ public partial class FogMod : Mod
             position: tile,
             salt: (int)Random.NextInt64()
         );
-        // Skin only: squirrel, bunny (grey/white by season), or raccoon row.
-        int skin = CritterzLogic.PickSkin(Game1.random.Next(3), location.IsWinterHere());
+        // Skin only: squirrel, bunny (grey/white by season), raccoon, or red raccoon row.
+        int skin = CritterzLogic.PickSkin(Game1.random.Next(4), location.IsWinterHere());
         Critterz newCritterz = new Critterz(
             critterzId: critterzId,
             location: location,

@@ -113,13 +113,14 @@ public static class CritterzLogic
         return 0;
     }
 
-    // Skin only: squirrel, bunny (grey/white by season), or raccoon row.
+    // Skin only: squirrel, bunny (grey/white by season), raccoon, or red raccoon row.
     public static int PickSkin(int roll, bool isWinter)
     {
         return roll switch
         {
             0 => Constants.SquirrelRow,
             2 => Constants.RaccoonRow,
+            3 => Constants.RedRaccoonRow,
             _ => isWinter ? Constants.WhiteBunnyRow : Constants.GreyBunnyRow,
         };
     }
@@ -150,6 +151,7 @@ public static class CritterzLogic
                     loot.Add(nuts[rng.Next(nuts.Length)]);
                 break;
             case Constants.RaccoonRow:
+            case Constants.RedRaccoonRow:
             default:
                 string[] trash = { "168", "169", "170", "171", "172" };
                 for (int i = 0, n = rng.Next(0, maxCommons); i < n; i++)

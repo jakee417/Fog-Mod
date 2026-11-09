@@ -146,6 +146,8 @@ public class CritterzLogicTests
     {
         Assert.Equal(Constants.SquirrelRow, Utils.CritterzLogic.PickSkin(0, false));
         Assert.Equal(Constants.RaccoonRow, Utils.CritterzLogic.PickSkin(2, true));
+        Assert.Equal(Constants.RedRaccoonRow, Utils.CritterzLogic.PickSkin(3, false));
+        Assert.Equal(Constants.RedRaccoonRow, Utils.CritterzLogic.PickSkin(3, true));
         Assert.Equal(Constants.WhiteBunnyRow, Utils.CritterzLogic.PickSkin(1, true));
         Assert.Equal(Constants.GreyBunnyRow, Utils.CritterzLogic.PickSkin(1, false));
     }
@@ -174,6 +176,9 @@ public class CritterzLogicTests
                 Assert.Contains(id, nuts);
             foreach (string id in Utils.CritterzLogic.RollLootToDrop(
                 Constants.RaccoonRow, seed % 2 == 0, new Random(seed)))
+                Assert.Contains(id, trash);
+            foreach (string id in Utils.CritterzLogic.RollLootToDrop(
+                Constants.RedRaccoonRow, seed % 2 == 0, new Random(seed)))
                 Assert.Contains(id, trash);
             foreach (string id in Utils.CritterzLogic.RollLootToDrop(99, false, new Random(seed)))
                 Assert.Contains(id, trash);

@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- Critterz: shootable critters (squirrel, grey/white bunny, raccoon) hide in bushes, flush when a bush is shaken, hit, or used, then run to another bush. Toggle with the `EnableCritterz` option; flushing bursts can drop snacks, and kills drop skin-specific loot.
+- Critterz: shootable critters (squirrel, grey/white bunny, raccoon, red raccoon) hide in bushes, flush when a bush is shaken, hit, or used, then run to another bush. Toggle with the `EnableCritterz` option; flushing bursts can drop snacks, and kills drop skin-specific loot.
 - Native rabbits and squirrels no longer appear while Critterz are enabled. Other critters (butterflies, birds, other mods' critters) are unaffected.
 - `give_scattergun` console command: adds the Scattergun to your inventory.
 

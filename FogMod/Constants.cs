@@ -64,12 +64,13 @@ public static class Constants
 
     // Critterz constants (loop mirrors the grouse: hide, trigger, run, hide)
     public const string CritterzName = "Critterz";
-    // critterz.png rows, 7 frames each: squirrel, grey bunny, white bunny, raccoon.
+    // critterz.png rows, 7 frames each: squirrel, grey bunny, white bunny, raccoon, red raccoon.
     public const int CritterRowLength = 7;
     public const int SquirrelRow = 0;
     public const int GreyBunnyRow = 1;
     public const int WhiteBunnyRow = 2;
     public const int RaccoonRow = 3;
+    public const int RedRaccoonRow = 4;
     public const float CritterzRunSpeed = 360f;
     public const float CritterzZigZagAmplitudePx = 32f;
     public const string CritterzTurnAudioCueId = "cowboy_gopher";
